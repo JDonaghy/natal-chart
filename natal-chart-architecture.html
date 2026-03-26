@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<title></title>
+	<meta name="generator" content="LibreOffice 24.2.7.2 (Linux)"/>
+	<meta name="author" content="Un-named"/>
+	<meta name="created" content="2026-03-26T17:23:06.382000000"/>
+	<meta name="changedby" content="Un-named"/>
+	<meta name="changed" content="2026-03-26T17:23:06.383000000"/>
+	<style type="text/css">
+		@page { size: 8.5in 11in; margin-left: 1in; margin-right: 1in; margin-top: 0.49in; margin-bottom: 0.49in }
+		p { line-height: 115%; text-align: left; orphans: 2; widows: 2; margin-bottom: 0.1in; direction: ltr; background: transparent }
+		h1 { color: #1a1a2e; text-align: left; orphans: 2; widows: 2; margin-top: 0.28in; margin-bottom: 0.11in; direction: ltr; background: transparent; page-break-after: avoid }
+		h1.western { font-family: "Georgia", sans-serif; font-size: 18pt; font-weight: bold }
+		h1.cjk { font-family: "Georgia"; font-size: 18pt; font-weight: bold }
+		h1.ctl { font-family: "Georgia"; font-size: 18pt; font-weight: bold }
+		h2 { color: #2c2c54; text-align: left; orphans: 2; widows: 2; margin-top: 0.21in; margin-bottom: 0.08in; direction: ltr; background: transparent; page-break-after: avoid }
+		h2.western { font-family: "Georgia", sans-serif; font-size: 14pt; font-weight: bold }
+		h2.cjk { font-family: "Georgia"; font-size: 14pt; font-weight: bold }
+		h2.ctl { font-family: "Georgia"; font-size: 14pt; font-weight: bold }
+		a:link { color: #0563c1; text-decoration: underline }
+	</style>
+</head>
+<body lang="en-US" link="#0563c1" vlink="#800000" dir="ltr">
+<div title="header"><p style="line-height: 100%; margin-bottom: 0.47in; border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+	<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 9pt"><i>Astrology
+	App — Architecture Reference</i></font></font></font><font face="Georgia, serif"><font size="2" style="font-size: 9pt">	</font></font><font color="#b8860b"><font face="Georgia, serif"><font size="2" style="font-size: 9pt">CONFIDENTIAL
+	DRAFT</font></font></font></p>
+</div><p align="center" style="line-height: 100%; margin-top: 0.83in; margin-bottom: 0.08in">
+<font color="#1a1a2e">✦  <font face="Georgia, serif"><font size="7" style="font-size: 32pt"><b>Natal
+Chart  ✦</b></font></font></font></p>
+<p align="center" style="line-height: 100%; margin-bottom: 0.06in"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><i>Architecture
+&amp; Engineering Reference</i></font></font></font></p>
+<p align="center" style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.42in">
+<font color="#b8860b"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">v1.0
+ ·  For use with Claude Code</font></font></font></p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>1.
+Project Overview</b></font></font></font></h1>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">A
+browser-first, serverless birth chart application that computes and
+renders traditional Western natal charts entirely on the client side.
+The app will be hosted on GitHub Pages, protected against abuse with
+Cloudflare, and built with a React codebase that shares logic with a
+future React Native mobile app.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<table width="624" cellpadding="5" cellspacing="0">
+	<col width="176"/>
+	<col width="426"/>
+	<tr valign="top">
+		<td width="176" bgcolor="#ede4d0" style="background: #ede4d0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>App
+			name (working)</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Natal
+			Chart</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#f5f0e8" style="background: #f5f0e8; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Primary
+			platform</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Web
+			(GitHub Pages), iOS/Android later</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#ede4d0" style="background: #ede4d0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Calculation
+			engine</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Swiss
+			Ephemeris via WebAssembly (swisseph-wasm)</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#f5f0e8" style="background: #f5f0e8; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Backend
+			philosophy</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Serverless-first;
+			Cloudflare Workers for thin proxy only</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#ede4d0" style="background: #ede4d0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Open
+			source</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Yes
+			— public GitHub repo</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#f5f0e8" style="background: #f5f0e8; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Monetisation</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Free
+			tier now; paid features via Stripe in future</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#ede4d0" style="background: #ede4d0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Visual
+			style</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Classic
+			/ traditional — parchment tones, gold lines</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#f5f0e8" style="background: #f5f0e8; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Target
+			dev environment</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Claude
+			Code (Anthropic subscription)</font></font></font></p>
+		</td>
+	</tr>
+</table>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>2.
+Guiding Principles</b></font></font></font></h1>
+<ul>
+	<li value="1"><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Serverless
+	by default. No persistent server. All chart math runs in the browser
+	via WASM. Only a Cloudflare Worker is used as a thin proxy for
+	geocoding (to hide the API key and apply rate limits).</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">One
+	codebase, two platforms. React (web) + React Native (mobile) share
+	all business logic, calculation hooks, and data models. Only
+	rendering differs.</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Privacy-respecting.
+	Birth data never leaves the device except for geocoding (city →
+	lat/lng). No accounts, no data storage by default in v1.</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Bot
+	protection without a backend. Cloudflare Turnstile handles human
+	verification at the edge for free, with zero server infrastructure.</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Open
+	source, responsibly. API keys live only in Cloudflare Worker secrets
+	— never in the repo.</font></font></font></p></li>
+</ul>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>3.
+High-Level Architecture</b></font></font></font></h1>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">The
+system has three tiers: the static frontend, an optional thin edge
+layer, and third-party services.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<table width="624" cellpadding="5" cellspacing="0">
+	<col width="149"/>
+	<col width="222"/>
+	<col width="221"/>
+	<tr valign="top">
+		<td width="149" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Tier</b></font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>What
+			runs here</b></font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Hosted
+			on</b></font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Frontend</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">React
+			app, swisseph-wasm, chart SVG rendering, all UI</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">GitHub
+			Pages</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Edge
+			proxy</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Geocoding
+			proxy, bot protection, rate limiting, future auth</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Cloudflare
+			Workers (free tier)</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Third-party
+			APIs</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Geocoding
+			(OpenCage), Payments (Stripe), CDN fonts</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Vendor-hosted</font></font></font></p>
+		</td>
+	</tr>
+</table>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-top: 0.07in; margin-bottom: 0.07in; border-top: none; border-bottom: none; border-left: 1.00pt solid #b8860b; border-right: none; padding-top: 0in; padding-bottom: 0in; padding-left: 0.11in; padding-right: 0in">
+<font color="#5c4a1e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><i>The
+edge proxy is the only component that requires any account setup
+beyond GitHub. Cloudflare's free tier (100,000 Worker requests/day)
+is more than sufficient for a new app.</i></font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>4.
+Repository Layout</b></font></font></font></h1>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">A
+monorepo structure keeps web and mobile code together while sharing
+the calculation core.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">natal-chart/</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">packages/</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">    <font face="Courier New, serif"><font size="2" style="font-size: 9pt">core/
+             ← Pure TS: ephemeris wrappers, house calc, aspect
+engine</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">    <font face="Courier New, serif"><font size="2" style="font-size: 9pt">web/
+              ← Vite + React app (GitHub Pages target)</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">    <font face="Courier New, serif"><font size="2" style="font-size: 9pt">mobile/
+           ← React Native app (future)</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">    <font face="Courier New, serif"><font size="2" style="font-size: 9pt">worker/
+           ← Cloudflare Worker (geocoding proxy)</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">.github/</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">    <font face="Courier New, serif"><font size="2" style="font-size: 9pt">workflows/</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">      <font face="Courier New, serif"><font size="2" style="font-size: 9pt">deploy.yml
+      ← CI: build + deploy to GitHub Pages on push to main</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">package.json
+        ← pnpm workspace root</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Use
+pnpm workspaces for package management. This allows packages/core to
+be imported by both web and mobile without publishing to npm.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>5.
+Calculation Engine (packages/core)</b></font></font></font></h1>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>5.1
+Swiss Ephemeris WASM</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">The
+Swiss Ephemeris is the gold standard for astrological calculation,
+used by professional software worldwide. The npm package
+swisseph-wasm provides a pre-compiled WebAssembly build that runs in
+any modern browser.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">pnpm
+add swisseph-wasm</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-top: 0.07in; margin-bottom: 0.07in; border-top: none; border-bottom: none; border-left: 1.00pt solid #b8860b; border-right: none; padding-top: 0in; padding-bottom: 0in; padding-left: 0.11in; padding-right: 0in">
+<font color="#5c4a1e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><i>Critical:
+swisseph-wasm requires ephemeris data files (*.se1) to be co-located
+with the WASM binary and served with the correct MIME type. Vite's
+public/ folder is the right place. Validate this early — it is the
+most common failure mode.</i></font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<ul>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Planets
+	computed: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus,
+	Neptune, Pluto, North Node, Chiron</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Ascendant
+	and Midheaven computed via swe_houses()</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Default
+	house system: Placidus (most common in Western astrology). Expose as
+	a user setting later.</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">All
+	times must be converted to Julian Day Number (JDN) in UTC before
+	passing to the library.</font></font></font></p></li>
+</ul>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>5.2
+Core Module API</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Expose
+a clean TypeScript API from packages/core so neither web nor mobile
+touches swisseph-wasm directly:</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">interface
+BirthData {</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">dateTimeUtc:
+Date;   // already converted from local time</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">latitude:
+   number; // decimal degrees</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">longitude:
+  number; // decimal degrees</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">houseSystem:
+'P' | 'W' | 'K'; // Placidus | Whole Sign | Koch</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">}</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">interface
+ChartResult {</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">planets:
+ PlanetPosition[];  // sign, degree, house, retrograde</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">houses:
+  HouseCusp[];       // 12 cusps in ecliptic longitude</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">angles:
+  Angles;            // ASC, MC, DSC, IC</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">aspects:
+ Aspect[];          // pairs + orb + applying/separating</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">}</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">export
+async function calculateChart(data: BirthData): Promise&lt;ChartResult&gt;</font></font></font></p>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>5.3
+Aspect Calculation</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Aspects
+are angular relationships between planets. Implement the classical
+set with standard orbs:</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<table width="624" cellpadding="5" cellspacing="0">
+	<col width="149"/>
+	<col width="222"/>
+	<col width="221"/>
+	<tr valign="top">
+		<td width="149" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Aspect</b></font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Angle</b></font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Default
+			Orb</b></font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Conjunction</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">0°</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">8°</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Opposition</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">180°</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">8°</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Trine</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">120°</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">6°</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Square</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">90°</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">6°</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Sextile</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">60°</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">4°</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Quincunx</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">150°</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">2°</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Semi-sextile</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">30°</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">1°</font></font></font></p>
+		</td>
+	</tr>
+</table>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>6.
+Geocoding Proxy (packages/worker)</b></font></font></font></h1>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>6.1
+Why a Proxy</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Geocoding
+APIs require a key. Exposing that key in browser JavaScript would
+allow anyone to exhaust your quota. A Cloudflare Worker solves this:
+the key lives in Worker Secrets (encrypted, not in git), and the
+Worker enforces rate limits before forwarding requests to OpenCage.</font></font></font></p>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>6.2
+Recommended Service: OpenCage</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">OpenCage
+Geocoding API is well-suited for this use case: 2,500 free
+requests/day, no credit card required for the free tier, and good
+coverage for historical birth locations.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">GET
+https://api.opencagedata.com/geocode/v1/json</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"> 
+<font face="Courier New, serif"><font size="2" style="font-size: 9pt">?q={city+country}&amp;key={SECRET}&amp;limit=5&amp;no_annotations=1</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>6.3
+Worker Logic</b></font></font></font></h2>
+<ul>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Accept
+	POST /geocode from the frontend with { query: string }</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Validate
+	Cloudflare Turnstile token (see Section 8)</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Apply
+	rate limit: max 10 requests per IP per minute using Cloudflare's
+	built-in rate limiting</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Forward
+	to OpenCage, return top 5 results (name, lat, lng, country)</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Cache
+	responses in KV for 30 days — birth cities don't move</font></font></font></p></li>
+</ul>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-top: 0.07in; margin-bottom: 0.07in; border-top: none; border-bottom: none; border-left: 1.00pt solid #b8860b; border-right: none; padding-top: 0in; padding-bottom: 0in; padding-left: 0.11in; padding-right: 0in">
+<font color="#5c4a1e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><i>Set
+CORS headers to allow only your GitHub Pages domain. This prevents
+other sites from using your worker as a free geocoding relay.</i></font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>7.
+GitHub Pages Deployment</b></font></font></font></h1>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>7.1
+Vite Configuration</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">GitHub
+Pages serves sites at https://{username}.github.io/{repo-name}/. Vite
+must be told the base path:</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">//
+vite.config.ts</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">export
+default defineConfig({</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">base:
+'/natal-chart/',  // matches your repo name</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">build:
+{ outDir: 'dist' }</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">})</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>7.2
+GitHub Actions CI/CD</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Create
+.github/workflows/deploy.yml. On every push to main: install
+dependencies, run tests, build, deploy to the gh-pages branch.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">on:
+push: branches: [main]</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">jobs:</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">deploy:</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">    <font face="Courier New, serif"><font size="2" style="font-size: 9pt">runs-on:
+ubuntu-latest</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">    <font face="Courier New, serif"><font size="2" style="font-size: 9pt">steps:</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">      <font face="Courier New, serif"><font size="2" style="font-size: 9pt">-
+uses: actions/checkout@v4</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">      <font face="Courier New, serif"><font size="2" style="font-size: 9pt">-
+uses: pnpm/action-setup@v3</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">      <font face="Courier New, serif"><font size="2" style="font-size: 9pt">-
+run: pnpm install</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">      <font face="Courier New, serif"><font size="2" style="font-size: 9pt">-
+run: pnpm --filter web build</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">      <font face="Courier New, serif"><font size="2" style="font-size: 9pt">-
+uses: peaceiris/actions-gh-pages@v4</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">        <font face="Courier New, serif"><font size="2" style="font-size: 9pt">with:
+{ github_token: ${{ secrets.GITHUB_TOKEN }}, publish_dir:
+packages/web/dist }</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>7.3
+SPA Routing</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">GitHub
+Pages does not support client-side routing out of the box. Use the
+404.html redirect trick: copy index.html to 404.html in the build
+output so that deep links reload the app rather than returning a 404.
+Alternatively, use hash-based routing (React Router with
+createHashRouter) to avoid the issue entirely — recommended for v1.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>8.
+Bot Protection</b></font></font></font></h1>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>8.1
+Cloudflare Turnstile</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Turnstile
+is Cloudflare's privacy-preserving alternative to reCAPTCHA. It is
+free with no usage limits and requires no Cloudflare-hosted domain —
+it works with GitHub Pages.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<ul>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Frontend:
+	embed the Turnstile widget using @marsidev/react-turnstile</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">On
+	solve, the widget returns a short-lived token</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Send
+	the token with every geocoding request to the Worker</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Worker
+	validates the token server-side with Cloudflare's siteverify API
+	before forwarding to OpenCage</font></font></font></p></li>
+</ul>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">//
+Worker validation</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">const
+res = await
+fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">method:
+'POST',</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728">  <font face="Courier New, serif"><font size="2" style="font-size: 9pt">body:
+JSON.stringify({ secret: env.TURNSTILE_SECRET, response: token })</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">})</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-top: 0.07in; margin-bottom: 0.07in; border-top: none; border-bottom: none; border-left: 1.00pt solid #b8860b; border-right: none; padding-top: 0in; padding-bottom: 0in; padding-left: 0.11in; padding-right: 0in">
+<font color="#5c4a1e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><i>Turnstile
+tokens expire after 5 minutes and can only be validated once. For
+chart calculation (which is 100% client-side WASM), no bot protection
+is needed — only the geocoding endpoint needs protection.</i></font></font></font></p>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>8.2
+Rate Limiting</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Configure
+Cloudflare Rate Limiting rules on the Worker route: 10
+requests/minute per IP for geocoding, 60/minute per IP overall. This
+is configured in the Cloudflare dashboard, not in code.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>9.
+Chart Wheel Rendering</b></font></font></font></h1>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>9.1
+Approach: SVG in React</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Render
+the natal chart wheel as an SVG element directly in React. SVG gives
+precise control over every line, glyph, and arc. Avoid canvas for
+this — SVG is easier to theme, scale, and later adapt to React
+Native SVG.</font></font></font></p>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>9.2
+Visual Style: Classic / Traditional</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Execute
+a parchment-and-gold aesthetic consistent with vintage printed
+ephemerides:</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<ul>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Background:
+	warm parchment (#F5F0E8) or near-white cream</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Wheel
+	rings: multiple concentric circles with fine gold stroke (#B8860B or
+	#D4AF37)</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Zodiac
+	band (outermost ring): alternating pale fills per sign, classic
+	glyph symbols</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">House
+	lines: thin gold radial spokes from center to zodiac ring</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Planet
+	glyphs: Unicode astrological symbols (☉ ☽ ♂ ♃ etc.) in a
+	serif font</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Aspect
+	lines (innermost circle): color-coded thin lines — blue trines,
+	red squares, green sextiles</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Typography:
+	a serif or old-style font (e.g. IM Fell English, Crimson Text, or
+	Cormorant) for degree labels</font></font></font></p></li>
+</ul>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>9.3
+Rendering Layers (SVG groups)</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Structure
+the SVG with explicit &lt;g&gt; groups in z-order:</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">1.
+ Background circle (parchment fill)</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">2.
+ Aspect lines group  (innermost, below everything)</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">3.
+ House division lines</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">4.
+ Zodiac sign band</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">5.
+ Degree tick marks</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">6.
+ Sign glyphs + labels</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">7.
+ Planet glyph group  (topmost, must not overlap)</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">8.
+ ASC / MC angle markers</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-top: 0.07in; margin-bottom: 0.07in; border-top: none; border-bottom: none; border-left: 1.00pt solid #b8860b; border-right: none; padding-top: 0in; padding-bottom: 0in; padding-left: 0.11in; padding-right: 0in">
+<font color="#5c4a1e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><i>Planet
+glyph collision detection is the hardest rendering problem. When two
+planets are within ~5° of each other, their glyphs overlap.
+Implement a simple angular offset algorithm: if two planets are
+within a threshold, nudge one outward along the radius.</i></font></font></font></p>
+<h2 class="western"><font color="#2c2c54"><font face="Georgia, serif"><font size="4" style="font-size: 14pt"><b>9.4
+Coordinate System</b></font></font></font></h2>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Astrology
+wheels conventionally place 0° Aries at the 9 o'clock position
+(left), with degrees increasing counter-clockwise. Convert ecliptic
+longitude to SVG screen angle as:</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">//
+svgAngle: 0 = right (3 o'clock), increases clockwise</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">//
+eclLon:   0 = Aries, increases counter-clockwise from 9 o'clock</font></font></font></p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-right: 0.25in; margin-top: 0.04in; margin-bottom: 0.04in; background: #f0ead6">
+<font color="#4a3728"><font face="Courier New, serif"><font size="2" style="font-size: 9pt">svgAngle
+= (180 - eclLon + ascendantDegree) % 360</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">The
+Ascendant always sits on the left (9 o'clock). Rotate the entire
+wheel so ASC aligns there.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>10.
+State Management</b></font></font></font></h1>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Keep
+it simple for v1. No Redux or Zustand needed.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<ul>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Use
+	React Context for the current ChartResult (available app-wide)</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Use
+	useState / useReducer within the birth data form</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Persist
+	the last chart to localStorage so the user's chart survives a page
+	refresh</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">URL
+	hash encoding of birth data (base64 JSON) enables shareable chart
+	links without a database</font></font></font></p></li>
+</ul>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>11.
+Future: Paid Features</b></font></font></font></h1>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">The
+architecture is designed to accommodate monetisation without
+requiring a traditional backend.</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<table width="624" cellpadding="5" cellspacing="0">
+	<col width="176"/>
+	<col width="426"/>
+	<tr valign="top">
+		<td width="176" bgcolor="#ede4d0" style="background: #ede4d0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Feature
+			idea</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Implementation
+			path</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#f5f0e8" style="background: #f5f0e8; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>PDF
+			birth chart export</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Generate
+			PDF client-side (jsPDF + SVG export) — no server needed</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#ede4d0" style="background: #ede4d0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Interpretations
+			/ readings</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Claude
+			API called via a Cloudflare Worker (adds auth check before
+			forwarding)</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#f5f0e8" style="background: #f5f0e8; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Saved
+			charts / account</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Cloudflare
+			Workers + D1 (SQLite at edge) + Cloudflare Access for auth</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#ede4d0" style="background: #ede4d0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Stripe
+			payments</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Stripe
+			Checkout hosted page; Stripe webhook handled by a Worker</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="176" bgcolor="#f5f0e8" style="background: #f5f0e8; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#2c2c54"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Synastry
+			/ composite charts</b></font></font></font></p>
+		</td>
+		<td width="426" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Pure
+			WASM — no infrastructure change</font></font></font></p>
+		</td>
+	</tr>
+</table>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-top: 0.07in; margin-bottom: 0.07in; border-top: none; border-bottom: none; border-left: 1.00pt solid #b8860b; border-right: none; padding-top: 0in; padding-bottom: 0in; padding-left: 0.11in; padding-right: 0in">
+<font color="#5c4a1e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><i>Adding
+the Cloudflare Worker for the geocoding proxy now (even before you
+need payments) gives you a natural place to add auth, payments, and
+AI features later without re-architecting.</i></font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>12.
+Mobile Path (React Native)</b></font></font></font></h1>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.08in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">The
+mobile app shares packages/core entirely unchanged. The only
+differences are rendering and navigation:</font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<ul>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Use
+	react-native-svg in place of browser SVG — the chart component
+	will need a thin adapter</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Use
+	Expo for the easiest iOS/Android build pipeline</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Geocoding
+	calls the same Cloudflare Worker endpoint</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.03in; margin-bottom: 0.03in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Consider
+	Expo EAS Build for CI/CD to App Store / Google Play</font></font></font></p></li>
+</ul>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-top: 0.07in; margin-bottom: 0.07in; border-top: none; border-bottom: none; border-left: 1.00pt solid #b8860b; border-right: none; padding-top: 0in; padding-bottom: 0in; padding-left: 0.11in; padding-right: 0in">
+<font color="#5c4a1e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><i>Do
+not start React Native until the web app is stable. The shared core
+package is the bridge — keep it clean and dependency-free (no
+browser APIs, no React).</i></font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>13.
+Technology Stack Summary</b></font></font></font></h1>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<table width="624" cellpadding="5" cellspacing="0">
+	<col width="149"/>
+	<col width="222"/>
+	<col width="221"/>
+	<tr valign="top">
+		<td width="149" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Layer</b></font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Technology</b></font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Notes</b></font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Build
+			tool</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Vite</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Fast,
+			GitHub Pages compatible</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">UI
+			framework</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">React
+			18</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Shared
+			with React Native</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Language</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">TypeScript</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Strict
+			mode throughout</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Monorepo</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">pnpm
+			workspaces</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Links
+			packages/core to both apps</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Ephemeris</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">swisseph-wasm</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">WASM
+			— runs in browser, no server</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Chart
+			rendering</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">SVG
+			(React)</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Adapt
+			to react-native-svg for mobile</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Geocoding
+			API</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">OpenCage</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">2,500
+			req/day free tier</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Edge
+			proxy</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Cloudflare
+			Workers</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Free:
+			100k req/day</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Bot
+			protection</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Cloudflare
+			Turnstile</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Free,
+			no usage cap</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">KV
+			cache</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Cloudflare
+			KV</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Cache
+			geocoding results</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">CI/CD</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">GitHub
+			Actions</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Auto-deploy
+			to gh-pages branch</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Fonts</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Google
+			Fonts CDN</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Cormorant
+			or IM Fell for glyphs</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Payments
+			(future)</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Stripe
+			Checkout</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Hosted
+			page, Worker webhook</font></font></font></p>
+		</td>
+	</tr>
+</table>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>14.
+Key Risks &amp; Mitigations</b></font></font></font></h1>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<table width="624" cellpadding="5" cellspacing="0">
+	<col width="149"/>
+	<col width="222"/>
+	<col width="221"/>
+	<tr valign="top">
+		<td width="149" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Risk</b></font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Likelihood</b></font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#1a1a2e" style="background: #1a1a2e; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#d4af37"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><b>Mitigation</b></font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">swisseph-wasm
+			fails to load ephemeris data files</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Medium</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Test
+			this first, before any UI work. File paths and MIME types are the
+			usual culprits.</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Planet
+			glyph overlap on crowded charts</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">High</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Build
+			collision offset algorithm early; it affects every chart.</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">OpenCage
+			quota exhaustion</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Low</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Cloudflare
+			KV caching eliminates repeat queries for the same city.</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">GitHub
+			Pages base-path routing breaks</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Medium</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#faf7f0" style="background: #faf7f0; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Use
+			hash router (#/) in v1 to sidestep entirely.</font></font></font></p>
+		</td>
+	</tr>
+	<tr valign="top">
+		<td width="149" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Turnstile
+			blocks legitimate users</font></font></font></p>
+		</td>
+		<td width="222" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Low</font></font></font></p>
+		</td>
+		<td width="221" bgcolor="#ffffff" style="background: #ffffff; border: 1px solid #d4c5a0; padding: 0.06in 0.11in"><p>
+			<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt">Turnstile's
+			challenge-free mode passes most real users silently.</font></font></font></p>
+		</td>
+	</tr>
+</table>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<h1 class="western" style="border-top: none; border-bottom: 1px solid #b8860b; border-left: none; border-right: none; padding-top: 0in; padding-bottom: 0.08in; padding-left: 0in; padding-right: 0in">
+<font color="#1a1a2e"><font face="Georgia, serif"><font size="5" style="font-size: 18pt"><b>15.
+Getting Started — Recommended Order</b></font></font></font></h1>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<ol>
+	<li value="1"><p style="line-height: 100%; margin-top: 0.04in; margin-bottom: 0.04in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Create
+	GitHub repo, initialise pnpm workspace, add packages/core,
+	packages/web, packages/worker</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.04in; margin-bottom: 0.04in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Spike:
+	load swisseph-wasm in a bare Vite app and compute the Sun position
+	for a known date. Validate against an online chart service.</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.04in; margin-bottom: 0.04in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Implement
+	packages/core: BirthData → ChartResult, with full planet, house,
+	and aspect output</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.04in; margin-bottom: 0.04in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Build
+	the birth data form (date, time, city search) with the geocoding
+	worker behind Turnstile</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.04in; margin-bottom: 0.04in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Build
+	the SVG chart wheel — start with circles, houses, and sign glyphs
+	before adding planets</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.04in; margin-bottom: 0.04in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Add
+	planet glyphs with collision detection, then aspect lines</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.04in; margin-bottom: 0.04in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Set
+	up GitHub Actions deploy workflow and verify live on GitHub Pages</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.04in; margin-bottom: 0.04in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Add
+	localStorage persistence and shareable URL encoding</font></font></font></p></li>
+	<li><p style="line-height: 100%; margin-top: 0.04in; margin-bottom: 0.04in">
+	<font color="#1a1a2e"><font face="Georgia, serif"><font size="2" style="font-size: 11pt">Polish
+	UI to the classic/traditional aesthetic, responsive layout,
+	accessibility</font></font></font></p></li>
+</ol>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-left: 0.25in; margin-top: 0.07in; margin-bottom: 0.07in; border-top: none; border-bottom: none; border-left: 1.00pt solid #b8860b; border-right: none; padding-top: 0in; padding-bottom: 0in; padding-left: 0.11in; padding-right: 0in">
+<font color="#5c4a1e"><font face="Georgia, serif"><font size="2" style="font-size: 10pt"><i>Steps
+1–3 are best done in a single Claude Code session. Step 2 (the
+swisseph-wasm spike) is the highest-risk item and should be green
+before any other work proceeds.</i></font></font></font></p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p style="line-height: 100%; margin-top: 0.06in; margin-bottom: 0.06in">
+<br/>
+<br/>
+
+</p>
+<p align="center" style="line-height: 100%; margin-top: 0.14in; margin-bottom: 0in">
+<font color="#b8860b">✦  ✦  ✦</font></p>
+<div title="footer"><p style="line-height: 100%; margin-top: 0.47in; margin-bottom: 0in; border-top: 1px solid #b8860b; border-bottom: none; border-left: none; border-right: none; padding-top: 0.08in; padding-bottom: 0in; padding-left: 0in; padding-right: 0in">
+	<font color="#2c2c54">★  <font face="Georgia, serif"><font size="2" style="font-size: 9pt">Natal
+	Chart App	Page </font></font></font><span style="background: #c0c0c0"><sdfield type=PAGE subtype=RANDOM format=PAGE>11</sdfield></span></p>
+</div>
+</body>
+</html>
