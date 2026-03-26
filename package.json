@@ -1,0 +1,38 @@
+{
+  "name": "natal-chart",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser-first natal chart calculator and visualizer",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "format": "pnpm -r format",
+    "typecheck": "pnpm -r typecheck",
+    "worker:dev": "pnpm --filter worker dev",
+    "clean": "pnpm -r clean && rm -rf node_modules"
+  },
+  "keywords": [
+    "astrology",
+    "natal-chart",
+    "birth-chart",
+    "swiss-ephemeris",
+    "webassembly"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3"
+  },
+  "pnpm": {
+    "overrides": {}
+  }
+}
