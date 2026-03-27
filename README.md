@@ -15,6 +15,7 @@ A browser-first natal chart (birth chart) calculator and visualizer using WebAss
 - ✅ Local storage persistence
 - ✅ Cloudflare Worker deployed and operational
 - ✅ GitHub Actions CI/CD configured
+- ✅ GitHub Pages enabled (https://jdonaghy.github.io/natal-chart/)
 
 ## Architecture
 
