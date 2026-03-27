@@ -99,8 +99,13 @@ export async function geocodeCity(query: string): Promise<GeocodeResult[]> {
     return geocodeCityMock(query);
   }
   
-  // Use real Cloudflare Worker
-  return geocodeCityReal(query);
+  // Use real Cloudflare Worker with fallback to mock
+  try {
+    return await geocodeCityReal(query);
+  } catch (error) {
+    console.error('geocodeCity: Falling back to mock due to error:', error);
+    return geocodeCityMock(query);
+  }
 }
 
 /**
