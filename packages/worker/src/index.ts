@@ -184,7 +184,7 @@ async function forwardToOpenCage(query: string, apiKey: string): Promise<Geocode
 
 function getAllowedOrigin(request: Request, allowedOrigin?: string): string {
   // If no allowed origin configured, use default
-  const defaultOrigin = 'https://your-username.github.io';
+  const defaultOrigin = 'https://jdonaghy.github.io';
   const allowedOrigins = allowedOrigin ? allowedOrigin.split(',').map(o => o.trim()) : [defaultOrigin];
   
   // Get request origin
@@ -193,7 +193,8 @@ function getAllowedOrigin(request: Request, allowedOrigin?: string): string {
   // If request has an origin and it's in allowed list, use it
   if (requestOrigin) {
     for (const origin of allowedOrigins) {
-      if (origin === requestOrigin || origin === '*') {
+      // Case-insensitive comparison for origins (scheme and host are case-insensitive)
+      if (origin.toLowerCase() === requestOrigin.toLowerCase() || origin === '*') {
         return requestOrigin;
       }
     }
@@ -204,7 +205,7 @@ function getAllowedOrigin(request: Request, allowedOrigin?: string): string {
 }
 
 function jsonResponse(data: any, status = 200, allowedOrigin?: string, request?: Request): Response {
-  const origin = request ? getAllowedOrigin(request, allowedOrigin) : (allowedOrigin || 'https://your-username.github.io');
+  const origin = request ? getAllowedOrigin(request, allowedOrigin) : (allowedOrigin || 'https://jdonaghy.github.io');
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -217,7 +218,7 @@ function jsonResponse(data: any, status = 200, allowedOrigin?: string, request?:
 }
 
 function handleCors(allowedOrigin?: string, request?: Request): Response {
-  const origin = request ? getAllowedOrigin(request, allowedOrigin) : (allowedOrigin || 'https://your-username.github.io');
+  const origin = request ? getAllowedOrigin(request, allowedOrigin) : (allowedOrigin || 'https://jdonaghy.github.io');
   return new Response(null, {
     headers: {
       'Access-Control-Allow-Origin': origin,

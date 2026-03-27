@@ -170,11 +170,8 @@ export async function geocodeCityReal(query: string): Promise<GeocodeResult[]> {
     return data;
   } catch (error) {
     console.error('Geocoding error:', error);
-    // Fallback to mock if real API fails in development
-    if (import.meta.env.DEV) {
-      console.warn('Falling back to mock geocoding due to error');
-      return geocodeCityMock(query);
-    }
-    throw error;
+    // Fallback to mock if real API fails
+    console.warn('Falling back to mock geocoding due to error');
+    return geocodeCityMock(query);
   }
 }
