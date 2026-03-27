@@ -13,7 +13,7 @@ A browser-first natal chart (birth chart) calculator and visualizer using WebAss
 - ✅ SVG chart wheel visualization with houses, planets, aspects
 - ✅ Timezone conversion and geocoding (real API via Cloudflare Worker)
 - ✅ Local storage persistence
-- ✅ Cloudflare Worker deployed and operational
+- ✅ Cloudflare Worker deployed with real OpenCage geocoding
 - ✅ GitHub Actions CI/CD configured
 - ✅ GitHub Pages enabled (https://jdonaghy.github.io/natal-chart/)
 
