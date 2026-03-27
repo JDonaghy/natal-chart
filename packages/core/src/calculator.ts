@@ -50,11 +50,11 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     window.Module = {
       locateFile: (path: string, prefix: string) => {
         console.log('Module.locateFile called with:', path, prefix);
-        if (path === 'swisseph.wasm') {
+        if (path === 'swisseph.wasm' || path === 'swisseph.data') {
           // Use the public path
-          const wasmUrl = '/natal-chart/wasm/swisseph.wasm';
-          console.log('Returning wasm URL:', wasmUrl);
-          return wasmUrl;
+          const url = `/natal-chart/wasm/${path}`;
+          console.log('Returning URL:', url);
+          return url;
         }
         return prefix + path;
       },

@@ -29,7 +29,7 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['swisseph-wasm'], // Don't optimize wasm package
   },
-  assetsInclude: ['**/*.wasm', '**/*.se1'],
+  assetsInclude: ['**/*.wasm', '**/*.se1', '**/*.data'],
   test: {
     globals: true,
     environment: 'jsdom',
