@@ -39,3 +39,6 @@ wrangler.toml.local
 # Temporary files
 *.tmp
 .cache/
+
+# Large ephemeris data files (already embedded in swisseph-wasm)
+ephemeris/seasnam.txt

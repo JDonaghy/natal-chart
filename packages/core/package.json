@@ -1,0 +1,36 @@
+{
+  "name": "@natal-chart/core",
+  "version": "0.1.0",
+  "description": "Pure TypeScript calculation engine for natal chart astrology",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:spike": "vitest run spike.test.ts",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "astrology",
+    "natal-chart",
+    "swiss-ephemeris",
+    "calculation"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "swisseph-wasm": "^0.0.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@vitest/ui": "^1.2.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}

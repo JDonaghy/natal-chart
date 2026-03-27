@@ -1,0 +1,20 @@
+name = "natal-chart-geocoding"
+main = "src/index.ts"
+compatibility_date = "2025-03-26"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Environment variables will be set via wrangler secrets
+# Comma-separated list of allowed origins for CORS
+ALLOWED_ORIGIN = "http://localhost:3000,http://192.168.1.109:3000,https://JDonaghy.github.io"  # Update with your GitHub Pages URL
+
+[triggers]
+crons = []
+
+[[kv_namespaces]]
+binding = "GEOCODING_CACHE"
+id = "cda819617c704f4da6e6dad5cf2f6ebf"
+preview_id = "e563322cb3444710966cd296c28a829c"
+
+[placement]
+mode = "smart"
