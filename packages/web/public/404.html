@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirecting...</title>
+    <script>
+      // GitHub Pages SPA fallback for HashRouter
+      // Simple redirect to index.html - let HashRouter handle routing
+      const basePath = '/natal-chart/';
+      const currentPath = window.location.pathname;
+      
+      // If we're not already at the index.html, redirect to it
+      // HashRouter will parse the hash fragment for routing
+      if (!currentPath.endsWith('/') && !currentPath.includes('.')) {
+        // Extract path after base path for hash routing
+        let hashPath = currentPath;
+        if (currentPath.startsWith(basePath)) {
+          hashPath = currentPath.substring(basePath.length - 1); // Keep trailing slash
+        }
+        window.location.href = basePath + '#' + hashPath + window.location.search;
+      } else if (currentPath === basePath && !window.location.hash) {
+        // At root with no hash, ensure hash router initializes
+        window.location.href = basePath + '#/';
+      }
+    </script>
+  </head>
+  <body>
+    <noscript>
+      <p>Please enable JavaScript to use this application.</p>
+      <p><a href="/natal-chart/#/">Click here to go to the home page</a></p>
+    </noscript>
+  </body>
+</html>
