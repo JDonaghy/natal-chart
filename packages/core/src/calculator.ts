@@ -224,6 +224,13 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
   const cusps = housesResult.cusps; // Float64Array length 13, index 1-12 are house cusps
   const ascmc = housesResult.ascmc; // Float64Array length 10, index 0 = Ascendant, 1 = MC
   
+  // Debug: log cusps
+  console.log('House cusps (index 1-12):');
+  for (let i = 1; i <= 12; i++) {
+    console.log(`  House ${i}: ${cusps[i]}°`);
+  }
+  console.log('Ascendant:', ascmc[0], 'MC:', ascmc[1]);
+  
   // Build houses array
   const houses: HouseCusp[] = [];
   for (let i = 1; i <= 12; i++) {
@@ -303,22 +310,35 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     
     // Determine house placement (1-12)
     let house = 1;
+    const normalizedLongitude = ((longitude % 360) + 360) % 360;
     for (let i = 1; i <= 12; i++) {
-      const cuspStart = cusps[i]!;
-      const cuspEnd = (cusps[i + 1] || cusps[1])!; // wrap around
+      const cuspStart = ((cusps[i]! % 360) + 360) % 360;
+      const cuspEnd = ((cusps[i + 1] || cusps[1])! % 360 + 360) % 360;
       // Handle wrap across 360°
       if (cuspStart <= cuspEnd) {
-        if (longitude >= cuspStart && longitude < cuspEnd) {
+        if (normalizedLongitude >= cuspStart && normalizedLongitude < cuspEnd) {
           house = i;
           break;
         }
       } else {
-        if (longitude >= cuspStart || longitude < cuspEnd) {
+        if (normalizedLongitude >= cuspStart || normalizedLongitude < cuspEnd) {
           house = i;
           break;
         }
       }
     }
+    
+    if (planetName === 'sun') {
+      console.log(`Sun house calculation details:`);
+      console.log(`  Normalized longitude: ${normalizedLongitude}°`);
+      for (let i = 1; i <= 12; i++) {
+        const cuspStart = ((cusps[i]! % 360) + 360) % 360;
+        const cuspEnd = ((cusps[i + 1] || cusps[1])! % 360 + 360) % 360;
+        console.log(`  House ${i}: cusp ${cuspStart.toFixed(2)}° to ${cuspEnd.toFixed(2)}°`);
+      }
+    }
+    
+    console.log(`Planet ${planetName}: longitude ${longitude}°, house ${house}, cusp range check complete`);
     
     planets.push({
       planet: planetName as Planet,

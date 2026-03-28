@@ -120,18 +120,17 @@ export const ChartWheel: React.FC<ChartWheelProps> = ({ chartData, size = 400 })
         strokeOpacity="0.7"
       />
       
-      {/* Sign glyphs */}
+      {/* Sign glyphs - placed at midpoints of zodiac signs (0° Aries = 0°, 30° Taurus = 30°, etc.) */}
       {Array.from({ length: 12 }).map((_, i) => {
-        const angle = (i * 30 - 15) * (Math.PI / 180);
-        const textRadius = radius * 0.95;
-        const x = center + textRadius * Math.cos(angle);
-        const y = center + textRadius * Math.sin(angle);
+        // Midpoint of zodiac sign i (15° into each 30° sign)
+        const signLongitude = i * 30 + 15;
+        const pos = longitudeToPoint(signLongitude, 0.95);
         
         return (
           <text
             key={`sign-${i}`}
-            x={x}
-            y={y}
+            x={pos.x}
+            y={pos.y}
             textAnchor="middle"
             dominantBaseline="middle"
             className="glyph"
