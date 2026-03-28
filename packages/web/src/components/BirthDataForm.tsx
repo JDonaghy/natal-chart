@@ -364,8 +364,36 @@ export const BirthDataForm: React.FC = () => {
               }}>
                 {isRealGeocodingAvailable() ? '🌍 Live API' : '🧪 Mock Data'}
               </span>
-            </p>
-          </div>
+             </p>
+             
+             {/* OpenStreetMap validation link for coordinate inputs */}
+             {isCoordinatesInput && openStreetMapUrl && (
+               <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem', marginBottom: 0 }}>
+                 <a 
+                   href={openStreetMapUrl}
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   title="Validate these coordinates on OpenStreetMap (opens in new tab)"
+                   style={{ 
+                     color: '#1a73e8', 
+                     textDecoration: 'none',
+                     borderBottom: '1px dotted #1a73e8'
+                   }}
+                   onMouseEnter={(e) => {
+                     e.currentTarget.style.textDecoration = 'underline';
+                   }}
+                   onMouseLeave={(e) => {
+                     e.currentTarget.style.textDecoration = 'none';
+                   }}
+                 >
+                   📍 Validate coordinates on OpenStreetMap
+                 </a>
+                 <span style={{ color: '#888', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
+                   (opens in new tab)
+                 </span>
+               </p>
+             )}
+           </div>
           
           {/* Birth Date */}
           <div>
@@ -474,35 +502,7 @@ export const BirthDataForm: React.FC = () => {
              <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
                Placidus is the standard in Western astrology. Whole Sign is used in Hellenistic and Vedic traditions.
              </p>
-             
-             {/* OpenStreetMap validation link for coordinate inputs */}
-             {isCoordinatesInput && openStreetMapUrl && (
-               <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem', marginBottom: 0 }}>
-                  <a 
-                    href={openStreetMapUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Validate these coordinates on OpenStreetMap (opens in new tab)"
-                    style={{ 
-                      color: '#1a73e8', 
-                      textDecoration: 'none',
-                      borderBottom: '1px dotted #1a73e8'
-                    }}
-                   onMouseEnter={(e) => {
-                     e.currentTarget.style.textDecoration = 'underline';
-                   }}
-                   onMouseLeave={(e) => {
-                     e.currentTarget.style.textDecoration = 'none';
-                   }}
-                 >
-                   📍 Validate coordinates on OpenStreetMap
-                 </a>
-                 <span style={{ color: '#888', fontSize: '0.75rem', marginLeft: '0.5rem' }}>
-                   (opens in new tab)
-                 </span>
-               </p>
-             )}
-           </div>
+            </div>
          </div>
         
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
