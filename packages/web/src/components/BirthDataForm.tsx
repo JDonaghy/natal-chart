@@ -252,7 +252,7 @@ export const BirthDataForm: React.FC = () => {
                 type="text"
                 value={formData.city}
                 onChange={handleInputChange}
-                placeholder="Search for a city (e.g., London, UK)..."
+                placeholder="Search for a city or enter coordinates (e.g., London, UK or 51.5074, -0.1278)..."
                 style={{ flex: 1 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {

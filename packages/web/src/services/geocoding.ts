@@ -99,11 +99,19 @@ const MOCK_CITIES: Record<string, GeocodeResult> = {
 
 /**
  * Get environment-specific geocoding API URL
- * In development: uses mock unless VITE_GEOCODING_API_URL is set
- * In production: uses Cloudflare Worker URL from env variable
+ * Development: /api/geocode (proxied to worker)
+ * Production: Cloudflare Worker URL (fallback to actual worker if not set)
  */
 export function getGeocodingApiUrl(): string {
-  return import.meta.env.VITE_GEOCODING_API_URL || '';
+  // Use configured URL if available
+  const configuredUrl = import.meta.env.VITE_GEOCODING_API_URL;
+  if (configuredUrl) {
+    return configuredUrl;
+  }
+  
+  // Default fallback for production: direct worker URL
+  // This ensures the app works even if env variable is missing
+  return 'https://natal-chart-geocoding.johnfdonaghy.workers.dev/geocode';
 }
 
 /**
@@ -120,17 +128,10 @@ export async function geocodeCity(query: string): Promise<GeocodeResult[]> {
   const apiUrl = getGeocodingApiUrl();
   
   if (!apiUrl) {
-    // Use mock data
-    return geocodeCityMock(query);
+    throw new Error('Geocoding API URL not configured. Please set VITE_GEOCODING_API_URL.');
   }
   
-  // Use real Cloudflare Worker with fallback to mock
-  try {
-    return await geocodeCityReal(query);
-  } catch (error) {
-    console.error('geocodeCity: Falling back to mock due to error:', error);
-    return geocodeCityMock(query);
-  }
+  return await geocodeCityReal(query);
 }
 
 /**
@@ -248,32 +249,25 @@ export async function geocodeCityReal(query: string): Promise<GeocodeResult[]> {
   // const token = await getTurnstileToken();
   // if (token) requestBody.token = token;
   
-  try {
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Geocoding failed: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-    
-    const data = await response.json();
-    
-    // Handle error response format
-    if (data.error) {
-      throw new Error(`Geocoding error: ${data.error}`);
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Geocoding error:', error);
-    // Fallback to mock if real API fails
-    console.warn('Falling back to mock geocoding due to error');
-    return geocodeCityMock(query);
+  const response = await fetch(apiUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Geocoding failed: ${response.status} ${response.statusText} - ${errorText}`);
   }
+  
+  const data = await response.json();
+  
+  // Handle error response format
+  if (data.error) {
+    throw new Error(`Geocoding error: ${data.error}`);
+  }
+  
+  return data;
 }

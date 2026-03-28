@@ -23,6 +23,9 @@ interface GeocodeResult {
 const RATE_LIMIT_WINDOW = 60; // 1 minute in seconds
 const RATE_LIMIT_MAX_REQUESTS = 10; // 10 requests per minute per IP
 
+// Cache version to invalidate old entries when schema changes
+const CACHE_VERSION = 'v2';
+
 export default {
   async fetch(
     request: Request,
@@ -57,7 +60,18 @@ export default {
       const body = await request.json<GeocodeRequest>();
       
       // Validate query
-      if (!body.query || typeof body.query !== 'string' || body.query.trim().length < 2) {
+      const query = body.query.trim();
+      console.log('Geocoding request:', query);
+      if (!query || typeof query !== 'string') {
+        return jsonResponse({ error: 'Invalid query.' }, 400, env.ALLOWED_ORIGIN, request);
+      }
+      
+      // Check if query is coordinates
+      const isCoordinates = isCoordinateQuery(query);
+      console.log('Is coordinate query:', isCoordinates, 'query:', query);
+      
+      // For non-coordinate queries, require at least 2 characters
+      if (!isCoordinates && query.length < 2) {
         return jsonResponse({ error: 'Invalid query. Must be at least 2 characters.' }, 400, env.ALLOWED_ORIGIN, request);
       }
       
@@ -77,18 +91,26 @@ export default {
       }
       
       // Check cache first
-      const cacheKey = `geocode:${body.query.toLowerCase().trim()}`;
+      const cacheKey = `geocode:${CACHE_VERSION}:${query.toLowerCase()}`;
       const cached = await env.GEOCODING_CACHE.get(cacheKey);
       
       if (cached) {
-        console.log(`Cache hit for: ${body.query}`);
+        console.log(`Cache hit for: ${query}`);
         return jsonResponse(JSON.parse(cached), 200, env.ALLOWED_ORIGIN, request);
       }
       
-      console.log(`Cache miss for: ${body.query}, fetching from OpenCage`);
+      console.log(`Cache miss for: ${query}, fetching from OpenCage`);
       
-      // Forward to OpenCage API
-      const geocodingResults = await forwardToOpenCage(body.query, env.OPENCAGE_API_KEY);
+      let geocodingResults: GeocodeResult[];
+      if (isCoordinates) {
+        const coords = parseCoordinates(query);
+        if (!coords) {
+          return jsonResponse({ error: 'Invalid coordinate format. Use "latitude,longitude" (e.g., 51.5074,-0.1278).' }, 400, env.ALLOWED_ORIGIN, request);
+        }
+        geocodingResults = await reverseGeocode(coords.lat, coords.lng, env.OPENCAGE_API_KEY);
+      } else {
+        geocodingResults = await forwardToOpenCage(query, env.OPENCAGE_API_KEY);
+      }
       
       // Cache results for 30 days (birth cities don't move)
       if (geocodingResults.length > 0) {
@@ -155,10 +177,71 @@ async function validateTurnstileToken(token: string, secret: string): Promise<bo
   }
 }
 
+function isCoordinateQuery(query: string): boolean {
+  const coordinateRegex = /^-?\d+\.?\d*\s*,\s*-?\d+\.?\d*$/;
+  return coordinateRegex.test(query.trim());
+}
+
+function parseCoordinates(query: string): { lat: number; lng: number } | null {
+  const trimmed = query.trim();
+  const parts = trimmed.split(/\s*,\s*/);
+  if (parts.length !== 2) return null;
+  
+  const lat = parseFloat(parts[0]!);
+  const lng = parseFloat(parts[1]!);
+  
+  if (isNaN(lat) || isNaN(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  
+  return { lat, lng };
+}
+
 async function forwardToOpenCage(query: string, apiKey: string): Promise<GeocodeResult[]> {
   const encodedQuery = encodeURIComponent(query);
-  // Remove no_annotations=1 to get timezone data
-  const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodedQuery}&key=${apiKey}&limit=5`;
+  // Include annotations parameter to get timezone data
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodedQuery}&key=${apiKey}&limit=5&annotations=timezone`;
+  
+  console.log(`Forward geocoding URL: ${url.replace(apiKey, 'REDACTED')}`);
+  
+  const response = await fetch(url);
+  const data = await response.json<{
+    results: Array<{
+      formatted: string;
+      geometry: { lat: number; lng: number };
+      components: {
+        city?: string;
+        town?: string;
+        village?: string;
+        state?: string;
+        country: string;
+      };
+      annotations?: {
+        timezone?: {
+          name: string;
+        };
+      };
+    }>;
+  }>();
+  
+  // Debug log first result's structure
+  if (data.results.length > 0) {
+    const firstResult = data.results[0]!;
+    console.log('First result annotations:', JSON.stringify(firstResult.annotations));
+    console.log('First result timezone:', firstResult.annotations?.timezone?.name);
+  }
+  
+  return data.results.map(result => ({
+    name: result.components.city || result.components.town || result.components.village || '',
+    lat: result.geometry.lat,
+    lng: result.geometry.lng,
+    country: result.components.country,
+    formatted: result.formatted,
+    timezone: result.annotations?.timezone?.name || '',
+  }));
+}
+
+async function reverseGeocode(lat: number, lng: number, apiKey: string): Promise<GeocodeResult[]> {
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${apiKey}&limit=1&annotations=timezone`;
   
   const response = await fetch(url);
   const data = await response.json<{
