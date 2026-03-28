@@ -2,18 +2,20 @@
 *Last Updated: 2026-03-28*
 
 ## 🚀 Deployment Status
-- **GitHub Pages**: https://jdonaghy.github.io/natal-chart/ (Live, previous build `0f2d638`)
-- **Latest Commit**: `ec2bdf2` (coordinate detection + OpenStreetMap link + documentation)
+- **GitHub Pages**: https://jdonaghy.github.io/natal-chart/ (✅ **DEPLOYED** build `c08f207`)
+- **Latest Commit**: `c08f207` (coordinate detection + OpenStreetMap link + documentation)
+- **Cloud Version**: Check footer for exact build commit hash
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
-- **Auto-deployment**: ✅ GitHub Actions **RUNNING** for commit `ec2bdf2`
+- **Auto-deployment**: ✅ GitHub Actions **COMPLETED SUCCESSFULLY**
 - **Local Development**: http://localhost:3000 with all new features
 
-### New Features in Latest Update (`ec2bdf2`)
+### New Features in Latest Deployment
 - ✅ Coordinate input detection in birth city field
 - ✅ OpenStreetMap validation link for coordinate inputs (opens in new tab)
 - ✅ Enhanced documentation (`ARCHITECTURE.md` with Cloudflare Worker setup)
 - ✅ API key management documentation (`.tokens` file)
 - ✅ Coordinate parsing utility functions
+- ✅ Real geocoding with timezone extraction
 
 ## 📦 Deployment Progress
 ### ✅ Completed
@@ -123,16 +125,17 @@
    - Default geocoding URL fallback to worker
    - Mock geocoding removed (always use real API)
 
-3. **🔄 GitHub Actions deployment IN PROGRESS** - Run `23693960076`
-   - Building commit `ec2bdf2` (coordinate detection + documentation)
-   - Expected completion: 2-3 minutes from 20:44 UTC
-   - Monitor at: https://github.com/JDonaghy/natal-chart/actions/runs/23693960076
+3. **✅ GitHub Actions deployment COMPLETED** - Run `23693960076`
+   - Successfully built and deployed commit `c08f207`
+   - Deployed to GitHub Pages at 20:45 UTC
+   - View run: https://github.com/JDonaghy/natal-chart/actions/runs/23693960076
 
-4. **Test new features on deployed version**
-   - Test coordinate input: "44.9816505,-93.132362" → should show OpenStreetMap link
-   - Click OpenStreetMap link → should open map with coordinates
-   - Test geocoding: "London, UK" → should detect timezone
-   - Clear browser cache to ensure latest JavaScript loads
+4. **🔍 Test new features on deployed version (NOW)**
+   - Visit: https://jdonaghy.github.io/natal-chart/
+   - Enter coordinates: "44.9816505,-93.132362" → should show OpenStreetMap link
+   - Click OpenStreetMap link → should open map with coordinates in new tab
+   - Test geocoding: "London, UK" → should detect timezone automatically
+   - Clear browser cache if seeing old version
 
 5. **Documentation completed**
    - Created `ARCHITECTURE.md` with comprehensive setup guide
