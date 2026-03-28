@@ -478,15 +478,16 @@ export const BirthDataForm: React.FC = () => {
              {/* OpenStreetMap validation link for coordinate inputs */}
              {isCoordinatesInput && openStreetMapUrl && (
                <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem', marginBottom: 0 }}>
-                 <a 
-                   href={openStreetMapUrl}
-                   target="_blank"
-                   rel="noopener noreferrer"
-                   style={{ 
-                     color: '#1a73e8', 
-                     textDecoration: 'none',
-                     borderBottom: '1px dotted #1a73e8'
-                   }}
+                  <a 
+                    href={openStreetMapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Validate these coordinates on OpenStreetMap (opens in new tab)"
+                    style={{ 
+                      color: '#1a73e8', 
+                      textDecoration: 'none',
+                      borderBottom: '1px dotted #1a73e8'
+                    }}
                    onMouseEnter={(e) => {
                      e.currentTarget.style.textDecoration = 'underline';
                    }}
