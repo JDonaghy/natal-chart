@@ -1,25 +1,45 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { execSync } from 'child_process';
 
-// Get git commit hash for build version
-let commitHash = 'unknown';
-let buildTimestamp = new Date().toISOString();
-
-try {
-  commitHash = require('child_process')
-    .execSync('git rev-parse --short HEAD')
-    .toString()
-    .trim();
-} catch (error: any) {
-  console.warn('Could not get git commit hash:', error.message);
+// Get build version information
+function getBuildInfo() {
+  const buildTimestamp = new Date().toISOString();
+  
+  // Try to get commit hash from environment (GitHub Actions)
+  // GITHUB_SHA is the full commit hash in CI
+  let commitHash = process.env.GITHUB_SHA?.substring(0, 7) || 'unknown';
+  
+  // If not in CI or GITHUB_SHA not set, try to get from git locally
+  if (commitHash === 'unknown') {
+    try {
+      commitHash = execSync('git rev-parse --short HEAD', { stdio: 'pipe' })
+        .toString()
+        .trim();
+    } catch (error: any) {
+      console.warn('Could not get git commit hash:', error.message);
+    }
+  }
+  
+  // Add build context indicator
+  const buildContext = process.env.GITHUB_ACTIONS ? 'ci' : 'local';
+  
+  return {
+    commitHash,
+    buildTimestamp,
+    buildContext,
+  };
 }
+
+const buildInfo = getBuildInfo();
 
 export default defineConfig({
   plugins: [react()],
   base: '/natal-chart/',
   define: {
-    '__APP_VERSION__': JSON.stringify(commitHash),
-    '__BUILD_TIME__': JSON.stringify(buildTimestamp),
+    '__APP_VERSION__': JSON.stringify(buildInfo.commitHash),
+    '__BUILD_TIME__': JSON.stringify(buildInfo.buildTimestamp),
+    '__BUILD_CONTEXT__': JSON.stringify(buildInfo.buildContext),
   },
   build: {
     outDir: 'dist',

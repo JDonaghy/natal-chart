@@ -2,33 +2,25 @@
 
 ## 🚨 Critical
 ### 1. Deployment Discrepancy
-**Status**: Investigating  
+**Status**: Fix in Progress  
 **Description**: Changes deployed to GitHub Pages don't match local testing. User reports seeing "Birth Timezone box" (possibly old timezone selector) instead of expected read-only timezone display with "(detected from city)" text.
 
 **Symptoms**:
 - Local development shows correct UI (no timezone selector, read-only display)
 - Deployed version may show different UI elements
 - GitHub Actions build succeeds but deployed content appears outdated
+- Build version in footer shows "unknown" instead of commit hash
 
-**Potential Causes**:
-- GitHub Pages caching/CDN issues
-- Build process differences between local and CI
-- Environment variable discrepancies affecting build output
-- Hash-based routing issues with GitHub Pages SPA
+**Root Cause**: CI build uses shallow git clone where `git rev-parse --short HEAD` fails. Build version falls back to "unknown".
 
-**Investigation Steps**:
-1. Compare deployed JS file hash with local build hash
-2. Check GitHub Actions build logs for warnings/errors
-3. Verify 404.html SPA fallback is properly deployed
-4. Test hard refresh and cache clearing
-5. Check for environment-specific code paths
-6. **NEW**: Verify build version in footer shows latest commit hash
-7. **NEW**: Clear browser cache completely (site data, not just cache)
+**Fix**: Updated vite.config.ts to use `GITHUB_SHA` environment variable in CI (always available), falling back to git locally.
 
 **Progress**:
 - ✅ Added build version tracking (commit hash in footer)
-- ✅ Deployed version with build tracking (commit 0a0eee4)
-- ⏳ Waiting for user verification of deployed version
+- ✅ Deployed version with build tracking (commit 0a0eee4) — showed "unknown" due to CI issue
+- ✅ Fixed vite.config.ts to use GITHUB_SHA in CI (commit pending)
+- ⏳ Need to commit fix and trigger new deployment
+- ⏳ Verify deployed version shows correct commit hash after deployment
 
 ## 🐛 High Priority
 ### 2. Ephemeris File Loading in Tests
