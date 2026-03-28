@@ -18,9 +18,14 @@
 **Progress**:
 - ✅ Added build version tracking (commit hash in footer)
 - ✅ Deployed version with build tracking (commit 0a0eee4) — showed "unknown" due to CI issue
-- ✅ Fixed vite.config.ts to use GITHUB_SHA in CI (commit pending)
-- ⏳ Need to commit fix and trigger new deployment
-- ⏳ Verify deployed version shows correct commit hash after deployment
+- ✅ Fixed vite.config.ts to use GITHUB_SHA in CI (committed and pushed)
+- ✅ New deployment triggered with fix (commits b4705c3, 676bfe9, ece131d)
+- ⏳ Verify deployed version shows correct commit hash after deployment completes
+
+**Recommendations**:
+- Clear browser cache and site data for GitHub Pages domain to ensure latest JavaScript loads
+- Hard refresh (Ctrl+Shift+R or Cmd+Shift+R) after deployment completes
+- Verify build version in footer matches latest commit hash (first 7 characters of commit)
 
 ## 🐛 High Priority
 ### 2. Ephemeris File Loading in Tests
