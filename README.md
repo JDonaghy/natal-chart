@@ -113,6 +113,7 @@ Swiss Ephemeris is dual-licensed (GPL/commercial). For commercial applications, 
 ## Documentation
 
 - **AGENTS.md** - Comprehensive guidelines for AI coding agents
+- **ARCHITECTURE.md** - Technical architecture and deployment guide
 - **claude-notes.md** - Quick development notes
 - **natal-chart-architecture.docx** - Full architecture specification
 

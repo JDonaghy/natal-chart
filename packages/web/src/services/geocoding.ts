@@ -7,6 +7,33 @@ export interface GeocodeResult {
   timezone: string; // IANA timezone e.g. "America/Chicago"
 }
 
+/**
+ * Check if a query string is in coordinate format (latitude,longitude)
+ * Matches pattern like "51.5074,-0.1278" or "-12.345, 67.890"
+ */
+export function isCoordinateQuery(query: string): boolean {
+  const coordinateRegex = /^-?\d+\.?\d*\s*,\s*-?\d+\.?\d*$/;
+  return coordinateRegex.test(query.trim());
+}
+
+/**
+ * Parse coordinate string into { lat, lng } object
+ * Returns null if invalid format or out of bounds
+ */
+export function parseCoordinates(query: string): { lat: number; lng: number } | null {
+  const trimmed = query.trim();
+  const parts = trimmed.split(/\s*,\s*/);
+  if (parts.length !== 2) return null;
+  
+  const lat = parseFloat(parts[0]!);
+  const lng = parseFloat(parts[1]!);
+  
+  if (isNaN(lat) || isNaN(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  
+  return { lat, lng };
+}
+
 // Mock data for development
 const MOCK_CITIES: Record<string, GeocodeResult> = {
   'london, uk': {
