@@ -45,6 +45,28 @@ export const BirthDataForm: React.FC = () => {
     const { lat, lng } = parsedCoordinates;
     return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=14`;
   }, [parsedCoordinates]);
+
+  // Auto-update latitude/longitude when coordinate input is detected
+  useEffect(() => {
+    if (!parsedCoordinates) return;
+    
+    const { lat, lng } = parsedCoordinates;
+    setFormData(prev => {
+      const epsilon = 0.0001;
+      const latChanged = Math.abs(prev.latitude - lat) > epsilon;
+      const lngChanged = Math.abs(prev.longitude - lng) > epsilon;
+      
+      if (latChanged || lngChanged) {
+        return {
+          ...prev,
+          latitude: lat,
+          longitude: lng,
+          timezone: '', // Clear timezone since coordinates changed
+        };
+      }
+      return prev;
+    });
+  }, [parsedCoordinates]);
   
   // Load saved birth data from localStorage on mount
   useEffect(() => {
