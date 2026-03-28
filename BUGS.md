@@ -22,6 +22,13 @@
 3. Verify 404.html SPA fallback is properly deployed
 4. Test hard refresh and cache clearing
 5. Check for environment-specific code paths
+6. **NEW**: Verify build version in footer shows latest commit hash
+7. **NEW**: Clear browser cache completely (site data, not just cache)
+
+**Progress**:
+- ✅ Added build version tracking (commit hash in footer)
+- ✅ Deployed version with build tracking (commit 0a0eee4)
+- ⏳ Waiting for user verification of deployed version
 
 ## 🐛 High Priority
 ### 2. Ephemeris File Loading in Tests
