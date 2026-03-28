@@ -12,6 +12,7 @@
 ### New Features in Latest Deployment
 - ✅ Coordinate input detection in birth city field
 - ✅ OpenStreetMap validation link for coordinate inputs (opens in new tab)
+- ✅ Accessibility: title attribute for screen readers
 - ✅ Enhanced documentation (`ARCHITECTURE.md` with Cloudflare Worker setup)
 - ✅ API key management documentation (`.tokens` file)
 - ✅ Coordinate parsing utility functions
