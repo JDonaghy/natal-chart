@@ -11,12 +11,17 @@
 
 ### New Features in Latest Deployment
 - ✅ Coordinate input detection in birth city field
-- ✅ OpenStreetMap validation link for coordinate inputs (opens in new tab)
+- ✅ OpenStreetMap validation link for coordinate inputs (opens in new tab) - **FIXED LOCATION**
 - ✅ Accessibility: title attribute for screen readers
 - ✅ Enhanced documentation (`ARCHITECTURE.md` with Cloudflare Worker setup)
 - ✅ API key management documentation (`.tokens` file)
 - ✅ Coordinate parsing utility functions
 - ✅ Real geocoding with timezone extraction
+
+### 🔧 Fix Applied (commit `fdabd7e`)
+- **Moved OpenStreetMap link** from after house system to immediately after coordinate display
+- **Issue**: Link was hidden far from coordinate input, users couldn't see it
+- **Fix**: Link now appears right below coordinate display for immediate visibility
 
 ## 📦 Deployment Progress
 ### ✅ Completed
