@@ -1,9 +1,26 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 
+// Get git commit hash for build version
+let commitHash = 'unknown';
+let buildTimestamp = new Date().toISOString();
+
+try {
+  commitHash = require('child_process')
+    .execSync('git rev-parse --short HEAD')
+    .toString()
+    .trim();
+} catch (error: any) {
+  console.warn('Could not get git commit hash:', error.message);
+}
+
 export default defineConfig({
   plugins: [react()],
   base: '/natal-chart/',
+  define: {
+    '__APP_VERSION__': JSON.stringify(commitHash),
+    '__BUILD_TIME__': JSON.stringify(buildTimestamp),
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,
