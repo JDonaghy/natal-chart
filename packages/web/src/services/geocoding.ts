@@ -4,6 +4,7 @@ export interface GeocodeResult {
   lng: number;
   country: string;
   formatted: string;
+  timezone: string; // IANA timezone e.g. "America/Chicago"
 }
 
 // Mock data for development
@@ -13,14 +14,32 @@ const MOCK_CITIES: Record<string, GeocodeResult> = {
     lat: 51.5074,
     lng: -0.1278,
     country: 'United Kingdom',
-    formatted: 'London, UK',
+    formatted: 'London, United Kingdom',
+    timezone: 'Europe/London',
+  },
+  'london, united kingdom': {
+    name: 'London',
+    lat: 51.5074,
+    lng: -0.1278,
+    country: 'United Kingdom',
+    formatted: 'London, United Kingdom',
+    timezone: 'Europe/London',
   },
   'new york, usa': {
     name: 'New York',
     lat: 40.7128,
     lng: -74.0060,
     country: 'United States',
-    formatted: 'New York, NY, USA',
+    formatted: 'New York, NY, United States',
+    timezone: 'America/New_York',
+  },
+  'new york, united states': {
+    name: 'New York',
+    lat: 40.7128,
+    lng: -74.0060,
+    country: 'United States',
+    formatted: 'New York, NY, United States',
+    timezone: 'America/New_York',
   },
   'paris, france': {
     name: 'Paris',
@@ -28,6 +47,7 @@ const MOCK_CITIES: Record<string, GeocodeResult> = {
     lng: 2.3522,
     country: 'France',
     formatted: 'Paris, France',
+    timezone: 'Europe/Paris',
   },
   'tokyo, japan': {
     name: 'Tokyo',
@@ -35,6 +55,7 @@ const MOCK_CITIES: Record<string, GeocodeResult> = {
     lng: 139.6503,
     country: 'Japan',
     formatted: 'Tokyo, Japan',
+    timezone: 'Asia/Tokyo',
   },
   'sydney, australia': {
     name: 'Sydney',
@@ -42,6 +63,7 @@ const MOCK_CITIES: Record<string, GeocodeResult> = {
     lng: 151.2093,
     country: 'Australia',
     formatted: 'Sydney NSW, Australia',
+    timezone: 'Australia/Sydney',
   },
   'mumbai, india': {
     name: 'Mumbai',
@@ -49,6 +71,7 @@ const MOCK_CITIES: Record<string, GeocodeResult> = {
     lng: 72.8777,
     country: 'India',
     formatted: 'Mumbai, Maharashtra, India',
+    timezone: 'Asia/Kolkata',
   },
   'cairo, egypt': {
     name: 'Cairo',
@@ -56,6 +79,7 @@ const MOCK_CITIES: Record<string, GeocodeResult> = {
     lng: 31.2357,
     country: 'Egypt',
     formatted: 'Cairo, Egypt',
+    timezone: 'Africa/Cairo',
   },
   'rio de janeiro, brazil': {
     name: 'Rio de Janeiro',
@@ -63,6 +87,7 @@ const MOCK_CITIES: Record<string, GeocodeResult> = {
     lng: -43.1729,
     country: 'Brazil',
     formatted: 'Rio de Janeiro, Brazil',
+    timezone: 'America/Sao_Paulo',
   },
 };
 
@@ -122,11 +147,83 @@ export async function geocodeCityMock(query: string): Promise<GeocodeResult[]> {
     return [MOCK_CITIES[normalizedQuery]];
   }
   
-  // Partial match
+  // Extract city and country parts
+  const parts = normalizedQuery.split(',').map(p => p.trim());
+  const cityName = parts[0] || '';
+  const countryQuery = parts[1] || '';
+  
+  // Normalize country names
+  const countryAliases: Record<string, string[]> = {
+    'uk': ['united kingdom', 'great britain', 'england', 'britain'],
+    'usa': ['united states', 'united states of america', 'us', 'america'],
+    'france': ['french republic'],
+    'japan': ['japanese'],
+    'australia': ['oz'],
+    'india': ['bharat'],
+    'egypt': ['arab republic of egypt'],
+    'brazil': ['brasil'],
+  };
+  
+  // Match on city name with optional country filtering
   const results: GeocodeResult[] = [];
+  
   for (const [key, value] of Object.entries(MOCK_CITIES)) {
-    if (key.includes(normalizedQuery) || normalizedQuery.includes(key)) {
-      results.push(value);
+    const keyParts = key.split(',').map(p => p.trim());
+    const mockCityName = keyParts[0] || '';
+    const mockCountry = keyParts[1] || '';
+    
+    // Check if city name matches
+    const cityMatches = mockCityName.includes(cityName) || cityName.includes(mockCityName);
+    
+    if (!cityMatches) {
+      continue;
+    }
+    
+    // If user specified a country, check if it matches
+    if (countryQuery) {
+      let countryMatches = false;
+      
+      // Direct match
+      if (mockCountry.includes(countryQuery) || countryQuery.includes(mockCountry)) {
+        countryMatches = true;
+      }
+      
+      // Check aliases
+      if (!countryMatches && countryAliases[mockCountry]) {
+        for (const alias of countryAliases[mockCountry]) {
+          if (alias.includes(countryQuery) || countryQuery.includes(alias)) {
+            countryMatches = true;
+            break;
+          }
+        }
+      }
+      
+      if (!countryMatches) {
+        continue;
+      }
+    }
+    
+    results.push(value);
+  }
+  
+  // If no matches with country filtering, try city-only matches
+  if (results.length === 0 && countryQuery) {
+    for (const [key, value] of Object.entries(MOCK_CITIES)) {
+      const keyParts = key.split(',').map(p => p.trim());
+      const mockCityName = keyParts[0] || '';
+      
+      if (mockCityName.includes(cityName) || cityName.includes(mockCityName)) {
+        results.push(value);
+      }
+    }
+  }
+  
+  // Final fallback: partial match on full key
+  if (results.length === 0) {
+    for (const [key, value] of Object.entries(MOCK_CITIES)) {
+      if (key.includes(normalizedQuery) || normalizedQuery.includes(key)) {
+        results.push(value);
+      }
     }
   }
   

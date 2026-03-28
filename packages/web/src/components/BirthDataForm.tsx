@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChart } from '../contexts/ChartContext';
 import { geocodeCity, type GeocodeResult, isRealGeocodingAvailable } from '../services/geocoding';
-import { convertToUTC, COMMON_TIMEZONES } from '../services/timezone';
+import { convertToUTC } from '../services/timezone';
 import '../App.css';
 
 export const BirthDataForm: React.FC = () => {
@@ -13,12 +13,15 @@ export const BirthDataForm: React.FC = () => {
   const [geocodingError, setGeocodingError] = useState<string | null>(null);
   const [geocodingResults, setGeocodingResults] = useState<GeocodeResult[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [timezoneError, setTimezoneError] = useState<string | null>(null);
+  const [utcDisplay, setUtcDisplay] = useState<string | null>(null);
+  const [utcError, setUtcError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState({
     birthDate: '1990-06-15',
     birthTime: '12:00',
-    timezone: 'UTC',
+    timezone: '',
     city: 'London, UK',
     latitude: 51.5074,
     longitude: -0.1278,
@@ -60,6 +63,36 @@ export const BirthDataForm: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Calculate UTC display when birth date, time, or timezone changes
+  useEffect(() => {
+    if (!formData.birthDate || !formData.birthTime || !formData.timezone) {
+      setUtcDisplay(null);
+      setUtcError(null);
+      return;
+    }
+
+    try {
+      const utcDate = convertToUTC(formData.birthDate, formData.birthTime, formData.timezone);
+      if (isNaN(utcDate.getTime())) {
+        throw new Error('Invalid date after conversion');
+      }
+      
+      // Format: YYYY-MM-DD HH:MM:SS UTC
+      const year = utcDate.getUTCFullYear();
+      const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(utcDate.getUTCDate()).padStart(2, '0');
+      const hours = String(utcDate.getUTCHours()).padStart(2, '0');
+      const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(utcDate.getUTCSeconds()).padStart(2, '0');
+      
+      setUtcDisplay(`${year}-${month}-${day} ${hours}:${minutes}:${seconds} UTC`);
+      setUtcError(null);
+    } catch (error) {
+      setUtcDisplay(null);
+      setUtcError(`UTC conversion failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }, [formData.birthDate, formData.birthTime, formData.timezone]);
   
   const handleCitySearch = async () => {
     if (!formData.city.trim()) return;
@@ -85,12 +118,27 @@ export const BirthDataForm: React.FC = () => {
   };
   
   const handleSelectResult = (result: GeocodeResult) => {
-    setFormData(prev => ({
-      ...prev,
-      city: result.formatted,
-      latitude: result.lat,
-      longitude: result.lng,
-    }));
+    // Validate that geocoding result includes a timezone
+    if (!result.timezone) {
+      setTimezoneError(`Unable to detect timezone for ${result.formatted}. Please manually enter coordinates with a known timezone.`);
+      // Still update city and coordinates, but clear timezone
+      setFormData(prev => ({
+        ...prev,
+        city: result.formatted,
+        latitude: result.lat,
+        longitude: result.lng,
+        timezone: '',
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        city: result.formatted,
+        latitude: result.lat,
+        longitude: result.lng,
+        timezone: result.timezone,
+      }));
+      setTimezoneError(null);
+    }
     setGeocodingResults([]);
     setShowResults(false);
     setGeocodingError(null);
@@ -99,6 +147,14 @@ export const BirthDataForm: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setTimezoneError(null);
+    
+    // Validate required fields
+    if (!formData.timezone) {
+      setTimezoneError('Please search and select a birth city to detect the timezone.');
+      setLoading(false);
+      return;
+    }
     
     try {
       // Convert form data to BirthData format with timezone conversion
@@ -162,6 +218,8 @@ export const BirthDataForm: React.FC = () => {
       setGeocodingResults([]);
       setShowResults(false);
       setGeocodingError(null);
+      setTimezoneError(null);
+      setFormData(prev => ({ ...prev, timezone: '' }));
     }
   };
   
@@ -182,67 +240,10 @@ export const BirthDataForm: React.FC = () => {
       
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-          {/* Birth Date */}
-          <div>
-            <label htmlFor="birthDate" style={{ display: 'block', marginBottom: '0.5rem' }}>
-              Birth Date
-            </label>
-            <input
-              id="birthDate"
-              name="birthDate"
-              type="date"
-              value={formData.birthDate}
-              onChange={handleInputChange}
-              required
-              style={{ width: '100%' }}
-            />
-          </div>
-          
-          {/* Birth Time */}
-          <div>
-            <label htmlFor="birthTime" style={{ display: 'block', marginBottom: '0.5rem' }}>
-              Birth Time
-            </label>
-            <input
-              id="birthTime"
-              name="birthTime"
-              type="time"
-              value={formData.birthTime}
-              onChange={handleInputChange}
-              required
-              step="1"
-              style={{ width: '100%' }}
-            />
-          </div>
-          
-          {/* Timezone */}
-          <div>
-            <label htmlFor="timezone" style={{ display: 'block', marginBottom: '0.5rem' }}>
-              Birth Timezone
-            </label>
-            <select
-              id="timezone"
-              name="timezone"
-              value={formData.timezone}
-              onChange={handleInputChange}
-              style={{ width: '100%' }}
-              required
-            >
-              {COMMON_TIMEZONES.map(tz => (
-                <option key={tz.value} value={tz.value}>
-                  {tz.label}
-                </option>
-              ))}
-            </select>
-            <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
-              Select the timezone where you were born (important for accurate chart)
-            </p>
-          </div>
-          
-          {/* City Search */}
+          {/* Place of Birth */}
           <div style={{ gridColumn: 'span 2', position: 'relative' }} ref={dropdownRef}>
             <label htmlFor="city" style={{ display: 'block', marginBottom: '0.5rem' }}>
-              Birth City
+              Place of Birth
             </label>
             <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
               <input
@@ -348,48 +349,115 @@ export const BirthDataForm: React.FC = () => {
             </p>
           </div>
           
-          {/* House System */}
-          <div style={{ gridColumn: 'span 2' }}>
-            <label htmlFor="houseSystem" style={{ display: 'block', marginBottom: '0.5rem' }}>
-              House System
+          {/* Birth Date */}
+          <div>
+            <label htmlFor="birthDate" style={{ display: 'block', marginBottom: '0.5rem' }}>
+              Birth Date
             </label>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="radio"
-                  name="houseSystem"
-                  value="P"
-                  checked={formData.houseSystem === 'P'}
-                  onChange={handleInputChange}
-                />
-                <span>Placidus (Most Common)</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="radio"
-                  name="houseSystem"
-                  value="W"
-                  checked={formData.houseSystem === 'W'}
-                  onChange={handleInputChange}
-                />
-                <span>Whole Sign</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <input
-                  type="radio"
-                  name="houseSystem"
-                  value="K"
-                  checked={formData.houseSystem === 'K'}
-                  onChange={handleInputChange}
-                />
-                <span>Koch</span>
-              </label>
-            </div>
-            <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
-              Placidus is the standard in Western astrology. Whole Sign is used in Hellenistic and Vedic traditions.
-            </p>
+            <input
+              id="birthDate"
+              name="birthDate"
+              type="date"
+              value={formData.birthDate}
+              onChange={handleInputChange}
+              required
+              style={{ width: '100%' }}
+            />
           </div>
-        </div>
+          
+          {/* Birth Time */}
+          <div>
+            <label htmlFor="birthTime" style={{ display: 'block', marginBottom: '0.5rem' }}>
+              Birth Time
+            </label>
+            <input
+              id="birthTime"
+              name="birthTime"
+              type="time"
+              value={formData.birthTime}
+              onChange={handleInputChange}
+              required
+              step="1"
+              style={{ width: '100%' }}
+            />
+          </div>
+          
+          {/* Timezone Display */}
+          <div>
+            <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+              Birth Timezone
+            </label>
+            <div style={{
+              padding: '0.75rem',
+              backgroundColor: '#f8f4e8',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+              fontSize: '0.95rem',
+              color: formData.timezone ? '#333' : '#888',
+            }}>
+              {formData.timezone ? (
+                <>
+                  <span style={{ fontWeight: 'bold' }}>{formData.timezone}</span>
+                  <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
+                    (detected from city)
+                  </span>
+                </>
+              ) : (
+                'Not yet detected — please search and select a city above'
+              )}
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
+              Timezone is automatically determined from the birth city
+            </p>
+            {timezoneError && (
+              <p style={{ fontSize: '0.85rem', color: '#d32f2f', marginTop: '0.5rem' }}>
+                {timezoneError}
+              </p>
+            )}
+           </div>
+           
+           {/* House System */}
+           <div style={{ gridColumn: 'span 2' }}>
+             <label htmlFor="houseSystem" style={{ display: 'block', marginBottom: '0.5rem' }}>
+               House System
+             </label>
+             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                 <input
+                   type="radio"
+                   name="houseSystem"
+                   value="P"
+                   checked={formData.houseSystem === 'P'}
+                   onChange={handleInputChange}
+                 />
+                 <span>Placidus (Most Common)</span>
+               </label>
+               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                 <input
+                   type="radio"
+                   name="houseSystem"
+                   value="W"
+                   checked={formData.houseSystem === 'W'}
+                   onChange={handleInputChange}
+                 />
+                 <span>Whole Sign</span>
+               </label>
+               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                 <input
+                   type="radio"
+                   name="houseSystem"
+                   value="K"
+                   checked={formData.houseSystem === 'K'}
+                   onChange={handleInputChange}
+                 />
+                 <span>Koch</span>
+               </label>
+             </div>
+             <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
+               Placidus is the standard in Western astrology. Whole Sign is used in Hellenistic and Vedic traditions.
+             </p>
+           </div>
+         </div>
         
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
           <button 
@@ -426,6 +494,39 @@ export const BirthDataForm: React.FC = () => {
             Your birth data never leaves your device. City searches use mock data for now.
           </p>
         </div>
+        
+        {/* UTC Note */}
+        {utcDisplay && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.75rem',
+            backgroundColor: '#f0f7ff',
+            border: '1px solid #b3d4ff',
+            borderRadius: '4px',
+            fontSize: '0.85rem',
+            color: '#003366',
+            textAlign: 'center',
+          }}>
+            <span style={{ fontWeight: 'bold' }}>Calculated UTC Time:</span> {utcDisplay}
+            <span style={{ fontSize: '0.8rem', color: '#666', marginLeft: '0.5rem' }}>
+              (converted from local time using {formData.timezone})
+            </span>
+          </div>
+        )}
+        {utcError && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.75rem',
+            backgroundColor: '#ffebee',
+            border: '1px solid #ffcdd2',
+            borderRadius: '4px',
+            fontSize: '0.85rem',
+            color: '#d32f2f',
+            textAlign: 'center',
+          }}>
+            <span style={{ fontWeight: 'bold' }}>UTC Conversion Error:</span> {utcError}
+          </div>
+        )}
       </form>
     </div>
   );

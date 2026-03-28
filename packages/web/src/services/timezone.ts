@@ -1,4 +1,5 @@
 import { fromZonedTime } from 'date-fns-tz';
+import { DateTime } from 'luxon';
 
 /**
  * Timezone utilities for converting birth times to UTC
@@ -148,19 +149,33 @@ export function convertToUTC(
     return fallback;
   }
   
-  // Try manual conversion first (Intl API - reliable for modern browsers)
+  // Try Luxon first (best for historical timezone data)
   try {
-    console.log('Attempt 1: Using manual conversion (Intl API)');
-    const manualResult = convertToUTCManual(dateString, timeString, timeZone);
-    if (validateDate(manualResult)) {
-      console.log('Manual conversion successful:', manualResult.toISOString());
-      return manualResult;
-    }
-    throw new Error('Manual conversion produced invalid date');
-  } catch (manualError) {
-    console.warn('Manual conversion failed, trying date-fns-tz:', (manualError as Error).message);
+    console.log('Attempt 1: Using Luxon for timezone conversion');
+    const local = DateTime.fromISO(localDateTime, { zone: timeZone });
     
-    // Fallback to date-fns-tz (better for historical timezone changes)
+    if (!local.isValid) {
+      throw new Error(`Invalid date/time: ${local.invalidExplanation}`);
+    }
+    
+    const utc = local.toUTC();
+    
+    if (!utc.isValid) {
+      throw new Error('Failed to convert to UTC');
+    }
+    
+    const jsDate = utc.toJSDate();
+    
+    if (!validateDate(jsDate)) {
+      throw new Error('Luxon conversion produced invalid year');
+    }
+    
+    console.log('Luxon conversion successful:', jsDate.toISOString());
+    return jsDate;
+  } catch (luxonError) {
+    console.warn('Luxon conversion failed, trying date-fns-tz:', (luxonError as Error).message);
+    
+    // Fallback to date-fns-tz (also uses IANA timezone database)
     try {
       console.log('Attempt 2: Using date-fns-tz fromZonedTime');
       // Parse local date/time string to Date (interpreted as local time in browser's timezone)
@@ -184,17 +199,29 @@ export function convertToUTC(
       return utcDate;
     } catch (tzError) {
       console.error('date-fns-tz also failed:', (tzError as Error).message);
-      // Ultimate fallback: assume UTC
-      const fallback = new Date(localDateTime + 'Z');
-      console.log('Fallback to UTC, result:', fallback, 'isValid:', !isNaN(fallback.getTime()));
-      
-      if (!validateDate(fallback)) {
-        // If even this fails, return current date as last resort (should never happen)
-        console.error('Even fallback UTC date invalid, returning current date');
-        return new Date();
+      // Fallback to manual conversion (Intl API)
+      try {
+        console.log('Attempt 3: Using manual conversion (Intl API)');
+        const manualResult = convertToUTCManual(dateString, timeString, timeZone);
+        if (validateDate(manualResult)) {
+          console.log('Manual conversion successful:', manualResult.toISOString());
+          return manualResult;
+        }
+        throw new Error('Manual conversion produced invalid date');
+      } catch (manualError) {
+        console.error('Manual conversion failed, falling back to UTC:', (manualError as Error).message);
+        // Ultimate fallback: assume UTC
+        const fallback = new Date(localDateTime + 'Z');
+        console.log('Fallback to UTC, result:', fallback, 'isValid:', !isNaN(fallback.getTime()));
+        
+        if (!validateDate(fallback)) {
+          // If even this fails, return current date as last resort (should never happen)
+          console.error('Even fallback UTC date invalid, returning current date');
+          return new Date();
+        }
+        
+        return fallback;
       }
-      
-      return fallback;
     }
   }
 }

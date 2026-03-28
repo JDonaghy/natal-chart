@@ -16,6 +16,7 @@ interface GeocodeResult {
   lng: number;
   country: string;
   formatted: string;
+  timezone: string; // IANA timezone e.g. "America/Chicago"
 }
 
 // Rate limiting configuration
@@ -156,7 +157,8 @@ async function validateTurnstileToken(token: string, secret: string): Promise<bo
 
 async function forwardToOpenCage(query: string, apiKey: string): Promise<GeocodeResult[]> {
   const encodedQuery = encodeURIComponent(query);
-  const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodedQuery}&key=${apiKey}&limit=5&no_annotations=1`;
+  // Remove no_annotations=1 to get timezone data
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodedQuery}&key=${apiKey}&limit=5`;
   
   const response = await fetch(url);
   const data = await response.json<{
@@ -170,6 +172,11 @@ async function forwardToOpenCage(query: string, apiKey: string): Promise<Geocode
         state?: string;
         country: string;
       };
+      annotations?: {
+        timezone?: {
+          name: string;
+        };
+      };
     }>;
   }>();
   
@@ -179,6 +186,7 @@ async function forwardToOpenCage(query: string, apiKey: string): Promise<Geocode
     lng: result.geometry.lng,
     country: result.components.country,
     formatted: result.formatted,
+    timezone: result.annotations?.timezone?.name || '',
   }));
 }
 
