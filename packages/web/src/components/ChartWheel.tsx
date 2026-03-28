@@ -24,7 +24,8 @@ export const ChartWheel: React.FC<ChartWheelProps> = ({ chartData, size = 400 })
   };
   
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <div style={{ width: '100%', aspectRatio: '1 / 1', maxWidth: `${size}px`, margin: '0 auto' }}>
+      <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
       {/* Background circle */}
       <circle
         cx={center}
@@ -286,6 +287,7 @@ export const ChartWheel: React.FC<ChartWheelProps> = ({ chartData, size = 400 })
         fill="#b8860b"
       />
     </svg>
+    </div>
   );
 };
 

@@ -2,7 +2,7 @@
 
 ## Current Sprint: Timezone Automation & UI Enhancement
 **Status**: In Progress  
-**Last Updated**: 2026-03-28 (Build version tracking added)
+**Last Updated**: 2026-03-28 (Build version fix, responsive chart wheel)
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -19,10 +19,10 @@
 
 ### 🚧 In Progress / Planned Features
 - [ ] **Cloudflare Worker deployment** - Deploy updated worker with timezone extraction
-- [ ] **Ephemeris file setup** - Place `.se1` files in `packages/web/public/ephemeris/` for Chiron
+- [x] **Ephemeris file setup** - Place `.se1` files in `packages/web/public/ephemeris/` for Chiron (files present)
 - [ ] **Real geocoding integration** - Configure OpenCage API key for production
 - [ ] **Chart wheel improvements** - Planet glyph collision detection
-- [ ] **Mobile responsiveness** - Optimize for smaller screens
+- [x] **Mobile responsiveness** - Chart wheel now responsive with aspect-ratio wrapper
 - [ ] **Shareable URLs** - Encode birth data in URL for sharing charts
 - [ ] **Chart export** - PNG/PDF export of chart wheel
 - [ ] **Multiple chart comparison** - Side-by-side chart comparison feature
