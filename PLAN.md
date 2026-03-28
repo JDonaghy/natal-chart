@@ -2,7 +2,7 @@
 
 ## Current Sprint: Timezone Automation & UI Enhancement
 **Status**: In Progress  
-**Last Updated**: 2026-03-28
+**Last Updated**: 2026-03-28 (Build version tracking added)
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -36,6 +36,7 @@
 
 ### 🔄 Deployment Pipeline
 - [x] **GitHub Actions workflow** - Automated build and deploy to GitHub Pages
+- [x] **Build version tracking** - Git commit hash and timestamp display in footer
 - [ ] **Environment variables** - Proper handling of dev vs production API URLs
 - [ ] **Build caching** - Ensure consistent builds between local and CI
 - [ ] **Health checks** - Automated testing of deployed application
