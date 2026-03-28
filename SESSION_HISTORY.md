@@ -13,20 +13,25 @@
 6. **Form UI reorganization** - Moved city search to top, streamlined layout
 7. **UTC calculation display** - Added subtle UTC note at bottom of form
 8. **GitHub Pages SPA routing** - Added 404.html for HashRouter support
+9. **Build version tracking** - Added git commit hash and timestamp display in footer
+10. **Responsive chart wheel** - Added aspect-ratio wrapper for mobile scaling
 
 ### ✅ Bugs Fixed
 1. **Timezone conversion edge cases** - Fixed historical DST handling for UK 1968-1971
 2. **Geocoding error handling** - Improved fallback to mock data when API unavailable
+3. **Deployment discrepancy** - Fixed build version showing 'unknown' by using GITHUB_SHA in CI
 
 ### 🔄 Deployment
 - GitHub Actions workflow configured for auto-deployment
-- Two successful deployments completed
+- Multiple successful deployments completed
 - 404.html added for SPA routing support
+- Build version tracking fixed to show commit hash in CI (uses GITHUB_SHA)
 
 ### 📝 Notes
 - Cloudflare Worker updated to return timezone data but not yet deployed
 - Real geocoding requires OpenCage API key in production
-- Chiron calculations require asteroid ephemeris files
+- Asteroid ephemeris files (seas_18.se1, sepl_18.se1) placed in public/ephemeris/ for Chiron calculations
+- Chart wheel now responsive on mobile devices with aspect-ratio wrapper
 
 ---
 
