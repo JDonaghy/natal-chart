@@ -372,7 +372,7 @@ export const BirthDataForm: React.FC = () => {
             {/* Selected coordinates */}
             <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
               Coordinates: {formatCoordinate(formData.latitude, true)}, {formatCoordinate(formData.longitude, false)}
-              {formData.city && ` • ${formData.city}`}
+              {formData.city && !isCoordinatesInput && ` • ${formData.city}`}
               <span style={{
                 display: 'inline-block',
                 marginLeft: '0.5rem',
