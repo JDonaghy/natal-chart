@@ -270,7 +270,7 @@ export async function geocodeCityReal(query: string): Promise<GeocodeResult[]> {
   
   // For now, skip Turnstile token - worker will accept requests without it
   // if TURNSTILE_SECRET is not set (development mode)
-  const requestBody: any = { query };
+  const requestBody: { query: string; token?: string } = { query };
   
   // TODO: Add Turnstile token when implemented
   // const token = await getTurnstileToken();

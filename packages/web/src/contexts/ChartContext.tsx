@@ -11,6 +11,7 @@ interface ChartContextType {
 
 const ChartContext = createContext<ChartContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useChart = () => {
   const context = useContext(ChartContext);
   if (!context) {

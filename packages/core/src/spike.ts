@@ -1,15 +1,16 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
 // Spike test for swisseph-wasm
 // This is a minimal implementation to validate the library works
 
 export interface PlanetPositionResult {
-  // @ts-ignore
+  // @ts-expect-error: interface property
   longitude: number;
-  // @ts-ignore
+  // @ts-expect-error: interface property
   latitude: number;
-  // @ts-ignore
+  // @ts-expect-error: interface property
   distance: number;
-  // @ts-ignore
+  // @ts-expect-error: interface property
   speed: number;
   sign: string;
   degree: number;
@@ -18,8 +19,8 @@ export interface PlanetPositionResult {
 
 export async function calculateSunPosition(
   date: Date,
-  latitude: number,
-  longitude: number
+  _latitude: number,
+  _longitude: number
 ): Promise<PlanetPositionResult> {
   try {
     // Dynamic import to avoid loading in environments without wasm support
@@ -32,8 +33,8 @@ export async function calculateSunPosition(
     
     // Set ephemeris path (empty for default, or path to .se1 files)
     // For browser use, we'll need to configure this differently
-    // @ts-ignore - set_ephe_path exists at runtime
-    sweph.set_ephe_path('');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (sweph as any).set_ephe_path('');
     
     // Convert date to Julian Day Number (UTC) using Swiss Ephemeris
     const jdResult = sweph.utc_to_jd(
@@ -91,7 +92,7 @@ export async function calculateSunPosition(
       degree: Math.floor(degreeInSign),
       minute: Math.floor(minute),
     };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error in swisseph-wasm spike test:', error);
     throw new Error(`Failed to calculate Sun position: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -105,8 +106,8 @@ export async function validateEphemeris(): Promise<boolean> {
     const sweph = new SwissEph();
     
     await sweph.initSwissEph();
-    // @ts-ignore - set_ephe_path exists at runtime
-    sweph.set_ephe_path('');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (sweph as any).set_ephe_path('');
     
     // Try a simple calculation
     const testDate = new Date('2000-01-01T12:00:00Z');
@@ -127,7 +128,7 @@ export async function validateEphemeris(): Promise<boolean> {
     return result[0] !== undefined && 
            result[1] !== undefined &&
            result[2] !== undefined;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Ephemeris validation failed:', error);
     return false;
   }

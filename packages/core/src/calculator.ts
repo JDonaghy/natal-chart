@@ -46,7 +46,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
   const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
   if (isBrowser) {
     // Set up Emscripten module configuration before importing
-    // @ts-ignore
+    // @ts-expect-error: window.Module assignment for Emscripten
     window.Module = {
       locateFile: (path: string, prefix: string) => {
         console.log('Module.locateFile called with:', path, prefix);
@@ -66,22 +66,24 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
   console.log('swissephModule:', swissephModule);
   const SwissEph = swissephModule.default;
   console.log('SwissEph:', SwissEph, typeof SwissEph);
+  type SwissEphInstance = InstanceType<typeof SwissEph>;
   const sweph = new SwissEph();
   console.log('sweph instance:', sweph);
   
   // Initialize the library
   console.log('calculateChart: initializing SwissEph...');
-  try {
-    await sweph.initSwissEph();
-   } catch (error) {
-    console.error('Failed to initialize SwissEph:', error);
-    throw new Error(`SwissEph initialization failed: ${error instanceof Error ? error.message : String(error)}`);
-  }
+   try {
+     await sweph.initSwissEph();
+    } catch (error: unknown) {
+     console.error('Failed to initialize SwissEph:', error);
+     throw new Error(`SwissEph initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+   }
   
   // Helper function to load ephemeris files in browser environment
-  async function loadEphemerisFiles(sweph: any): Promise<boolean> {
+  async function loadEphemerisFiles(sweph: SwissEphInstance): Promise<boolean> {
     try {
       // Check if Emscripten FS is available
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const FS = (sweph as any).SweModule?.FS || (sweph as any).FS || (window as any).Module?.FS;
       if (!FS) {
         console.log('Emscripten FS not available, skipping ephemeris file loading');
@@ -98,7 +100,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       try {
         FS.mkdir(targetDir);
         console.log('Created directory:', targetDir);
-      } catch (mkdirError) {
+      } catch (_mkdirError) {
         // Directory might already exist, that's OK
         console.log('Directory may already exist:', targetDir);
       }
@@ -116,7 +118,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
           console.log(`File already exists: ${filePath}`);
           loadedAny = true;
           continue;
-        } catch (statError) {
+        } catch (_statError) {
           // File doesn't exist, need to load it
         }
         
@@ -141,19 +143,20 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
         // Update ephemeris path to include both default 'sweph' and our 'ephemeris' directory
         const newPath = 'sweph;ephemeris';
         try {
-          sweph.set_ephe_path(newPath);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (sweph as any).set_ephe_path(newPath);
           console.log('Updated ephemeris path to:', newPath);
           return true;
-        } catch (pathError) {
+        } catch (pathError: unknown) {
           console.warn('Failed to update ephemeris path:', pathError);
         }
       }
       
       return loadedAny;
-    } catch (error) {
-      console.warn('Failed to load ephemeris files:', error);
-      return false;
-    }
+     } catch (error: unknown) {
+       console.warn('Failed to load ephemeris files:', error);
+       return false;
+     }
   }
   
   // Set ephemeris path to where ephemeris files are served
@@ -168,13 +171,13 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     console.log('Node environment detected, using absolute path:', ephePath);
   }
   try {
-    // @ts-ignore - set_ephe_path exists at runtime
-    sweph.set_ephe_path(ephePath);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (sweph as any).set_ephe_path(ephePath);
     console.log('Ephemeris path set to:', ephePath);
-   } catch (error) {
-    console.warn('set_ephe_path failed (may be OK in browser):', error);
-    // Continue anyway
-  }
+    } catch (error: unknown) {
+      console.warn('set_ephe_path failed (may be OK in browser):', error);
+      // Continue anyway
+    }
   
   // Try to load ephemeris files in browser environment
   if (typeof window !== 'undefined' && typeof document !== 'undefined') {
@@ -218,8 +221,8 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
   
   const houseChar = HOUSE_SYSTEM_TO_CHAR[data.houseSystem];
   console.log('calculateChart: calculating houses with system', houseChar, 'lat', data.latitude, 'lon', data.longitude);
-  // @ts-ignore - houses_ex exists at runtime
-  const housesResult = sweph.houses_ex(jd, flags, data.latitude, data.longitude, houseChar);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const housesResult = (sweph as any).houses_ex(jd, flags, data.latitude, data.longitude, houseChar);
   console.log('calculateChart: houses calculation successful, cusps length', housesResult.cusps.length);
   const cusps = housesResult.cusps; // Float64Array length 13, index 1-12 are house cusps
   const ascmc = housesResult.ascmc; // Float64Array length 10, index 0 = Ascendant, 1 = MC
@@ -268,7 +271,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
         // Try Swiss Ephemeris first for better accuracy (requires ephemeris files)
         resultArray = sweph.calc_ut(jd, planetIndex, sweph.SEFLG_SWIEPH | sweph.SEFLG_SPEED);
         console.log(`Planet ${planetName} calculated with Swiss Ephemeris`);
-       } catch (swissError) {
+        } catch (swissError: unknown) {
         // If Swiss Ephemeris fails, check if it's a file not found error
          const errorMsg = (swissError as Error).message;
         console.error(`Swiss Ephemeris error for ${planetName}: ${errorMsg} (path: ${ephePath})`);
@@ -283,15 +286,15 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
           throw swissError;
         }
       }
-    } catch (error) {
-      // Skip planets that fail (e.g., Chiron without asteroid ephemeris)
-      skippedPlanets.push(planetName as Planet);
-      if (planetName === 'chiron') {
-        console.warn('Chiron calculation skipped: asteroid ephemeris files not available');
-      } else {
-        console.warn(`Failed to calculate ${planetName}:`, error);
-      }
-      continue;
+     } catch (error: unknown) {
+       // Skip planets that fail (e.g., Chiron without asteroid ephemeris)
+       skippedPlanets.push(planetName as Planet);
+       if (planetName === 'chiron') {
+         console.warn('Chiron calculation skipped: asteroid ephemeris files not available');
+       } else {
+         console.warn(`Failed to calculate ${planetName}:`, error);
+       }
+       continue;
     }
     
     // Swiss Ephemeris returns: longitude, latitude, distance,
