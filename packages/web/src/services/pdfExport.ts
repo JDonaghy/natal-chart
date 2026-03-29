@@ -284,13 +284,8 @@ async function addChartWheel(
     svgClone.setAttribute('height', `${targetSize}mm`);
     svgClone.setAttribute('viewBox', `0 0 800 800`);
     
-    // Remove astrological glyph text elements to avoid PDF generation errors
-    // Default PDF fonts don't support astrological symbols, causing 'widths' undefined error
-    const glyphElements = svgClone.querySelectorAll('text.glyph');
-    console.log(`Found ${glyphElements.length} glyph text elements - removing to avoid PDF errors`);
-    glyphElements.forEach((el) => {
-      el.remove();
-    });
+    // Astrological glyphs are now rendered as SVG <path> elements (not <text>),
+    // so they convert to PDF as native vectors with no font dependency.
     
     // Convert SVG to PDF using svg2pdf
     console.log('svg2pdf function available?', typeof svg2pdf);
