@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useChart } from '../contexts/ChartContext';
+import { useChart, type ExtendedBirthData } from '../contexts/ChartContext';
 import { geocodeCity, type GeocodeResult, isRealGeocodingAvailable, isCoordinateQuery, parseCoordinates } from '../services/geocoding';
 import { convertToUTC } from '../services/timezone';
 import '../App.css';
@@ -27,6 +27,24 @@ export const BirthDataForm: React.FC = () => {
     longitude: -0.1278,
     houseSystem: 'P' as 'P' | 'W' | 'K',
   });
+  
+  // Save form state to localStorage
+  const saveFormState = useCallback(() => {
+    try {
+      localStorage.setItem('natal-chart-form-state', JSON.stringify(formData));
+    } catch (error) {
+      console.warn('Failed to save form state:', error);
+    }
+  }, [formData]);
+  
+  // Auto-save form state with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveFormState();
+    }, 1000); // Debounce 1 second
+    
+    return () => clearTimeout(timeoutId);
+  }, [formData, saveFormState]);
   
   // Detect if current city input is in coordinate format
   const isCoordinatesInput = useMemo(() => {
@@ -68,27 +86,74 @@ export const BirthDataForm: React.FC = () => {
     });
   }, [parsedCoordinates]);
   
-  // Load saved birth data from localStorage on mount
+  // Load saved form state and birth data from localStorage on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('natal-chart-birth-data');
-      if (saved) {
-        const data = JSON.parse(saved);
-        // Convert date string back to Date object
-        data.dateTimeUtc = new Date(data.dateTimeUtc);
-        // Update form with saved data
+      // Load form state (unsaved changes)
+      const savedFormState = localStorage.getItem('natal-chart-form-state');
+      let loadedData: Partial<typeof formData> = {};
+      
+      if (savedFormState) {
+        try {
+          const parsed = JSON.parse(savedFormState);
+          // Validate basic structure
+          if (parsed && typeof parsed === 'object') {
+            loadedData = parsed;
+          }
+        } catch (e) {
+          console.warn('Failed to parse saved form state:', e);
+        }
+      }
+      
+      // Load birth data (from last chart calculation - takes precedence)
+      const savedBirthData = localStorage.getItem('natal-chart-birth-data');
+      if (savedBirthData) {
+        const data = JSON.parse(savedBirthData) as ExtendedBirthData;
+        
+        // Validate required fields exist
+        if (data.dateTimeUtc && typeof data.latitude === 'number' && typeof data.longitude === 'number' && data.houseSystem) {
+          // Convert date string back to Date object
+          const dateTimeUtc = new Date(data.dateTimeUtc);
+          if (!isNaN(dateTimeUtc.getTime())) {
+            // Extract date and time parts from ISO string
+            const isoString = dateTimeUtc.toISOString();
+            const [datePart, timePart] = isoString.split('T');
+            loadedData.birthDate = datePart || '1990-06-15';
+            loadedData.birthTime = timePart ? timePart.substring(0, 5) : '12:00';
+            loadedData.latitude = data.latitude;
+            loadedData.longitude = data.longitude;
+            loadedData.houseSystem = data.houseSystem;
+            
+            // Use saved city if available, otherwise format coordinates
+            if (data.city && data.city !== 'Saved location') {
+              loadedData.city = data.city;
+            } else {
+              loadedData.city = `${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`;
+            }
+            
+            // Use saved timezone if available
+            if (data.timezone) {
+              loadedData.timezone = data.timezone;
+            }
+          }
+        }
+      }
+      
+      // Update form with loaded data (only if we have something to load)
+      if (Object.keys(loadedData).length > 0) {
         setFormData(prev => ({
           ...prev,
-          birthDate: data.dateTimeUtc.toISOString().split('T')[0],
-          birthTime: data.dateTimeUtc.toISOString().split('T')[1].substring(0, 5),
-          latitude: data.latitude,
-          longitude: data.longitude,
-          houseSystem: data.houseSystem,
-          city: 'Saved location', // We don't store city name, just coords
+          birthDate: loadedData.birthDate ?? prev.birthDate,
+          birthTime: loadedData.birthTime ?? prev.birthTime,
+          latitude: loadedData.latitude ?? prev.latitude,
+          longitude: loadedData.longitude ?? prev.longitude,
+          houseSystem: loadedData.houseSystem ?? prev.houseSystem,
+          city: loadedData.city ?? prev.city,
+          timezone: loadedData.timezone ?? prev.timezone,
         }));
       }
     } catch (error) {
-      console.warn('Failed to load saved birth data:', error);
+      console.warn('Failed to load saved data:', error);
     }
   }, []);
   
@@ -235,6 +300,8 @@ export const BirthDataForm: React.FC = () => {
         latitude: formData.latitude,
         longitude: formData.longitude,
         houseSystem: formData.houseSystem,
+        city: formData.city,
+        timezone: formData.timezone,
       });
       
       navigate('/chart');

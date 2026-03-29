@@ -240,18 +240,64 @@ If a release causes issues:
    git push origin main
    ```
 
-## Quality Gates
+ ## Quality Gates
 
 Before any release:
 - [ ] All tests pass
 - [ ] No linting errors
 - [ ] Type checking passes
 - [ ] Build succeeds
-- [ ] Manual smoke test of critical paths
+- [ ] Manual smoke test of critical paths (see below)
 - [ ] Coordinate detection working
 - [ ] OpenStreetMap validation link functional
 - [ ] Geocoding proxy operational
 - [ ] Chart calculation works with sample data
+
+### Manual Smoke Test Steps
+
+Run these tests locally before merging release PR:
+
+1. **Start development server**:
+   ```bash
+   pnpm --filter web dev
+   ```
+   Open http://localhost:3000 in browser
+
+2. **Test birth data form**:
+   - Verify default values (London, 1990-06-15, 12:00) pre-filled
+   - Click "Search" button for city search (should show mock results)
+   - Select a city from dropdown (should populate coordinates/timezone)
+   - Verify coordinate display updates
+   - For coordinate input: enter "51.5074, -0.1278" and validate OpenStreetMap link appears
+
+3. **Test chart calculation**:
+   - Click "Calculate Natal Chart" (should navigate to /chart)
+   - Verify chart wheel renders with planets, houses, aspects
+   - Check zodiac degree markings (small ticks, 5° medium ticks, sign boundaries)
+   - Verify house cusp degree display shows exact degree/minute
+   - Verify chart information overlay shows birth data
+
+4. **Test geocoding proxy**:
+   - In worker package directory: `pnpm --filter worker dev`
+   - Verify worker starts on http://localhost:8787
+   - Test endpoint: `curl "http://localhost:8787/geocode?q=London"` (should return mock data)
+
+5. **Test localStorage persistence**:
+   - After calculating chart, refresh page
+   - Verify form pre-fills with saved data
+   - Navigate back to chart page, verify chart loads
+
+6. **Test responsiveness**:
+   - Resize browser window, ensure chart scales appropriately
+   - Check mobile view (developer tools)
+
+7. **Verify ephemeris loading**:
+   - Check browser console for WASM loading messages
+   - No errors related to swisseph-wasm or ephemeris files
+
+### Automated Smoke Test Script
+
+Create `scripts/smoke-test.sh` for CI (future enhancement):
 
 ---
 
