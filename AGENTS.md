@@ -274,6 +274,12 @@ export default defineConfig({
 3. **Version bump required** for PRs to `main`
 4. **Use conventional commits**: `feat:`, `fix:`, `docs:`, `chore:`, etc.
 5. **Test locally before PR**: `pnpm -r test && pnpm -r lint && pnpm build`
+6. **Always run smoke tests manually** before pushing changes to `develop`:
+   - Start dev server: `pnpm --filter web dev`
+   - Test birth data form with various inputs
+   - Verify chart calculation and rendering
+   - Test form persistence after refresh
+   - Verify timezone conversions work correctly
 
 ### Release Process
 1. **Develop on `develop`** branch

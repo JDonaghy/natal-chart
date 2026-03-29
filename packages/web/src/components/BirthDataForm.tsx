@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useChart, type ExtendedBirthData } from '../contexts/ChartContext';
 import { geocodeCity, type GeocodeResult, isRealGeocodingAvailable, isCoordinateQuery, parseCoordinates } from '../services/geocoding';
-import { convertToUTC } from '../services/timezone';
+import { convertToUTC, convertFromUTC } from '../services/timezone';
 import '../App.css';
 
 export const BirthDataForm: React.FC = () => {
@@ -22,7 +22,7 @@ export const BirthDataForm: React.FC = () => {
     birthDate: '1990-06-15',
     birthTime: '12:00',
     timezone: '',
-    city: 'London, UK',
+    city: '',
     latitude: 51.5074,
     longitude: -0.1278,
     houseSystem: 'P' as 'P' | 'W' | 'K',
@@ -115,11 +115,42 @@ export const BirthDataForm: React.FC = () => {
           // Convert date string back to Date object
           const dateTimeUtc = new Date(data.dateTimeUtc);
           if (!isNaN(dateTimeUtc.getTime())) {
-            // Extract date and time parts from ISO string
-            const isoString = dateTimeUtc.toISOString();
-            const [datePart, timePart] = isoString.split('T');
-            loadedData.birthDate = datePart || '1990-06-15';
-            loadedData.birthTime = timePart ? timePart.substring(0, 5) : '12:00';
+            // Convert UTC back to local time using saved timezone
+            if (data.timezone) {
+              try {
+                const { dateString, timeString } = convertFromUTC(dateTimeUtc, data.timezone);
+                loadedData.birthDate = dateString;
+                // Preserve full time string including seconds
+                loadedData.birthTime = timeString;
+              } catch (conversionError) {
+                console.warn('Failed to convert UTC back to local time:', conversionError);
+                // Fallback: use UTC date/time
+                const isoString = dateTimeUtc.toISOString();
+                const [datePart, timePart] = isoString.split('T');
+                loadedData.birthDate = datePart || '1990-06-15';
+                // Extract HH:MM:SS from ISO time (removing milliseconds and Z)
+                let timeWithoutMs = '12:00:00';
+                if (timePart) {
+                  // Remove milliseconds if present, and remove trailing Z
+                  const timeNoMs = timePart.split('.')[0] || '12:00:00';
+                  timeWithoutMs = timeNoMs.endsWith('Z') ? timeNoMs.slice(0, -1) : timeNoMs;
+                }
+                loadedData.birthTime = timeWithoutMs;
+              }
+            } else {
+              // No timezone saved, use UTC
+              const isoString = dateTimeUtc.toISOString();
+              const [datePart, timePart] = isoString.split('T');
+              loadedData.birthDate = datePart || '1990-06-15';
+              // Extract HH:MM:SS from ISO time (removing milliseconds and Z)
+              let timeWithoutMs = '12:00:00';
+              if (timePart) {
+                // Remove milliseconds if present, and remove trailing Z
+                const timeNoMs = timePart.split('.')[0] || '12:00:00';
+                timeWithoutMs = timeNoMs.endsWith('Z') ? timeNoMs.slice(0, -1) : timeNoMs;
+              }
+              loadedData.birthTime = timeWithoutMs;
+            }
             loadedData.latitude = data.latitude;
             loadedData.longitude = data.longitude;
             loadedData.houseSystem = data.houseSystem;
@@ -128,7 +159,7 @@ export const BirthDataForm: React.FC = () => {
             if (data.city && data.city !== 'Saved location') {
               loadedData.city = data.city;
             } else {
-              loadedData.city = `${data.latitude.toFixed(4)}, ${data.longitude.toFixed(4)}`;
+              loadedData.city = `${data.latitude.toFixed(7)}, ${data.longitude.toFixed(7)}`;
             }
             
             // Use saved timezone if available
@@ -335,7 +366,7 @@ export const BirthDataForm: React.FC = () => {
       ? (coord >= 0 ? 'N' : 'S')
       : (coord >= 0 ? 'E' : 'W');
     const absCoord = Math.abs(coord);
-    return `${absCoord.toFixed(4)}° ${direction}`;
+    return `${absCoord.toFixed(7)}° ${direction}`;
   };
   
   return (

@@ -48,19 +48,21 @@ function convertToUTCManual(
     const dayStr = dateParts[2] || '1';
     const hourStr = timeParts[0] || '0';
     const minuteStr = timeParts[1] || '0';
+    const secondStr = timeParts[2] || '0';
     
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10) - 1; // 0-11
     const day = parseInt(dayStr, 10);
     const hour = parseInt(hourStr, 10);
     const minute = parseInt(minuteStr, 10);
+    const second = parseInt(secondStr, 10);
     
-    if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) {
+    if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute) || isNaN(second)) {
       throw new Error('Failed to parse date/time components');
     }
     
     // Initial guess: treat input as UTC
-    const guess = new Date(Date.UTC(year, month, day, hour, minute, 0));
+    const guess = new Date(Date.UTC(year, month, day, hour, minute, second));
     
     // Get offset at this UTC time (offset = UTC - local, so local = UTC - offset)
     let offset = getTimezoneOffset(timeZone, guess);
@@ -107,8 +109,15 @@ export function convertToUTC(
     return fallback;
   }
   
+  // Normalize time string to include seconds if missing
+  let normalizedTime = timeString;
+  const timeParts = timeString.split(':');
+  if (timeParts.length === 2) {
+    normalizedTime = `${timeString}:00`;
+  }
+  
   // Combine date and time
-  const localDateTime = `${dateString}T${timeString}:00`;
+  const localDateTime = `${dateString}T${normalizedTime}`;
   console.log('localDateTime:', localDateTime);
   
   // Special handling for UTC
@@ -225,6 +234,83 @@ export function convertToUTC(
     }
   }
 }
+
+/**
+ * Convert a UTC Date object back to local date/time strings in a specific timezone
+ * @param utcDate Date object in UTC
+ * @param timeZone IANA timezone name (e.g., 'America/New_York')
+ * @returns Object with dateString (YYYY-MM-DD) and timeString (HH:MM:SS)
+ */
+export function convertFromUTC(utcDate: Date, timeZone: string): { dateString: string; timeString: string } {
+  console.log('convertFromUTC called with:', { utcDate: utcDate.toISOString(), timeZone });
+  
+  // Validate inputs
+  if (!utcDate || isNaN(utcDate.getTime()) || !timeZone) {
+    console.warn('Invalid inputs to convertFromUTC, returning UTC');
+    const year = utcDate.getUTCFullYear();
+    const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(utcDate.getUTCDate()).padStart(2, '0');
+    const hours = String(utcDate.getUTCHours()).padStart(2, '0');
+    const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(utcDate.getUTCSeconds()).padStart(2, '0');
+    return {
+      dateString: `${year}-${month}-${day}`,
+      timeString: `${hours}:${minutes}:${seconds}`,
+    };
+  }
+  
+  // Try Luxon first
+  try {
+    const local = DateTime.fromJSDate(utcDate).setZone('UTC').setZone(timeZone);
+    
+    if (!local.isValid) {
+      throw new Error(`Invalid conversion: ${local.invalidExplanation}`);
+    }
+    
+    const dateString = local.toFormat('yyyy-MM-dd');
+    const timeString = local.toFormat('HH:mm:ss');
+    
+    console.log('convertFromUTC Luxon successful:', { dateString, timeString });
+    return { dateString, timeString };
+  } catch (luxonError) {
+    console.warn('Luxon conversion failed in convertFromUTC:', (luxonError as Error).message);
+    
+    // Fallback: use Intl API to compute offset
+    try {
+      // Get offset at this UTC time
+      const offset = getTimezoneOffset(timeZone, utcDate);
+      const localMillis = utcDate.getTime() + offset * 60000;
+      const localDate = new Date(localMillis);
+      
+      const year = localDate.getUTCFullYear();
+      const month = String(localDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(localDate.getUTCDate()).padStart(2, '0');
+      const hours = String(localDate.getUTCHours()).padStart(2, '0');
+      const minutes = String(localDate.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(localDate.getUTCSeconds()).padStart(2, '0');
+      
+      const dateString = `${year}-${month}-${day}`;
+      const timeString = `${hours}:${minutes}:${seconds}`;
+      
+      console.log('convertFromUTC manual fallback:', { dateString, timeString });
+      return { dateString, timeString };
+    } catch (manualError) {
+      console.error('Manual fallback also failed, returning UTC:', (manualError as Error).message);
+      // Ultimate fallback: return UTC
+      const year = utcDate.getUTCFullYear();
+      const month = String(utcDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(utcDate.getUTCDate()).padStart(2, '0');
+      const hours = String(utcDate.getUTCHours()).padStart(2, '0');
+      const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(utcDate.getUTCSeconds()).padStart(2, '0');
+      return {
+        dateString: `${year}-${month}-${day}`,
+        timeString: `${hours}:${minutes}:${seconds}`,
+      };
+    }
+  }
+}
+
 
 /**
  * Parse offset string like "-5", "+05:30", "-05:30" into minutes
