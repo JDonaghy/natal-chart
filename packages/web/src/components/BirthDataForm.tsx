@@ -64,6 +64,11 @@ export const BirthDataForm: React.FC = () => {
     return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=14`;
   }, [parsedCoordinates]);
 
+  // Check if form is valid for submission
+  const isFormValid = useMemo(() => {
+    return !!formData.timezone && !!formData.birthDate && !!formData.birthTime;
+  }, [formData.timezone, formData.birthDate, formData.birthTime]);
+
   // Auto-update latitude/longitude when coordinate input is detected
   useEffect(() => {
     if (!parsedCoordinates) return;
@@ -628,15 +633,16 @@ export const BirthDataForm: React.FC = () => {
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || !isFormValid}
+            title={!isFormValid ? 'Please search and select a birth city to detect the timezone' : ''}
             style={{ 
               padding: '1rem 3rem', 
               fontSize: '1.2rem',
-              backgroundColor: loading ? '#ccc' : '#b8860b',
+              backgroundColor: (loading || !isFormValid) ? '#ccc' : '#b8860b',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: loading ? 'not-allowed' : 'pointer',
+              cursor: (loading || !isFormValid) ? 'not-allowed' : 'pointer',
             }}
           >
             {loading ? 'Calculating...' : 'Calculate Natal Chart'}
