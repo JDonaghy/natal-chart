@@ -5,10 +5,12 @@ import type { Svg2pdfOptions } from 'svg2pdf.js';
 import type { ChartResult } from '@natal-chart/core';
 import type { ExtendedBirthData } from '../contexts/ChartContext';
 
+type JsPDFWithAutoTable = jsPDF & { lastAutoTable: { finalY: number } };
+
 /**
  * Add DejaVuSans font to jsPDF instance if not already added
  */
-async function addDejaVuFont(doc: jsPDF): Promise<void> {
+async function addDejaVuFont(doc: jsPDF): Promise<boolean> {
   // Check if font already added to VFS
   if (doc.existsFileInVFS && doc.existsFileInVFS('DejaVuSans.ttf')) {
     console.log('DejaVuSans font already added to VFS');
@@ -17,7 +19,7 @@ async function addDejaVuFont(doc: jsPDF): Promise<void> {
     console.log('Available fonts:', fontList);
     if (fontList && fontList['DejaVuSans']) {
       console.log('DejaVuSans font already registered');
-      return;
+      return true;
     }
   }
   
@@ -55,14 +57,60 @@ async function addDejaVuFont(doc: jsPDF): Promise<void> {
     
     // Add font to jsPDF Virtual File System (VFS)
     doc.addFileToVFS('DejaVuSans.ttf', fontBase64);
-    // Register the font
-    doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal', 'Identity-H');
+    // Register the font - suppress jsPDF PubSub errors that appear in console
+    const originalConsoleError = console.error;
+    let jsPdfErrorOccurred = false;
+    
+    // Override console.error to capture and suppress jsPDF PubSub errors
+    console.error = (...args: unknown[]) => {
+      const message = args[0]?.toString() || '';
+      if (message.includes('jsPDF PubSub Error')) {
+        jsPdfErrorOccurred = true;
+        console.log('Suppressed jsPDF PubSub Error during font registration');
+        return;
+      }
+      // Pass through other errors
+      originalConsoleError.apply(console, args);
+    };
+    
+    try {
+      // First try with encoding
+      doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal', 'Identity-H');
+    } catch (error) {
+      console.log('First addFont attempt failed, trying without encoding:', error);
+      try {
+        // Try without encoding parameter
+        doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
+      } catch (error2) {
+        console.log('Second addFont attempt failed, font may not be compatible:', error2);
+        // Restore console.error before throwing
+        console.error = originalConsoleError;
+        throw new Error('Failed to register DejaVuSans font with jsPDF');
+      }
+    } finally {
+      // Restore console.error
+      console.error = originalConsoleError;
+    }
+    
+    // Log if jsPDF error occurred but was suppressed
+    if (jsPdfErrorOccurred) {
+      console.log('jsPDF font parsing error occurred but was suppressed');
+    }
+    
+    // Verify font was actually registered
+    const fontList = doc.getFontList();
+    console.log('Font list after adding:', fontList);
+    if (!fontList || !fontList['DejaVuSans']) {
+      throw new Error('DejaVuSans font not found in font list after registration');
+    }
+    
     console.log('DejaVuSans font added successfully to VFS');
-    console.log('Font list after adding:', doc.getFontList());
+    return true;
   } catch (error) {
     console.error('Failed to add DejaVuSans font:', error);
     // Fallback to ZapfDingbats
     console.log('Using ZapfDingbats as fallback');
+    return false;
   }
 }
 
@@ -103,8 +151,15 @@ export async function generateChartPdf(
     compress: true,
   });
 
-  // Add DejaVuSans font for astrological symbols
-  await addDejaVuFont(doc);
+  // Try to load DejaVuSans font for astrological symbols
+  let fontLoaded: boolean;
+  try {
+    fontLoaded = await addDejaVuFont(doc);
+    console.log('Font loading result:', fontLoaded ? 'success' : 'failed');
+  } catch (error) {
+    console.error('Failed to load DejaVuSans font, using fallback without symbols:', error);
+    fontLoaded = false;
+  }
 
   // Set document properties
   doc.setProperties({
@@ -123,12 +178,12 @@ export async function generateChartPdf(
   }
   
   // Add planet positions table
-  currentY = addPlanetTable(doc, chartData, currentY);
+  currentY = addPlanetTable(doc, chartData, currentY, fontLoaded);
   
   // Add aspects table (if any)
   if (chartData.aspects.length > 0) {
     // No need to capture returned Y as we're done with content
-    addAspectTable(doc, chartData, currentY);
+    addAspectTable(doc, chartData, currentY, fontLoaded);
   }
   
   // Add footer with timestamp and page numbers
@@ -229,13 +284,8 @@ async function addChartWheel(
     svgClone.setAttribute('height', `${targetSize}mm`);
     svgClone.setAttribute('viewBox', `0 0 800 800`);
     
-    // Remove astrological glyph text elements to avoid PDF generation errors
-    // Default PDF fonts don't support astrological symbols, causing 'widths' undefined error
-    const glyphElements = svgClone.querySelectorAll('text.glyph');
-    console.log(`Found ${glyphElements.length} glyph text elements - removing to avoid PDF errors`);
-    glyphElements.forEach((el) => {
-      el.remove();
-    });
+    // Astrological glyphs are now rendered as SVG <path> elements (not <text>),
+    // so they convert to PDF as native vectors with no font dependency.
     
     // Convert SVG to PDF using svg2pdf
     console.log('svg2pdf function available?', typeof svg2pdf);
@@ -281,7 +331,7 @@ async function addChartWheel(
 /**
  * Add planet positions table
  */
-function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number): number {
+function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number, fontLoaded: boolean = false): number {
   const margin = 15;
   let y = startY;
   
@@ -292,10 +342,17 @@ function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number): num
   doc.text('Planet Positions', margin, y);
   y += 8;
   
-  // Prepare table data
+  // Set font for table based on font availability
+  if (fontLoaded) {
+    doc.setFont('DejaVuSans', 'normal');
+  } else {
+    doc.setFont('helvetica', 'normal');
+  }
+  
+  // Prepare table data with glyphs if font available
   const tableData = chartData.planets.map(planet => [
-    getPlanetGlyph(planet.planet) + ' ' + formatPlanetName(planet.planet),
-    getSignGlyph(planet.sign) + ' ' + formatSignName(planet.sign),
+    fontLoaded ? getPlanetGlyph(planet.planet) + ' ' + formatPlanetName(planet.planet) : formatPlanetName(planet.planet),
+    fontLoaded ? getSignGlyph(planet.sign) + ' ' + formatSignName(planet.sign) : formatSignName(planet.sign),
     `${planet.degree}° ${planet.minute}′`,
     planet.house.toString(),
     planet.retrograde ? 'R' : '',
@@ -334,14 +391,14 @@ function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number): num
   });
   
   // Update Y position after table
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
   return y;
 }
 
 /**
  * Add aspects table
  */
-function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number): number {
+function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, fontLoaded: boolean = false): number {
   const margin = 15;
   let y = startY;
   
@@ -352,10 +409,17 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number): num
   doc.text('Aspects', margin, y);
   y += 8;
   
-  // Prepare table data
+  // Set font for table based on font availability
+  if (fontLoaded) {
+    doc.setFont('DejaVuSans', 'normal');
+  } else {
+    doc.setFont('helvetica', 'normal');
+  }
+  
+  // Prepare table data with glyphs if font available
   const tableData = chartData.aspects.map(aspect => [
-    getPlanetGlyph(aspect.planet1) + ' ' + formatPlanetName(aspect.planet1),
-    getPlanetGlyph(aspect.planet2) + ' ' + formatPlanetName(aspect.planet2),
+    fontLoaded ? getPlanetGlyph(aspect.planet1) + ' ' + formatPlanetName(aspect.planet1) : formatPlanetName(aspect.planet1),
+    fontLoaded ? getPlanetGlyph(aspect.planet2) + ' ' + formatPlanetName(aspect.planet2) : formatPlanetName(aspect.planet2),
     formatAspectName(aspect.type),
     `${aspect.angle.toFixed(1)}°`,
     `${aspect.orb.toFixed(1)}°`,
@@ -396,7 +460,7 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number): num
   });
   
   // Update Y position after table
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
   return y;
 }
 

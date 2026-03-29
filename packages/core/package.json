@@ -1,6 +1,6 @@
 {
   "name": "@natal-chart/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Pure TypeScript calculation engine for natal chart astrology",
   "type": "module",
   "main": "dist/index.js",

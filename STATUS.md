@@ -1,193 +1,51 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-03-30*
+*Last Updated: 2026-03-29*
 
 ## 🚀 Deployment Status
-- **GitHub Pages**: https://jdonaghy.github.io/natal-chart/ (✅ **DEPLOYED** build `c08f207`)
-- **Latest Commit**: `c08f207` (coordinate detection + OpenStreetMap link + documentation)
-- **Cloud Version**: Check footer for exact build commit hash
+- **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
-- **Auto-deployment**: ✅ GitHub Actions **COMPLETED SUCCESSFULLY**
-- **Local Development**: http://localhost:3001/natal-chart/ with all new features (**dev server restarted with font fixes**)
-
-### New Features in Latest Deployment
-- ✅ Coordinate input detection in birth city field
-- ✅ OpenStreetMap validation link for coordinate inputs (opens in new tab) - **FIXED LOCATION**
-- ✅ Accessibility: title attribute for screen readers
-- ✅ Enhanced documentation (`ARCHITECTURE.md` with Cloudflare Worker setup)
-- ✅ API key management documentation (`.tokens` file)
-- ✅ Coordinate parsing utility functions
-- ✅ Real geocoding with timezone extraction
-- ✅ Chart wheel enhancements: colored planet axis ticks, radially stacked labels (glyph, degree, house, minute), basic collision detection
-- ✅ Client‑side PDF export: birth‑data summary, chart‑wheel SVG, planet‑positions table, aspects table, parchment/gold styling, timestamp footer
-- ✅ Custom font embedding for astrological symbols in PDF (DejaVu Sans)
-
-### 🔧 Fix Applied (commit `fdabd7e`)
-- **Moved OpenStreetMap link** from after house system to immediately after coordinate display
-- **Issue**: Link was hidden far from coordinate input, users couldn't see it
-- **Fix**: Link now appears right below coordinate display for immediate visibility
-
-## 📦 Deployment Progress
-### ✅ Completed
-- **Cloudflare Worker updated**: Timezone extraction and coordinate support working
-- **Frontend code committed**: Real geocoding with fallback URL, mock removed
-- **Local testing passed**: Proxy works, geocoding returns timezone data
-
-### ⏳ Pending
-- **GitHub Actions deployment**: Workflow not yet triggered for commit `56ce411`
-  - Possible causes: workflow disabled, rate limiting, or delay
-  - **Action needed**: Check GitHub Actions page for pending runs
-  - **Manual trigger option**: Use "Run workflow" button on GitHub UI
-
-### 🔍 Verification Steps (After Deployment)
-1. **Test geocoding on live site**: Enter "London, UK" → should detect timezone
-2. **Test coordinate input**: Enter "51.5074,-0.1278" → should reverse geocode to London
-3. **Clear browser cache**: Ensure latest JavaScript loads
-4. **Verify footer version**: Should show commit `56ce411` (or newer)
-
-### ⚙️ Environment Configuration
-- **Frontend default**: Uses Cloudflare Worker URL directly if `VITE_GEOCODING_API_URL` not set
-- **CORS configured**: Worker allows requests from `https://jdonaghy.github.io`
-- **Cache versioned**: Worker cache uses `v2` prefix to avoid stale timezone data
+- **Auto-deployment**: GitHub Actions on push to `main`
+- **Current Version**: 0.3.0 (pending merge of PR #3)
 
 ## ✅ What Works
+
 ### Core Functionality
-- [x] Birth data form with automatic timezone detection UI
+- [x] Birth data form with Year/Month/Day dropdowns (locale-independent)
+- [x] Automatic timezone detection via OpenCage geocoding
 - [x] Swiss Ephemeris WASM calculations (planets, houses, aspects)
-- [x] Chart rendering with 800px responsive wheel
+- [x] Professional chart wheel with concentric ring layout
+- [x] SVG path-based astrological glyphs (font-independent vectors)
+- [x] Planet collision avoidance with connector lines to true ecliptic positions
 - [x] Tabbed view (Chart Wheel, Planet Positions, Aspects)
 - [x] Retrograde indicators in table and chart
-- [x] LocalStorage persistence of birth data
-- [x] Real geocoding via Cloudflare Worker (when configured)
+- [x] Client-side PDF export with vector glyph rendering
+- [x] LocalStorage persistence of birth data and form state
+- [x] Real geocoding via Cloudflare Worker
 - [x] Coordinate input detection with OpenStreetMap validation link
-- [x] Client‑side PDF export (chart wheel, planet positions, aspects, birth data)
 
 ### Infrastructure
 - [x] Monorepo with pnpm workspaces
 - [x] TypeScript strict mode across packages
 - [x] Vite build with React 18
 - [x] HashRouter for GitHub Pages compatibility
-- [x] 404.html SPA fallback
+- [x] GitHub Actions CI/CD
 - [x] Build version tracking (git commit + timestamp)
 
 ## 🐛 Known Issues
-### Critical
-1. **✅ Cloudflare Worker timezone data FIXED**
-   - Worker deployed with `&annotations=timezone` parameter
-   - Cache versioning (`v2`) invalidates old cached entries
-   - Timezone now returned for forward geocoding (e.g., "London" → "Europe/London")
-   - Coordinate queries also return timezone via reverse geocoding
-
-2. **✅ Real geocoding enabled**
-   - Frontend uses Cloudflare Worker proxy for real geocoding with timezone extraction
-   - Coordinate detection and OpenStreetMap validation link working
-   - Local development uses `/api/geocode` proxy to production worker
-
-3. **✅ Build version discrepancy resolved**
-   - CI build now uses `GITHUB_SHA` environment variable for commit hash
-   - Footer shows correct commit hash in production
-   - Local development uses git rev-parse
 
 ### Medium Priority
-4. **Chiron calculations require asteroid ephemeris**
-   - Files present in `public/ephemeris/` but not verified working
-   - Chiron currently skipped with warning
+1. **Chiron calculations require asteroid ephemeris** — Files present in `public/ephemeris/` but Chiron currently skipped with warning
 
-5. **✅ Coordinate input support IMPLEMENTED**
-   - Worker can parse "latitude,longitude" format and reverse geocode
-   - Frontend detects coordinate input and shows OpenStreetMap validation link
-   - Timezone extraction works via reverse geocoding
-
-## 🛠️ Current Session Progress
-1. **Updated Cloudflare Worker** (`packages/worker/src/index.ts`):
-   - Added `&annotations=timezone` to OpenCage API URL
-   - Added coordinate parsing functions (`isCoordinateQuery`, `parseCoordinates`)
-   - Added reverse geocoding support for coordinate inputs
-   - Updated request handling for both city searches and coordinate queries
-   - **✅ DEPLOYED**: Version `5618909e-ece2-4c6d-8a0b-40c930e7745c`
-
-2. **Enhanced frontend for coordinate input** (`packages/web/src/components/BirthDataForm.tsx`):
-   - Added coordinate detection in city input field
-   - Added subtle OpenStreetMap validation link for coordinate inputs
-   - Link opens map in new tab to validate location
-   - Only appears when coordinate format detected (e.g., "44.9816505,-93.132362")
-
-3. **Configured frontend for real geocoding**:
-   - Set `VITE_GEOCODING_API_URL=/api/geocode` in `packages/web/.env`
-   - Updated `geocodeCity` function to throw error if API URL not configured (no mock fallback)
-   - Updated form placeholder to indicate coordinate support
-
- 4. **Documentation updates**:
-    - Created `ARCHITECTURE.md` with comprehensive setup guide
-    - Documented Cloudflare Worker setup and API key management
-    - Added `.tokens` file documentation for local development
-    - Updated BUGS.md with deployment discrepancy investigation
-    - Created SESSION_HISTORY.md for session tracking
-
- 5. **Implemented client‑side PDF export** (`packages/web/src/services/pdfExport.ts`, `ChartWheel.tsx`, `ChartView.tsx`):
-    - Added jsPDF + svg2pdf + jspdf‑autotable dependencies
-    - Fixed SVG ref capture (ChartWheel exposes SVG element via forwardRef)
-    - Fixed jsPDF Y‑position tracking (removed non‑existent setY/getY methods)
-    - Added styled PDF with birth data, chart wheel, planet positions, aspects
-    - PDF includes parchment/gold styling, timestamp footer, page numbers
-    - Added PDF download button to ChartView with loading state
- 6. **Embedded DejaVu Sans font for astrological symbols**:
-    - Downloaded DejaVuSans.ttf (296KB) to `public/fonts/`
-    - Added font loading and embedding logic in `pdfExport.ts`
-    - SVG glyph elements now use embedded font (fallback to ZapfDingbats)
-    - Should resolve missing planet/zodiac symbols in PDF
-
-## 🔧 Immediate Next Actions
-1. **✅ Cloudflare Worker deployed and tested** - Version `5618909e-ece2-4c6d-8a0b-40c930e7745c`
-   - Timezone extraction working: "London" → "Europe/London"
-   - Coordinate support working: "51.5074,-0.1278" → reverse geocode with timezone
-   - Coordinate parsing functions available in frontend
-
-2. **✅ Frontend enhanced with coordinate detection** - Commit includes:
-   - Coordinate detection in city input field
-   - OpenStreetMap validation link for coordinate inputs
-   - Default geocoding URL fallback to worker
-   - Mock geocoding removed (always use real API)
-
-3. **✅ GitHub Actions deployment COMPLETED** - Run `23693960076`
-   - Successfully built and deployed commit `c08f207`
-   - Deployed to GitHub Pages at 20:45 UTC
-   - View run: https://github.com/JDonaghy/natal-chart/actions/runs/23693960076
-
-4. **🔍 Test new features on deployed version (NOW)**
-   - Visit: https://jdonaghy.github.io/natal-chart/
-   - Enter coordinates: "44.9816505,-93.132362" → should show OpenStreetMap link
-   - Click OpenStreetMap link → should open map with coordinates in new tab
-   - Test geocoding: "London, UK" → should detect timezone automatically
-   - Clear browser cache if seeing old version
-
- 5. **Documentation completed**
-    - Created `ARCHITECTURE.md` with comprehensive setup guide
-    - Documented `.tokens` file for API key management
-    - Updated all status and bug tracking documents
-
- 6. **Test PDF export functionality** (dev server running at http://localhost:3001/natal-chart/)
-    - Generate a natal chart and click "Download PDF"
-    - **Check browser console** for font loading logs:
-      - "Available fonts:" - should show DejaVuSans after loading
-      - "Font fetch response:" - should show 200 OK
-      - "Using font family:" - should show DejaVuSans if font loaded successfully
-    - Verify PDF contains birth data, chart wheel, planet positions, aspects
-    - **Planet symbols should now render correctly** (not as "&K", "&J", etc.)
-    - Ensure SVG rendering works via svg2pdf plugin
+### Low Priority
+2. **TypeScript `as any` assertions** — 6 instances remain in core calculator where swisseph-wasm types are challenging
 
 ## 📁 Key Files & Locations
-- **Web App**: `packages/web/` - Vite + React frontend
-- **Core Calculator**: `packages/core/` - Swiss Ephemeris wrapper
-- **Geocoding Worker**: `packages/worker/` - Cloudflare Worker proxy (updated)
-- **Build Config**: `packages/web/vite.config.ts` - Base path, proxy, version injection
-- **Environment**: `packages/web/.env` - Now points to `/api/geocode`
-- **Deployment**: `.github/workflows/deploy.yml` - GitHub Actions to Pages
-
-## ✅ Recent Fixes Deployed
-1. Cloudflare Worker deployed with timezone support ✅
-2. Deployed version returns timezone data ✅
-3. Coordinate input functionality tested and working ✅
-4. Client‑side PDF export implemented with jsPDF + svg2pdf (fixed Y‑position tracking) ✅
+- **Web App**: `packages/web/` — Vite + React frontend
+- **Core Calculator**: `packages/core/` — Swiss Ephemeris wrapper
+- **Geocoding Worker**: `packages/worker/` — Cloudflare Worker proxy
+- **Glyph Paths**: `packages/web/src/utils/astro-glyph-paths.ts` — SVG path data for astrological symbols
+- **Build Config**: `packages/web/vite.config.ts` — Base path, proxy, version injection
+- **Deployment**: `.github/workflows/deploy.yml` — GitHub Actions to Pages
 
 ---
-*Update this file at the end of each development session. Focus on actionable status, not historical details.*
+*Update this file at the end of each development session.*

@@ -520,20 +520,69 @@ export const BirthDataForm: React.FC = () => {
              )}
            </div>
           
-          {/* Birth Date */}
+          {/* Birth Date (Year / Month / Day) */}
           <div>
-            <label htmlFor="birthDate" style={{ display: 'block', marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', marginBottom: '0.5rem' }}>
               Birth Date
             </label>
-            <input
-              id="birthDate"
-              name="birthDate"
-              type="date"
-              value={formData.birthDate}
-              onChange={handleInputChange}
-              required
-              style={{ width: '100%' }}
-            />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <select
+                aria-label="Year"
+                value={formData.birthDate.split('-')[0] || '1990'}
+                onChange={(e) => {
+                  const [, m, d] = formData.birthDate.split('-');
+                  setFormData(prev => ({ ...prev, birthDate: `${e.target.value}-${m}-${d}` }));
+                }}
+                required
+                style={{ flex: '1.2' }}
+              >
+                {Array.from({ length: new Date().getFullYear() - 1900 + 1 }, (_, i) => new Date().getFullYear() - i).map(y => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+              <select
+                aria-label="Month"
+                value={formData.birthDate.split('-')[1] || '01'}
+                onChange={(e) => {
+                  const [y, , d] = formData.birthDate.split('-');
+                  // Clamp day to max days in new month
+                  const maxDay = new Date(Number(y), Number(e.target.value), 0).getDate();
+                  const clampedDay = Math.min(Number(d), maxDay);
+                  setFormData(prev => ({ ...prev, birthDate: `${y}-${e.target.value}-${String(clampedDay).padStart(2, '0')}` }));
+                }}
+                required
+                style={{ flex: '1.5' }}
+              >
+                {[
+                  'January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December',
+                ].map((name, i) => (
+                  <option key={i} value={String(i + 1).padStart(2, '0')}>{name}</option>
+                ))}
+              </select>
+              <select
+                aria-label="Day"
+                value={formData.birthDate.split('-')[2] || '01'}
+                onChange={(e) => {
+                  const [y, m] = formData.birthDate.split('-');
+                  setFormData(prev => ({ ...prev, birthDate: `${y}-${m}-${e.target.value}` }));
+                }}
+                required
+                style={{ flex: '0.8' }}
+              >
+                {Array.from(
+                  { length: new Date(
+                    Number(formData.birthDate.split('-')[0]),
+                    Number(formData.birthDate.split('-')[1]),
+                    0
+                  ).getDate() },
+                  (_, i) => {
+                    const day = String(i + 1).padStart(2, '0');
+                    return <option key={day} value={day}>{i + 1}</option>;
+                  }
+                )}
+              </select>
+            </div>
           </div>
           
           {/* Birth Time */}

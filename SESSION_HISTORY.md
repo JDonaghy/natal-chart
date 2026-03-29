@@ -57,4 +57,30 @@
 
 ---
 
+## Session 2026-03-29: v0.3.0 — Chart Wheel Redesign, PDF Vector Glyphs, Date Picker
+
+### ✅ Features Completed
+1. **Professional chart wheel redesign** — Concentric ring layout: outer tick ring, zodiac sign band with alternating parchment fills, planet band with radial labels, inner house wheel with aspect lines
+2. **SVG vector glyphs** — Created `astro-glyph-paths.ts` with SVG path data for all 24 astrological symbols (12 planets + 12 zodiac signs), replacing Unicode text elements
+3. **PDF vector rendering** — Astrological symbols now render as crisp vectors in PDF at any zoom level; removed glyph stripping workaround
+4. **Fixed corrupted DejaVuSans.ttf** — Replaced HTML file with real 760KB TrueType font binary for PDF table symbols
+5. **Planet collision avoidance** — Improved algorithm with angular separation, damped pushing, wrap-around handling, and connector lines from displaced labels to true ecliptic tick positions
+6. **International date picker** — Replaced browser-native date input with Year/Month/Day dropdown selects
+7. **Brighter planet colors** — Increased saturation for better visibility against parchment background
+8. **ASC/DSC/MC/IC as full-diameter axes** — Bold lines spanning the entire wheel
+
+### ✅ Technical Improvements
+- House numbers centered in wedges inside the inner wheel
+- Aspect lines confined to inner house wheel area
+- Removed info overlay box for cleaner chart
+- House cusp degrees shown in planet band near cusp lines
+- Angular house cusps (1, 4, 7, 10) drawn through planet band
+
+### 📝 Notes
+- Version bumped from 0.2.1 to 0.3.0
+- PR #3 created for merge to main
+- All 19 tests pass, TypeScript clean, build succeeds
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*
