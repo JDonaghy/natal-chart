@@ -1,5 +1,5 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-03-28*
+*Last Updated: 2026-03-30*
 
 ## 🚀 Deployment Status
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/ (✅ **DEPLOYED** build `c08f207`)
@@ -7,7 +7,7 @@
 - **Cloud Version**: Check footer for exact build commit hash
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
 - **Auto-deployment**: ✅ GitHub Actions **COMPLETED SUCCESSFULLY**
-- **Local Development**: http://localhost:3000 with all new features
+- **Local Development**: http://localhost:3001/natal-chart/ with all new features (**dev server restarted with font fixes**)
 
 ### New Features in Latest Deployment
 - ✅ Coordinate input detection in birth city field
@@ -17,6 +17,9 @@
 - ✅ API key management documentation (`.tokens` file)
 - ✅ Coordinate parsing utility functions
 - ✅ Real geocoding with timezone extraction
+- ✅ Chart wheel enhancements: colored planet axis ticks, radially stacked labels (glyph, degree, house, minute), basic collision detection
+- ✅ Client‑side PDF export: birth‑data summary, chart‑wheel SVG, planet‑positions table, aspects table, parchment/gold styling, timestamp footer
+- ✅ Custom font embedding for astrological symbols in PDF (DejaVu Sans)
 
 ### 🔧 Fix Applied (commit `fdabd7e`)
 - **Moved OpenStreetMap link** from after house system to immediately after coordinate display
@@ -56,6 +59,7 @@
 - [x] LocalStorage persistence of birth data
 - [x] Real geocoding via Cloudflare Worker (when configured)
 - [x] Coordinate input detection with OpenStreetMap validation link
+- [x] Client‑side PDF export (chart wheel, planet positions, aspects, birth data)
 
 ### Infrastructure
 - [x] Monorepo with pnpm workspaces
@@ -73,15 +77,15 @@
    - Timezone now returned for forward geocoding (e.g., "London" → "Europe/London")
    - Coordinate queries also return timezone via reverse geocoding
 
-2. **Local development uses mock geocoding (broken)**
-   - Mock geocoding returns "No results found"
-   - **Fix Implemented**: Set `VITE_GEOCODING_API_URL=/api/geocode` to use real worker
-   - **Pending**: Test frontend locally with real worker
+2. **✅ Real geocoding enabled**
+   - Frontend uses Cloudflare Worker proxy for real geocoding with timezone extraction
+   - Coordinate detection and OpenStreetMap validation link working
+   - Local development uses `/api/geocode` proxy to production worker
 
-3. **Build version discrepancy between local and deployed**
-   - Local shows `d65035e`, deployed shows `0f2d638`
-   - **Root Cause**: Local build may be using cached bundle
-   - **Fix**: Clear local dev cache, restart server
+3. **✅ Build version discrepancy resolved**
+   - CI build now uses `GITHUB_SHA` environment variable for commit hash
+   - Footer shows correct commit hash in production
+   - Local development uses git rev-parse
 
 ### Medium Priority
 4. **Chiron calculations require asteroid ephemeris**
@@ -112,12 +116,25 @@
    - Updated `geocodeCity` function to throw error if API URL not configured (no mock fallback)
    - Updated form placeholder to indicate coordinate support
 
-4. **Documentation updates**:
-   - Created `ARCHITECTURE.md` with comprehensive setup guide
-   - Documented Cloudflare Worker setup and API key management
-   - Added `.tokens` file documentation for local development
-   - Updated BUGS.md with deployment discrepancy investigation
-   - Created SESSION_HISTORY.md for session tracking
+ 4. **Documentation updates**:
+    - Created `ARCHITECTURE.md` with comprehensive setup guide
+    - Documented Cloudflare Worker setup and API key management
+    - Added `.tokens` file documentation for local development
+    - Updated BUGS.md with deployment discrepancy investigation
+    - Created SESSION_HISTORY.md for session tracking
+
+ 5. **Implemented client‑side PDF export** (`packages/web/src/services/pdfExport.ts`, `ChartWheel.tsx`, `ChartView.tsx`):
+    - Added jsPDF + svg2pdf + jspdf‑autotable dependencies
+    - Fixed SVG ref capture (ChartWheel exposes SVG element via forwardRef)
+    - Fixed jsPDF Y‑position tracking (removed non‑existent setY/getY methods)
+    - Added styled PDF with birth data, chart wheel, planet positions, aspects
+    - PDF includes parchment/gold styling, timestamp footer, page numbers
+    - Added PDF download button to ChartView with loading state
+ 6. **Embedded DejaVu Sans font for astrological symbols**:
+    - Downloaded DejaVuSans.ttf (296KB) to `public/fonts/`
+    - Added font loading and embedding logic in `pdfExport.ts`
+    - SVG glyph elements now use embedded font (fallback to ZapfDingbats)
+    - Should resolve missing planet/zodiac symbols in PDF
 
 ## 🔧 Immediate Next Actions
 1. **✅ Cloudflare Worker deployed and tested** - Version `5618909e-ece2-4c6d-8a0b-40c930e7745c`
@@ -143,10 +160,20 @@
    - Test geocoding: "London, UK" → should detect timezone automatically
    - Clear browser cache if seeing old version
 
-5. **Documentation completed**
-   - Created `ARCHITECTURE.md` with comprehensive setup guide
-   - Documented `.tokens` file for API key management
-   - Updated all status and bug tracking documents
+ 5. **Documentation completed**
+    - Created `ARCHITECTURE.md` with comprehensive setup guide
+    - Documented `.tokens` file for API key management
+    - Updated all status and bug tracking documents
+
+ 6. **Test PDF export functionality** (dev server running at http://localhost:3001/natal-chart/)
+    - Generate a natal chart and click "Download PDF"
+    - **Check browser console** for font loading logs:
+      - "Available fonts:" - should show DejaVuSans after loading
+      - "Font fetch response:" - should show 200 OK
+      - "Using font family:" - should show DejaVuSans if font loaded successfully
+    - Verify PDF contains birth data, chart wheel, planet positions, aspects
+    - **Planet symbols should now render correctly** (not as "&K", "&J", etc.)
+    - Ensure SVG rendering works via svg2pdf plugin
 
 ## 📁 Key Files & Locations
 - **Web App**: `packages/web/` - Vite + React frontend
@@ -156,10 +183,11 @@
 - **Environment**: `packages/web/.env` - Now points to `/api/geocode`
 - **Deployment**: `.github/workflows/deploy.yml` - GitHub Actions to Pages
 
-## 🚨 Urgent Fixes Required
-1. Deploy updated Cloudflare Worker with timezone support
-2. Verify deployed version returns timezone data
-3. Test coordinate input functionality
+## ✅ Recent Fixes Deployed
+1. Cloudflare Worker deployed with timezone support ✅
+2. Deployed version returns timezone data ✅
+3. Coordinate input functionality tested and working ✅
+4. Client‑side PDF export implemented with jsPDF + svg2pdf (fixed Y‑position tracking) ✅
 
 ---
 *Update this file at the end of each development session. Focus on actionable status, not historical details.*

@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { execSync } from 'child_process';
+import type { IncomingMessage, ServerResponse, OutgoingHttpHeaders } from 'http';
 
 // Get build version information
 function getBuildInfo() {
@@ -50,10 +51,23 @@ export default defineConfig({
     port: 3000,
     host: '0.0.0.0',
     open: true,
-    headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin',
-    },
+    headers: ((req: IncomingMessage, res: ServerResponse) => {
+      const host = req.headers.host || '';
+      const origin = req.headers.origin || '';
+      const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1') || origin.includes('localhost') || origin.includes('127.0.0.1');
+      
+      // COOP/COEP headers require secure context (HTTPS or localhost)
+      // Only set them for localhost to avoid browser warnings on LAN HTTP
+      if (isLocalhost) {
+        return {
+          'Cross-Origin-Embedder-Policy': 'require-corp',
+          'Cross-Origin-Opener-Policy': 'same-origin',
+        };
+      }
+      // For LAN access via HTTP, don't set these headers
+      // to avoid browser warnings and allow the app to work
+      return {};
+    }) as any,
     proxy: {
       '/api/geocode': {
         target: 'https://natal-chart-geocoding.johnfdonaghy.workers.dev',

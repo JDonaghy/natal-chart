@@ -2,8 +2,8 @@
 
 ## 🚨 Critical
 ### 1. Deployment Discrepancy
-**Status**: Fix in Progress  
-**Description**: Changes deployed to GitHub Pages don't match local testing. User reports seeing "Birth Timezone box" (possibly old timezone selector) instead of expected read-only timezone display with "(detected from city)" text.
+**Status**: Resolved  
+**Description**: ~~Changes deployed to GitHub Pages don't match local testing. User reports seeing "Birth Timezone box" (possibly old timezone selector) instead of expected read-only timezone display with "(detected from city)" text.~~ **RESOLVED**: Fix deployed with proper CI build version injection using GITHUB_SHA environment variable. Timezone selector removed, read-only display working correctly.
 
 **Symptoms**:
 - Local development shows correct UI (no timezone selector, read-only display)
@@ -20,7 +20,7 @@
 - ✅ Deployed version with build tracking (commit 0a0eee4) — showed "unknown" due to CI issue
 - ✅ Fixed vite.config.ts to use GITHUB_SHA in CI (committed and pushed)
 - ✅ New deployment triggered with fix (commits b4705c3, 676bfe9, ece131d)
-- ⏳ Verify deployed version shows correct commit hash after deployment completes
+- ✅ Verified deployed version shows correct commit hash
 
 **Recommendations**:
 - Clear browser cache and site data for GitHub Pages domain to ensure latest JavaScript loads
@@ -50,29 +50,29 @@
 **Solution Required**: Place asteroid ephemeris files in `packages/web/public/ephemeris/` directory.
 
 ### 4. Mock Geocoding Data Limitations
-**Status**: Expected Behavior  
-**Description**: City search uses mock data only, requires Cloudflare Worker deployment with OpenCage API key for real geocoding.
+**Status**: Resolved  
+**Description**: Real geocoding via Cloudflare Worker with OpenCage API key is now enabled. Timezone extraction and coordinate parsing work for both forward and reverse geocoding.
 
-**Current State**: Mock data covers major cities but lacks comprehensive coverage.
+**Current State**: Production uses live OpenCage API with 30-day cache. Mock data is no longer used.
 
 ### 5. Mobile Responsiveness
-**Status**: Known Limitation  
-**Description**: Chart wheel at 800px diameter may not render well on mobile devices.
+**Status**: Improved  
+**Description**: Chart wheel now uses aspect-ratio wrapper with max-width: 100% and overflow: auto for mobile compatibility. Wheel size remains 800px but scales down on small screens.
 
-**Affected Components**: ChartWheel component with fixed 800px size.
+**Affected Components**: ChartWheel component with responsive wrapper.
 
 ## 🔧 Low Priority
 ### 6. ESLint Not Configured
-**Status**: Known Issue  
-**Description**: `pnpm --filter web lint` fails because ESLint is not installed/configured.
+**Status**: Resolved  
+**Description**: ESLint is now properly configured with root `eslint.config.js` covering TypeScript and React rules. Linting passes for all packages.
 
-**Impact**: No linting performed during development.
+**Impact**: Linting now runs successfully with `pnpm --filter web lint`.
 
 ### 7. TypeScript Strictness
-**Status**: Technical Debt  
-**Description**: Some type assertions (`as`) used instead of proper type guards.
+**Status**: Improved  
+**Description**: Type assertions have been reduced; strict TypeScript configuration enforced. Some `as any` assertions remain in core calculator where type safety is challenging.
 
-**Files to Review**: Core calculator logic and React component props.
+**Files to Review**: Core calculator logic (6 instances of `as any`).
 
 ## 📝 Bug Reporting Template
 ```markdown

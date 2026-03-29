@@ -1,8 +1,8 @@
 # Natal Chart Development Plan
 
-## Current Sprint: Timezone Automation & UI Enhancement
+## Current Sprint: PDF Export & Chart Enhancements
 **Status**: In Progress  
-**Last Updated**: 2026-03-28 (Build version fix, responsive chart wheel)
+**Last Updated**: 2026-03-30
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -17,15 +17,28 @@
 - [x] **Form UI reorganization** - "Place of Birth" search at top, birth date/time on next row
 - [x] **UTC subtle display** - Show UTC calculation as note at bottom of form
 - [x] **Chart wheel enhancements** - Degree markings, house cusp display, information overlay, visual polish
+- [x] **Client-side PDF export** - Generate PDF of chart wheel, planet positions, aspects, and birth data
 
 ### 🚧 In Progress / Planned Features
-- [ ] **Cloudflare Worker deployment** - Deploy updated worker with timezone extraction
+- [x] **Cloudflare Worker deployment** - Deploy updated worker with timezone extraction ✅
 - [x] **Ephemeris file setup** - Place `.se1` files in `packages/web/public/ephemeris/` for Chiron (files present)
-- [ ] **Real geocoding integration** - Configure OpenCage API key for production
-- [ ] **Chart wheel improvements** - Planet glyph collision detection
+- [x] **Real geocoding integration** - OpenCage API key configured in Cloudflare Worker ✅
+- [x] **Chart wheel improvements** - Enhanced planet visualization with degree ticks and radial labels
+  - [x] Add colored axis ticks for each planet at exact longitude
+  - [x] Display planet glyph, degree, house (colored), minute along radius (radially stacked)
+  - [x] Basic collision detection for crowded signs (>3 planets per sign)
+  - [ ] Advanced collision detection with radial distance adjustment and spill-over into adjacent houses
+  - [x] Maintain clockwise order of increasing degrees
 - [x] **Mobile responsiveness** - Chart wheel now responsive with aspect-ratio wrapper
 - [ ] **Shareable URLs** - Encode birth data in URL for sharing charts
-- [ ] **Chart export** - PNG/PDF export of chart wheel
+- [x] **Client-side PDF export** - Generate PDF of chart wheel, planet positions, aspects, and birth data
+  - [x] Research and add PDF generation library (jsPDF + svg2pdf + jspdf-autotable)
+  - [x] Create utility to capture SVG chart as PDF vector graphic
+  - [x] Add birth data summary section to PDF
+  - [x] Add planet positions and aspects tables to PDF
+  - [x] Implement PDF download button in ChartView component
+  - [x] Style PDF with consistent parchment/gold aesthetic
+  - [x] Embed custom font for astrological symbols (DejaVu Sans)
 - [ ] **Multiple chart comparison** - Side-by-side chart comparison feature
 
 ### 📋 Technical Debt & Refactoring

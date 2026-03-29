@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useChart } from '../contexts/ChartContext';
-import { ChartWheel } from './ChartWheel';
+import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
+import { generateChartPdf } from '../services/pdfExport';
 import '../App.css';
 
 export const ChartView: React.FC = () => {
   const { chartData, loading, error } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const chartWheelRef = useRef<ChartWheelHandle>(null);
   
   if (loading) {
     return (
@@ -27,6 +30,62 @@ export const ChartView: React.FC = () => {
     );
   }
   
+  const handleDownloadPdf = async () => {
+    if (!chartData || pdfLoading) return;
+    
+    setPdfLoading(true);
+    try {
+      // Retrieve birth data from localStorage (stored by ChartProvider)
+      const savedBirthData = localStorage.getItem('natal-chart-birth-data');
+      if (!savedBirthData) {
+        throw new Error('Birth data not found. Please calculate a chart first.');
+      }
+      const birthData = JSON.parse(savedBirthData);
+      
+      // Get SVG element from chart wheel with retry
+      console.debug('PDF export: attempting to get SVG element');
+      console.debug('chartWheelRef.current:', chartWheelRef.current);
+      let svgElement: SVGElement | null = null;
+      let attempts = 0;
+      const maxAttempts = 40;
+      while (!svgElement && attempts < maxAttempts) {
+        svgElement = chartWheelRef.current?.getSvgElement() ?? null;
+        console.debug(`Attempt ${attempts + 1}: svgElement =`, svgElement);
+        if (!svgElement) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+          attempts++;
+        }
+      }
+      if (!svgElement) {
+        console.error('Chart wheel SVG not available after', maxAttempts, 'attempts');
+        console.debug('chartWheelRef.current:', chartWheelRef.current);
+        if (chartWheelRef.current) {
+          console.debug('chartWheelRef.current.getSvgElement():', chartWheelRef.current.getSvgElement());
+        }
+        throw new Error('Chart wheel SVG not available');
+      }
+      console.debug('PDF export: SVG element obtained');
+      // Validate SVG element
+      if (!(svgElement instanceof SVGElement)) {
+        throw new Error('Retrieved element is not an SVGElement');
+      }
+      if (!svgElement.isConnected) {
+        console.warn('SVG element is not connected to DOM');
+      }
+      // Generate PDF
+      const pdf = await generateChartPdf(chartData, birthData, svgElement);
+      
+      // Download PDF
+      const fileName = `natal-chart-${new Date().toISOString().slice(0, 10)}.pdf`;
+      pdf.save(fileName);
+    } catch (err) {
+      console.error('Failed to generate PDF:', err);
+      alert(`Failed to generate PDF: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   if (!chartData) {
     return (
       <div className="card">
@@ -44,6 +103,24 @@ export const ChartView: React.FC = () => {
         <p style={{ color: '#666' }}>
           Generated based on your birth details
         </p>
+        <button
+          onClick={handleDownloadPdf}
+          disabled={pdfLoading}
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: pdfLoading ? '#cccccc' : '#b8860b',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: pdfLoading ? 'default' : 'pointer',
+            fontSize: '0.9rem',
+            fontWeight: 'bold',
+            marginTop: '0.5rem',
+            transition: 'background-color 0.2s',
+          }}
+        >
+          {pdfLoading ? 'Generating PDF...' : 'Download PDF'}
+        </button>
       </div>
 
       {/* Tab Navigation */}
@@ -102,18 +179,20 @@ export const ChartView: React.FC = () => {
         </button>
       </div>
 
-      {/* Tab Content */}
+      {/* Tab Content - always rendered, hidden via display */}
       <div>
-        {activeTab === 'chart' && (
+        {/* Chart Wheel Tab */}
+        <div style={{ display: activeTab === 'chart' ? 'block' : 'none' }}>
           <div className="card" style={{ padding: '1.5rem' }}>
             <h3>Chart Wheel</h3>
             <div style={{ display: 'flex', justifyContent: 'center', padding: '0.5rem', maxWidth: '100%', overflow: 'auto' }}>
-               <ChartWheel chartData={chartData} size={800} />
+               <ChartWheel ref={chartWheelRef} chartData={chartData} size={800} />
             </div>
           </div>
-        )}
+        </div>
 
-        {activeTab === 'planets' && (
+        {/* Planet Positions Tab */}
+        <div style={{ display: activeTab === 'planets' ? 'block' : 'none' }}>
           <div className="card">
             <h3>Planet Positions</h3>
             <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
@@ -172,9 +251,10 @@ export const ChartView: React.FC = () => {
               </div>
             )}
           </div>
-        )}
+        </div>
 
-        {activeTab === 'aspects' && (
+        {/* Aspects Tab */}
+        <div style={{ display: activeTab === 'aspects' ? 'block' : 'none' }}>
           <div className="card">
             <h3>Aspects</h3>
             {chartData.aspects.length > 0 ? (
@@ -223,8 +303,9 @@ export const ChartView: React.FC = () => {
               <p>No aspects found within orb limits.</p>
             )}
           </div>
-        )}
+        </div>
       </div>
+
     </div>
   );
 };
