@@ -1,4 +1,5 @@
 .tokens
+samples
 # Dependencies
 node_modules/
 .pnpm-store/

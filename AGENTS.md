@@ -260,6 +260,45 @@ export default defineConfig({
 - **E2E tests**: Critical user flows (birth data → chart rendering)
 - **Validation tests**: Compare calculations against known chart services
 
+## Release & Git Workflow
+
+### Branch Strategy
+- **main**: Production-ready code only. Deploys automatically via GitHub Actions.
+- **develop**: Default development branch. All feature work happens here.
+- **feature/***: Short-lived branches for specific features.
+- **release/***: Release preparation branches.
+
+### Workflow Rules
+1. **Never push directly to `main`** - use PRs from `develop`
+2. **All PRs must pass CI** (build, test, lint, typecheck)
+3. **Version bump required** for PRs to `main`
+4. **Use conventional commits**: `feat:`, `fix:`, `docs:`, `chore:`, etc.
+5. **Test locally before PR**: `pnpm -r test && pnpm -r lint && pnpm build`
+6. **Always run smoke tests manually** before pushing changes to `develop`:
+   - Start dev server: `pnpm --filter web dev`
+   - Test birth data form with various inputs
+   - Verify chart calculation and rendering
+   - Test form persistence after refresh
+   - Verify timezone conversions work correctly
+
+### Release Process
+1. **Develop on `develop`** branch
+2. **Verify functionality locally** (tests, build, manual smoke test)
+3. **Bump version** in `package.json` files (patch/minor/major)
+4. **Create PR to `main`** with release notes
+5. **Merge PR** (squash or merge commit, not rebase)
+6. **Tag release** after merge: `git tag v0.1.1 && git push origin v0.1.1`
+7. **Deployment happens automatically** via GitHub Actions
+
+### Agent Instructions
+- Always work on `develop` branch unless fixing critical bug in `main`
+- Before creating PR to `main`, ensure:
+  - Version incremented according to semantic versioning
+  - RELEASE.md updated if process changes
+  - All quality gates pass (see RELEASE.md)
+- Use `gh pr create` for PR creation with proper title/description
+- Reference RELEASE.md for detailed versioning rules
+
 ## Common Pitfalls
 
 1. **Don't skip swisseph-wasm validation** - this is where projects fail

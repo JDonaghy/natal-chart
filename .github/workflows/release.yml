@@ -1,0 +1,54 @@
+name: Create Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          # Extract tag message or use default
+          TAG_MESSAGE=$(git tag -l --format='%(contents)' "${{ steps.tag.outputs.VERSION }}" 2>/dev/null || echo "Release ${{ steps.tag.outputs.VERSION }}")
+          echo "NOTES<<EOF" >> $GITHUB_OUTPUT
+          echo "# ${{ steps.tag.outputs.VERSION }}"
+          echo ""
+          echo "$TAG_MESSAGE"
+          echo ""
+          echo "## Changes"
+          echo ""
+          # Get commits since last tag (simplified)
+          if git describe --tags --abbrev=0 HEAD~1 2>/dev/null; then
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1)
+            echo "### Commits since $PREV_TAG"
+            git log --oneline --no-decorate "$PREV_TAG..HEAD" | sed 's/^/- /'
+          else
+            echo "### Initial release"
+            git log --oneline --no-decorate | sed 's/^/- /'
+          fi
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.VERSION }}
+          name: Release ${{ steps.tag.outputs.VERSION }}
+          body: ${{ steps.release-notes.outputs.NOTES }}
+          draft: false
+          prerelease: ${{ contains(steps.tag.outputs.VERSION, '-alpha') || contains(steps.tag.outputs.VERSION, '-beta') || contains(steps.tag.outputs.VERSION, '-rc') }}
+          generate_release_notes: true

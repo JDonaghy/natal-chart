@@ -1,6 +1,6 @@
 {
   "name": "@natal-chart/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Pure TypeScript calculation engine for natal chart astrology",
   "type": "module",
   "main": "dist/index.js",
@@ -29,7 +29,10 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.2",
+    "@typescript-eslint/parser": "^8.57.2",
     "@vitest/ui": "^1.2.0",
+    "eslint": "^10.1.0",
     "typescript": "^5.3.3",
     "vitest": "^1.2.0"
   }

@@ -52,9 +52,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#666' }}>
              Calculations performed entirely in your browser • Your birth data never leaves your device
            </p>
-           <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.7rem', color: '#888', fontFamily: 'monospace' }}>
-             Build: {__APP_VERSION__ || 'dev'} • {new Date(__BUILD_TIME__ || Date.now()).toLocaleDateString()}
-           </p>
+            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.7rem', color: '#888', fontFamily: 'monospace' }}>
+              Build: {__APP_VERSION__ || 'dev'} • {__BUILD_TIME__ ? new Date(__BUILD_TIME__).toLocaleDateString() : 'development'}
+            </p>
         </div>
       </footer>
     </div>

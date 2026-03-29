@@ -5,6 +5,7 @@ import '../App.css';
 
 export const ChartView: React.FC = () => {
   const { chartData, loading, error } = useChart();
+  const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
   
   if (loading) {
     return (
@@ -35,7 +36,6 @@ export const ChartView: React.FC = () => {
     );
   }
   
-  const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
 
   return (
     <div>

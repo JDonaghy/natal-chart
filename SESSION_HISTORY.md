@@ -35,4 +35,26 @@
 
 ---
 
+## Session 2026-03-28: Chart Wheel Professional Enhancements
+
+### ✅ Features Completed
+1. **Zodiac degree markings** - Added 5° tick marks, sign boundaries, and degree numbers around outer ring
+2. **House cusp degree display** - Show exact degree/minute in zodiac notation (e.g., "15° ♈ 30′") at each house cusp
+3. **Chart information overlay** - Birth data box with date, time, location, and house system
+4. **Visual polish** - Parchment gradient background, drop shadows, serif typography
+
+### ✅ Technical Improvements
+- Enhanced `formatLongitude` helper for zodiac notation formatting
+- Added SVG filters for shadow effects and radial gradients
+- Improved coordinate display readability with smaller fonts
+- Chart wheel now includes professional astrological details matching traditional charts
+
+### 📝 Notes
+- Degree markings include small ticks every degree, medium every 5°, thick lines at sign boundaries
+- House cusp degrees positioned between house number and center for clarity
+- Overlay uses saved birth data from localStorage; falls back gracefully if missing
+- Visual enhancements maintain classic parchment/gold aesthetic while adding depth
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

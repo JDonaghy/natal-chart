@@ -16,6 +16,7 @@
 - [x] **Retrograde indicators** - Add "R" column to planet positions table
 - [x] **Form UI reorganization** - "Place of Birth" search at top, birth date/time on next row
 - [x] **UTC subtle display** - Show UTC calculation as note at bottom of form
+- [x] **Chart wheel enhancements** - Degree markings, house cusp display, information overlay, visual polish
 
 ### 🚧 In Progress / Planned Features
 - [ ] **Cloudflare Worker deployment** - Deploy updated worker with timezone extraction
