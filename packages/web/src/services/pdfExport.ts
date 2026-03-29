@@ -5,6 +5,8 @@ import type { Svg2pdfOptions } from 'svg2pdf.js';
 import type { ChartResult } from '@natal-chart/core';
 import type { ExtendedBirthData } from '../contexts/ChartContext';
 
+type JsPDFWithAutoTable = jsPDF & { lastAutoTable: { finalY: number } };
+
 /**
  * Add DejaVuSans font to jsPDF instance if not already added
  */
@@ -60,7 +62,7 @@ async function addDejaVuFont(doc: jsPDF): Promise<boolean> {
     let jsPdfErrorOccurred = false;
     
     // Override console.error to capture and suppress jsPDF PubSub errors
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       const message = args[0]?.toString() || '';
       if (message.includes('jsPDF PubSub Error')) {
         jsPdfErrorOccurred = true;
@@ -150,7 +152,7 @@ export async function generateChartPdf(
   });
 
   // Try to load DejaVuSans font for astrological symbols
-  let fontLoaded = false;
+  let fontLoaded: boolean;
   try {
     fontLoaded = await addDejaVuFont(doc);
     console.log('Font loading result:', fontLoaded ? 'success' : 'failed');
@@ -394,7 +396,7 @@ function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number, font
   });
   
   // Update Y position after table
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
   return y;
 }
 
@@ -463,7 +465,7 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
   });
   
   // Update Y position after table
-  y = (doc as any).lastAutoTable.finalY + 10;
+  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
   return y;
 }
 
