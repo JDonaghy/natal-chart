@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import '../App.css';
 
 // Build version injected by Vite
@@ -13,7 +13,7 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="app">
-      <header className="p-4" style={{ borderBottom: '1px solid #b8860b' }}>
+      <header style={{ padding: '0.5rem 2rem', borderBottom: '1px solid #b8860b' }}>
         <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Link to="/" style={{ textDecoration: 'none' }}>
@@ -24,15 +24,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             </Link>
             <nav>
               <ul style={{ display: 'flex', listStyle: 'none', gap: '1.5rem' }}>
-                <li><Link to="/">Calculate</Link></li>
-                <li><Link to="/chart">View Chart</Link></li>
+                <li><NavLink to="/" end style={({ isActive }) => isActive ? { fontWeight: 'bold', textDecoration: 'underline' } : {}}>Calculate</NavLink></li>
+                <li><NavLink to="/chart" style={({ isActive }) => isActive ? { fontWeight: 'bold', textDecoration: 'underline' } : {}}>Natal Chart</NavLink></li>
+                <li><NavLink to="/transits" style={({ isActive }) => isActive ? { fontWeight: 'bold', textDecoration: 'underline' } : {}}>Transit Chart</NavLink></li>
+                <li><NavLink to="/compare" style={({ isActive }) => isActive ? { fontWeight: 'bold', textDecoration: 'underline' } : {}}>Compare</NavLink></li>
+                <li><NavLink to="/releasing" style={({ isActive }) => isActive ? { fontWeight: 'bold', textDecoration: 'underline' } : {}}>Releasing</NavLink></li>
               </ul>
             </nav>
           </div>
         </div>
       </header>
       
-      <main className="p-4" style={{ flex: 1 }}>
+      <main style={{ padding: '0.5rem 2rem', flex: 1 }}>
         <div className="container" style={{ maxWidth: '1200px', margin: '0 auto' }}>
           {children}
         </div>

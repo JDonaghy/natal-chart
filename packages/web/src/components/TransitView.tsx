@@ -1,23 +1,55 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useChart } from '../contexts/ChartContext';
+import { useChart, type TransitLocation } from '../contexts/ChartContext';
 import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
 import { generateChartPdf } from '../services/pdfExport';
 import { buildShareUrl, type ShareData } from '../utils/shareUrl';
 import { convertFromUTC } from '../services/timezone';
 import { saveChart, getSavedCharts, type SavedChart } from '../services/savedCharts';
+import { type GeocodeResult } from '../services/geocoding';
+import { CitySearch } from './CitySearch';
 import { getPlanetGlyph, getSignGlyph, formatPlanetName, formatSignName, formatAspectName, getAspectColor } from '../utils/chart-helpers';
 import '../App.css';
 
-export const ChartView: React.FC = () => {
+export const TransitView: React.FC = () => {
   const navigate = useNavigate();
-  const { chartData, birthData, loading, error, loadChart, setTransitDateStr, setTransitLocation, calculateTransits } = useChart();
+  const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [transitCityQuery, setTransitCityQuery] = useState('');
   const chartWheelRef = useRef<ChartWheelHandle>(null);
+  const initialized = useRef(false);
+
+  // Auto-initialize transits on mount if no transit date is set
+  useEffect(() => {
+    if (initialized.current || !chartData) return;
+    initialized.current = true;
+
+    if (!transitDateStr) {
+      const now = new Date();
+      const localStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      setTransitDateStr(localStr);
+      calculateTransits(now);
+    } else if (!transitData) {
+      calculateTransits(new Date(transitDateStr));
+    }
+  }, [chartData, transitDateStr, transitData, setTransitDateStr, calculateTransits]);
+
+  const handleSelectTransitCity = (result: GeocodeResult) => {
+    const loc: TransitLocation = {
+      city: result.formatted,
+      latitude: result.lat,
+      longitude: result.lng,
+      timezone: result.timezone,
+    };
+    setTransitLocation(loc);
+    if (transitDateStr) {
+      calculateTransits(new Date(transitDateStr), loc);
+    }
+  };
 
   const handleLoadSaved = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -27,12 +59,17 @@ export const ChartView: React.FC = () => {
     if (found) {
       loadChart(found.chartData, found.birthData);
       if (found.transitDateStr) {
-        // Load natal data, set transit state, then navigate to transit view
         setTransitDateStr(found.transitDateStr);
         const loc = found.transitLocation || null;
         setTransitLocation(loc);
+        if (loc) setTransitCityQuery(loc.city);
         calculateTransits(new Date(found.transitDateStr), loc);
-        navigate('/transits');
+      } else {
+        // No transit data in saved chart — navigate to natal view
+        setTransitLocation(null);
+        setTransitCityQuery('');
+        clearTransits();
+        navigate('/chart');
       }
     }
     e.target.value = '';
@@ -83,9 +120,9 @@ export const ChartView: React.FC = () => {
       if (!(svgElement instanceof SVGElement)) {
         throw new Error('Retrieved element is not an SVGElement');
       }
-      const pdf = await generateChartPdf(chartData, birthData, svgElement);
+      const pdf = await generateChartPdf(chartData, birthData, svgElement, transitData ?? undefined, transitLocation ?? undefined);
 
-      const fileName = `natal-chart-${new Date().toISOString().slice(0, 10)}.pdf`;
+      const fileName = `transit-chart-${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(fileName);
     } catch (err) {
       console.error('Failed to generate PDF:', err);
@@ -124,6 +161,15 @@ export const ChartView: React.FC = () => {
       if (birthData.city) {
         shareData.city = birthData.city;
       }
+      if (transitDateStr) {
+        shareData.transitDate = transitDateStr;
+        if (transitLocation) {
+          shareData.transitCity = transitLocation.city;
+          shareData.transitLat = transitLocation.latitude;
+          shareData.transitLng = transitLocation.longitude;
+          shareData.transitTz = transitLocation.timezone;
+        }
+      }
 
       const url = buildShareUrl(shareData);
       await navigator.clipboard.writeText(url);
@@ -134,11 +180,26 @@ export const ChartView: React.FC = () => {
     }
   };
 
+  const handleTransitDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTransitDateStr(value);
+    if (value) {
+      calculateTransits(new Date(value));
+    }
+  };
+
+  const handleTransitNow = () => {
+    const now = new Date();
+    const localStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    setTransitDateStr(localStr);
+    calculateTransits(now);
+  };
+
   const handleSave = () => {
     if (!chartData || !birthData) return;
     const name = prompt('Name for this chart:', birthData.city || 'My Chart');
     if (!name) return;
-    saveChart(name, chartData, birthData);
+    saveChart(name, chartData, birthData, transitDateStr || undefined, transitLocation ?? undefined);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -155,7 +216,7 @@ export const ChartView: React.FC = () => {
   return (
     <div>
        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-        <h1 style={{ margin: 0 }}>Natal Chart</h1>
+        <h1 style={{ margin: 0 }}>Transit Chart</h1>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <select
             onChange={handleLoadSaved}
@@ -218,7 +279,52 @@ export const ChartView: React.FC = () => {
           >
             {saved ? 'Saved!' : 'Save Chart'}
           </button>
+          <input
+            type="datetime-local"
+            value={transitDateStr}
+            onChange={handleTransitDateChange}
+            style={{
+              padding: '0.35rem 0.5rem',
+              fontSize: '0.85rem',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+            }}
+          />
+          <button
+            onClick={handleTransitNow}
+            disabled={transitLoading}
+            style={{
+              padding: '0.4rem 0.6rem',
+              backgroundColor: '#4A6B8A',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: transitLoading ? 'default' : 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+            }}
+          >
+            {transitLoading ? '...' : 'Now'}
+          </button>
         </div>
+      </div>
+
+      {/* Transit city search */}
+      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem', position: 'relative' }}>
+        <span style={{ fontSize: '0.85rem', color: '#666', whiteSpace: 'nowrap' }}>Transit city:</span>
+        <CitySearch
+          value={transitCityQuery}
+          onChange={setTransitCityQuery}
+          onSelect={handleSelectTransitCity}
+          placeholder={transitLocation ? transitLocation.city : 'Search city...'}
+          compact
+          inputWidth="220px"
+        />
+        {transitLocation && (
+          <span style={{ fontSize: '0.8rem', color: '#888' }}>
+            {transitLocation.latitude.toFixed(2)}°, {transitLocation.longitude.toFixed(2)}° ({transitLocation.timezone})
+          </span>
+        )}
       </div>
 
       {/* Birth data summary */}
@@ -303,10 +409,10 @@ export const ChartView: React.FC = () => {
         {/* Chart Wheel Tab */}
         <div style={{ display: activeTab === 'chart' ? 'flex' : 'none', gap: '1rem', alignItems: 'flex-start' }}>
           <div style={{ flex: '1 1 0', minWidth: 0, overflow: 'auto' }}>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} size={800} />
+            <ChartWheel ref={chartWheelRef} chartData={chartData} transitData={transitData ?? undefined} size={800} />
           </div>
           <div style={{ flex: '0 0 auto', width: '240px' }}>
-            <PlanetLegend chartData={chartData} />
+            <PlanetLegend chartData={chartData} transitData={transitData ?? undefined} />
           </div>
         </div>
 
@@ -416,6 +522,53 @@ export const ChartView: React.FC = () => {
               </div>
             ) : (
               <p>No aspects found within orb limits.</p>
+            )}
+
+            {/* Natal-to-Transit Aspects */}
+            {transitData && transitData.aspects.length > 0 && (
+              <>
+                <h3 style={{ marginTop: '1.5rem' }}>Natal-to-Transit Aspects</h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #4A6B8A' }}>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Natal</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Aspect</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Transit</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Orb</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Applying</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transitData.aspects.map((aspect, index) => (
+                        <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '0.5rem' }}>
+                            <span className="glyph" style={{ marginRight: '0.25rem' }}>
+                              {getPlanetGlyph(aspect.natalPlanet)}
+                            </span>
+                            {formatPlanetName(aspect.natalPlanet)}
+                          </td>
+                          <td style={{ padding: '0.5rem', color: getAspectColor(aspect.type) }}>
+                            {formatAspectName(aspect.type)}
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            <span className="glyph" style={{ marginRight: '0.25rem' }}>
+                              {getPlanetGlyph(aspect.transitPlanet)}
+                            </span>
+                            {formatPlanetName(aspect.transitPlanet)}
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            {aspect.orb.toFixed(1)}°
+                          </td>
+                          <td style={{ padding: '0.5rem' }}>
+                            {aspect.applying ? 'Applying' : 'Separating'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </div>

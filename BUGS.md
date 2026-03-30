@@ -11,13 +11,18 @@
 **Status**: Expected Behavior
 **Description**: Chiron skipped in calculations (with warning) — requires asteroid ephemeris files (`seas_18.se1`) in `packages/web/public/ephemeris/`.
 
+### 11. City Search Returns Only 5 Results for Short Queries
+**Status**: Open
+**Description**: Searching for partial city names like "lon" returns only 5 results despite `limit=10` being set in the OpenCage API call. The limit parameter may not be the issue — OpenCage may only return 5 matches for short/ambiguous queries, or cached results from before the limit change may be served. Needs investigation into whether OpenCage itself caps results, whether KV cache needs to be cleared for affected queries, or whether a different approach (e.g., autocomplete API) is needed.
+**Affects**: Both birth city and transit city search (shared `CitySearch` component).
+
 ### 7. Mobile Responsiveness
 **Status**: Improved
 **Description**: Chart wheel uses aspect-ratio wrapper with overflow auto. Works but could be further optimized for small screens.
 
 ### 9. TypeScript Strictness
-**Status**: Improved
-**Description**: 6 `as any` assertions remain in core calculator where swisseph-wasm types are challenging.
+**Status**: Resolved
+**Description**: ~~6 `as any` assertions remain in core calculator~~ All removed via proper type extensions for swisseph-wasm.
 
 ## ✅ Resolved (archived to SESSION_HISTORY.md)
 - ~~#1 Deployment discrepancy~~ — Fixed with GITHUB_SHA

@@ -256,7 +256,7 @@ export async function geocodeCityMock(query: string): Promise<GeocodeResult[]> {
   }
   
   // Limit to 5 results
-  return results.slice(0, 5);
+  return results.slice(0, 10);
 }
 
 /**
@@ -276,25 +276,36 @@ export async function geocodeCityReal(query: string): Promise<GeocodeResult[]> {
   // const token = await getTurnstileToken();
   // if (token) requestBody.token = token;
   
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(requestBody),
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Geocoding failed: ${response.status} ${response.statusText} - ${errorText}`);
+  let response: Response;
+  try {
+    response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+  } catch (err) {
+    // Network-level failure (offline, CORS, DNS, etc.)
+    throw new Error(`Failed to fetch: ${err instanceof Error ? err.message : 'network error'}`);
   }
-  
+
+  if (!response.ok) {
+    let errorText = '';
+    try {
+      errorText = await response.text();
+    } catch {
+      // ignore read failures
+    }
+    throw new Error(`Geocoding failed (${response.status}): ${errorText || response.statusText}`);
+  }
+
   const data = await response.json();
-  
+
   // Handle error response format
   if (data.error) {
     throw new Error(`Geocoding error: ${data.error}`);
   }
-  
+
   return data;
 }

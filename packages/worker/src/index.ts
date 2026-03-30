@@ -199,7 +199,8 @@ function parseCoordinates(query: string): { lat: number; lng: number } | null {
 async function forwardToOpenCage(query: string, apiKey: string): Promise<GeocodeResult[]> {
   const encodedQuery = encodeURIComponent(query);
   // Include annotations parameter to get timezone data
-  const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodedQuery}&key=${apiKey}&limit=5&annotations=timezone`;
+  // min_confidence=3 filters out low-quality matches (helps partial queries like "lond" → London)
+  const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodedQuery}&key=${apiKey}&limit=10&min_confidence=3&no_dedupe=1&annotations=timezone`;
   
   console.log(`Forward geocoding URL: ${url.replace(apiKey, 'REDACTED')}`);
   

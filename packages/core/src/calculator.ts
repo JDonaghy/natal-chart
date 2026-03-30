@@ -1,4 +1,10 @@
-import { BirthData, ChartResult, PlanetPosition, HouseCusp, Angles, Aspect, Planet, ZodiacSign, HouseSystem, AspectType } from './types';
+import { BirthData, ChartResult, PlanetPosition, HouseCusp, Angles, Aspect, Planet, ZodiacSign, HouseSystem, AspectType, TransitResult, TransitAspect } from './types';
+
+interface EmscriptenFS {
+  mkdir: (path: string) => void;
+  stat: (path: string) => unknown;
+  writeFile: (path: string, data: Uint8Array) => void;
+}
 
 // Planet mapping to Swiss Ephemeris constants
 const PLANET_TO_SE: Record<Planet, number> = {
@@ -66,8 +72,16 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
   console.log('swissephModule:', swissephModule);
   const SwissEph = swissephModule.default;
   console.log('SwissEph:', SwissEph, typeof SwissEph);
-  type SwissEphInstance = InstanceType<typeof SwissEph>;
-  const sweph = new SwissEph();
+  type SwissEphInstance = InstanceType<typeof SwissEph> & {
+    set_ephe_path: (path: string) => void;
+    houses_ex: (jd: number, flags: number, lat: number, lng: number, hsys: string) => {
+      cusps: Float64Array;
+      ascmc: Float64Array;
+    };
+    SweModule?: { FS?: EmscriptenFS };
+    FS?: EmscriptenFS;
+  };
+  const sweph: SwissEphInstance = new SwissEph() as SwissEphInstance;
   console.log('sweph instance:', sweph);
   
   // Initialize the library
@@ -83,8 +97,8 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
   async function loadEphemerisFiles(sweph: SwissEphInstance): Promise<boolean> {
     try {
       // Check if Emscripten FS is available
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const FS = (sweph as any).SweModule?.FS || (sweph as any).FS || (window as any).Module?.FS;
+      const windowModule = typeof window !== 'undefined' ? (window as unknown as { Module?: { FS?: EmscriptenFS } }).Module : undefined;
+      const FS = sweph.SweModule?.FS || sweph.FS || windowModule?.FS;
       if (!FS) {
         console.log('Emscripten FS not available, skipping ephemeris file loading');
         return false;
@@ -143,8 +157,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
         // Update ephemeris path to include both default 'sweph' and our 'ephemeris' directory
         const newPath = 'sweph;ephemeris';
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (sweph as any).set_ephe_path(newPath);
+            sweph.set_ephe_path(newPath);
           console.log('Updated ephemeris path to:', newPath);
           return true;
         } catch (pathError: unknown) {
@@ -171,8 +184,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     console.log('Node environment detected, using absolute path:', ephePath);
   }
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (sweph as any).set_ephe_path(ephePath);
+    sweph.set_ephe_path(ephePath);
     console.log('Ephemeris path set to:', ephePath);
     } catch (error: unknown) {
       console.warn('set_ephe_path failed (may be OK in browser):', error);
@@ -221,8 +233,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
   
   const houseChar = HOUSE_SYSTEM_TO_CHAR[data.houseSystem];
   console.log('calculateChart: calculating houses with system', houseChar, 'lat', data.latitude, 'lon', data.longitude);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const housesResult = (sweph as any).houses_ex(jd, flags, data.latitude, data.longitude, houseChar);
+  const housesResult = sweph.houses_ex(jd, flags, data.latitude, data.longitude, houseChar);
   console.log('calculateChart: houses calculation successful, cusps length', housesResult.cusps.length);
   const cusps = housesResult.cusps; // Float64Array length 13, index 1-12 are house cusps
   const ascmc = housesResult.ascmc; // Float64Array length 10, index 0 = Ascendant, 1 = MC
@@ -237,7 +248,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
   // Build houses array
   const houses: HouseCusp[] = [];
   for (let i = 1; i <= 12; i++) {
-    const longitude = cusps[i];
+    const longitude = cusps[i] ?? 0;
     const { sign, degree, minute } = longitudeToSignAndDMS(longitude);
     houses.push({
       house: i,
@@ -247,10 +258,10 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       minute,
     });
   }
-  
+
   // Build angles
-  const ascendant = ascmc[0];
-  const midheaven = ascmc[1];
+  const ascendant = ascmc[0] ?? 0;
+  const midheaven = ascmc[1] ?? 0;
   const descendant = (ascendant + 180) % 360;
   const imumCoeli = (midheaven + 180) % 360;
   const angles: Angles = {
@@ -398,6 +409,281 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     aspects,
     skippedPlanets,
   };
+}
+
+// Transit aspect orbs (tighter than natal)
+const TRANSIT_ASPECTS: { angle: number; orb: number; type: AspectType }[] = [
+  { angle: 0, orb: 6, type: 'conjunction' },
+  { angle: 180, orb: 6, type: 'opposition' },
+  { angle: 120, orb: 4, type: 'trine' },
+  { angle: 90, orb: 4, type: 'square' },
+  { angle: 60, orb: 3, type: 'sextile' },
+  { angle: 150, orb: 2, type: 'quincunx' },
+  { angle: 30, orb: 1.5, type: 'semiSextile' },
+];
+
+interface SwissEphInstance {
+  initSwissEph: () => Promise<void>;
+  set_ephe_path: (path: string) => void;
+  utc_to_jd: (year: number, month: number, day: number, hour: number, min: number, sec: number, cal: number) => { julianDayUT: number };
+  calc_ut: (jd: number, planet: number, flags: number) => Float64Array;
+  houses_ex: (jd: number, flags: number, lat: number, lng: number, hsys: string) => {
+    cusps: Float64Array;
+    ascmc: Float64Array;
+  };
+  SEFLG_MOSEPH: number;
+  SEFLG_SWIEPH: number;
+  SEFLG_SPEED: number;
+  SweModule?: { FS?: EmscriptenFS };
+  FS?: EmscriptenFS;
+}
+
+async function initSwissEphInstance(): Promise<SwissEphInstance> {
+  const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+  if (isBrowser) {
+    // @ts-expect-error: window.Module assignment for Emscripten
+    window.Module = {
+      locateFile: (path: string, prefix: string) => {
+        if (path === 'swisseph.wasm' || path === 'swisseph.data') {
+          return `/natal-chart/wasm/${path}`;
+        }
+        return prefix + path;
+      },
+    };
+  }
+
+  const swissephModule = await import('swisseph-wasm');
+  const SwissEph = swissephModule.default;
+  const sweph = new SwissEph() as unknown as SwissEphInstance;
+
+  await sweph.initSwissEph();
+
+  // Set ephemeris path
+  let ephePath = 'sweph';
+  if (typeof process !== 'undefined' && process.cwd) {
+    const path = await import('path');
+    ephePath = path.join(process.cwd(), '..', '..', 'ephemeris') + '/';
+  }
+  try {
+    sweph.set_ephe_path(ephePath);
+  } catch {
+    // Continue anyway
+  }
+
+  // Try to load ephemeris files in browser
+  if (isBrowser) {
+    await loadEphemerisFilesForInstance(sweph);
+  }
+
+  return sweph;
+}
+
+async function loadEphemerisFilesForInstance(sweph: SwissEphInstance): Promise<boolean> {
+  try {
+    const windowModule = typeof window !== 'undefined' ? (window as unknown as { Module?: { FS?: EmscriptenFS } }).Module : undefined;
+    const FS = sweph.SweModule?.FS || sweph.FS || windowModule?.FS;
+    if (!FS) return false;
+
+    const targetDir = 'ephemeris';
+    const targetPath = `/${targetDir}/`;
+
+    try { FS.mkdir(targetDir); } catch { /* may exist */ }
+
+    const ephemerisFiles = ['seas_18.se1', 'sepl_18.se1'];
+    let loadedAny = false;
+
+    for (const filename of ephemerisFiles) {
+      const filePath = `${targetPath}${filename}`;
+      try { FS.stat(filePath); loadedAny = true; continue; } catch { /* need to load */ }
+
+      const response = await fetch(`/natal-chart/ephemeris/${filename}`);
+      if (!response.ok) continue;
+
+      const arrayBuffer = await response.arrayBuffer();
+      FS.writeFile(filePath, new Uint8Array(arrayBuffer));
+      loadedAny = true;
+    }
+
+    if (loadedAny) {
+      try { sweph.set_ephe_path('sweph;ephemeris'); } catch { /* continue */ }
+    }
+
+    return loadedAny;
+  } catch {
+    return false;
+  }
+}
+
+function calculatePlanetsForJD(
+  sweph: SwissEphInstance,
+  jd: number,
+): { planets: PlanetPosition[]; skippedPlanets: Planet[] } {
+  const planets: PlanetPosition[] = [];
+  const skippedPlanets: Planet[] = [];
+
+  for (const [planetName, planetIndex] of Object.entries(PLANET_TO_SE)) {
+    let resultArray: Float64Array;
+    try {
+      try {
+        resultArray = sweph.calc_ut(jd, planetIndex, sweph.SEFLG_SWIEPH | sweph.SEFLG_SPEED);
+      } catch {
+        if (planetName !== 'chiron') {
+          resultArray = sweph.calc_ut(jd, planetIndex, sweph.SEFLG_MOSEPH | sweph.SEFLG_SPEED);
+        } else {
+          throw new Error('Chiron requires asteroid ephemeris');
+        }
+      }
+    } catch {
+      skippedPlanets.push(planetName as Planet);
+      continue;
+    }
+
+    const longitude = resultArray[0]!;
+    const latitude = resultArray[1]!;
+    const distance = resultArray[2]!;
+    const speedLongitude = resultArray[3]!;
+    const retrograde = speedLongitude < 0;
+    const { sign, degree, minute } = longitudeToSignAndDMS(longitude);
+
+    planets.push({
+      planet: planetName as Planet,
+      longitude,
+      latitude,
+      distance,
+      speed: speedLongitude,
+      sign,
+      degree,
+      minute,
+      house: 0, // No house assignment for standalone planet calc
+      retrograde,
+    });
+  }
+
+  return { planets, skippedPlanets };
+}
+
+function calculateAspectsBetween(
+  planetsA: PlanetPosition[],
+  planetsB: PlanetPosition[],
+  aspectDefs: { angle: number; orb: number; type: AspectType }[],
+): TransitAspect[] {
+  const aspects: TransitAspect[] = [];
+
+  for (const pA of planetsA) {
+    for (const pB of planetsB) {
+      let diff = Math.abs(pA.longitude - pB.longitude);
+      if (diff > 180) diff = 360 - diff;
+
+      for (const aspectDef of aspectDefs) {
+        if (Math.abs(diff - aspectDef.angle) <= aspectDef.orb) {
+          const orb = Math.abs(diff - aspectDef.angle);
+          const applying = (pA.speed - pB.speed) * (pA.longitude - pB.longitude) > 0;
+          const exact = orb < 0.1;
+
+          aspects.push({
+            natalPlanet: pA.planet,
+            transitPlanet: pB.planet,
+            type: aspectDef.type,
+            angle: diff,
+            orb,
+            applying,
+            exact,
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  return aspects;
+}
+
+export interface TransitLocationInput {
+  latitude: number;
+  longitude: number;
+  houseSystem: HouseSystem;
+}
+
+export async function calculateTransitPositions(
+  dateTimeUtc: Date,
+  natalPlanets: PlanetPosition[],
+  location?: TransitLocationInput,
+): Promise<TransitResult> {
+  const sweph = await initSwissEphInstance();
+
+  const year = dateTimeUtc.getUTCFullYear();
+  if (year < 1800 || year > 2100) {
+    throw new Error(`Date year ${year} outside supported range (1800-2100).`);
+  }
+
+  const jdResult = sweph.utc_to_jd(
+    dateTimeUtc.getUTCFullYear(),
+    dateTimeUtc.getUTCMonth() + 1,
+    dateTimeUtc.getUTCDate(),
+    dateTimeUtc.getUTCHours(),
+    dateTimeUtc.getUTCMinutes(),
+    dateTimeUtc.getUTCSeconds(),
+    1,
+  );
+
+  const jd = jdResult.julianDayUT;
+  const { planets, skippedPlanets } = calculatePlanetsForJD(sweph, jd);
+
+  // Calculate houses at transit location if provided
+  let houses: HouseCusp[] | undefined;
+  let angles: Angles | undefined;
+  if (location) {
+    const flags = sweph.SEFLG_MOSEPH | sweph.SEFLG_SPEED;
+    const houseChar = HOUSE_SYSTEM_TO_CHAR[location.houseSystem];
+    const housesResult = sweph.houses_ex(jd, flags, location.latitude, location.longitude, houseChar);
+    const cusps = housesResult.cusps;
+    const ascmc = housesResult.ascmc;
+
+    houses = [];
+    for (let i = 1; i <= 12; i++) {
+      const lon = cusps[i] ?? 0;
+      const { sign, degree, minute } = longitudeToSignAndDMS(lon);
+      houses.push({ house: i, longitude: lon, sign, degree, minute });
+    }
+
+    const ascendant = ascmc[0] ?? 0;
+    const midheaven = ascmc[1] ?? 0;
+    angles = {
+      ascendant,
+      midheaven,
+      descendant: (ascendant + 180) % 360,
+      imumCoeli: (midheaven + 180) % 360,
+    };
+
+    // Assign houses to transit planets
+    for (const planet of planets) {
+      const normalizedLon = ((planet.longitude % 360) + 360) % 360;
+      for (let i = 1; i <= 12; i++) {
+        const cuspStart = ((cusps[i]! % 360) + 360) % 360;
+        const nextCusp = i < 12 ? cusps[i + 1] : cusps[1];
+        const cuspEnd = ((nextCusp! % 360) + 360) % 360;
+        if (cuspStart <= cuspEnd) {
+          if (normalizedLon >= cuspStart && normalizedLon < cuspEnd) { planet.house = i; break; }
+        } else {
+          if (normalizedLon >= cuspStart || normalizedLon < cuspEnd) { planet.house = i; break; }
+        }
+      }
+    }
+  }
+
+  const aspects = calculateAspectsBetween(natalPlanets, planets, TRANSIT_ASPECTS);
+
+  const result: TransitResult = {
+    planets,
+    aspects,
+    dateTimeUtc,
+  };
+  if (houses) { result.houses = houses; }
+  if (angles) { result.angles = angles; }
+  if (skippedPlanets.length > 0) {
+    result.skippedPlanets = skippedPlanets;
+  }
+  return result;
 }
 
 // Helper functions

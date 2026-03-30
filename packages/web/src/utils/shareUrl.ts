@@ -13,6 +13,11 @@ export interface ShareData {
   timezone: string;      // IANA timezone
   city?: string;
   houseSystem: 'P' | 'W' | 'K';
+  transitDate?: string;  // ISO datetime string for transit overlay
+  transitCity?: string;
+  transitLat?: number;
+  transitLng?: number;
+  transitTz?: string;
 }
 
 /**
@@ -31,6 +36,13 @@ export function encodeShareParams(data: ShareData): string {
   if (data.houseSystem !== 'P') {
     params.set('hs', data.houseSystem);
   }
+  if (data.transitDate) {
+    params.set('tr', data.transitDate);
+    if (data.transitCity) params.set('trcity', data.transitCity);
+    if (data.transitLat !== undefined) params.set('trlat', data.transitLat.toFixed(4));
+    if (data.transitLng !== undefined) params.set('trlng', data.transitLng.toFixed(4));
+    if (data.transitTz) params.set('trtz', data.transitTz);
+  }
   return params.toString();
 }
 
@@ -40,7 +52,8 @@ export function encodeShareParams(data: ShareData): string {
 export function buildShareUrl(data: ShareData): string {
   const params = encodeShareParams(data);
   const base = window.location.href.split('#')[0];
-  return `${base}#/chart?${params}`;
+  const route = data.transitDate ? '/transits' : '/chart';
+  return `${base}#${route}?${params}`;
 }
 
 /**
@@ -84,6 +97,18 @@ export function parseShareParams(): ShareData | null {
   };
   if (city) {
     result.city = city;
+  }
+  const tr = params.get('tr');
+  if (tr) {
+    result.transitDate = tr;
+    const trcity = params.get('trcity');
+    const trlat = params.get('trlat');
+    const trlng = params.get('trlng');
+    const trtz = params.get('trtz');
+    if (trcity) result.transitCity = trcity;
+    if (trlat) result.transitLat = parseFloat(trlat);
+    if (trlng) result.transitLng = parseFloat(trlng);
+    if (trtz) result.transitTz = trtz;
   }
   return result;
 }
