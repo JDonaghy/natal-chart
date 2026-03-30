@@ -1,5 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
-import { ChartResult } from '@natal-chart/core';
+import { ChartResult, TransitResult, calculateLots } from '@natal-chart/core';
+import type { LotResult } from '@natal-chart/core';
 import { SIGN_ABBREVIATIONS } from '../utils/astro-glyph-paths';
 import '../App.css';
 
@@ -44,8 +45,26 @@ const SIGN_FILLS = [
   '#faf7f0', '#f3ece0', // fire/earth alternation
 ];
 
+// Zodiac sign glyph colors by element
+const SIGN_ELEMENT_COLORS = [
+  '#CC3333', // 0 Aries - fire
+  '#338833', // 1 Taurus - earth
+  '#CCAA00', // 2 Gemini - air
+  '#3366CC', // 3 Cancer - water
+  '#CC3333', // 4 Leo - fire
+  '#338833', // 5 Virgo - earth
+  '#CCAA00', // 6 Libra - air
+  '#3366CC', // 7 Scorpio - water
+  '#CC3333', // 8 Sagittarius - fire
+  '#338833', // 9 Capricorn - earth
+  '#CCAA00', // 10 Aquarius - air
+  '#3366CC', // 11 Pisces - water
+];
+
 interface ChartWheelProps {
   chartData: ChartResult;
+  transitData?: TransitResult | undefined;
+  showLots?: boolean;
   size?: number;
 }
 
@@ -54,23 +73,51 @@ export interface ChartWheelHandle {
 }
 
 export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
-  ({ chartData, size = 800 }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
+  ({ chartData, transitData, showLots = true, size = 800 }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
     const center = size / 2;
     const ascendant = chartData.angles.ascendant;
+    const hasTransits = !!transitData;
+
+    // Calculate Lot positions
+    const lots: LotResult | null = React.useMemo(() => {
+      if (!showLots) return null;
+      const sun = chartData.planets.find(p => p.planet === 'sun');
+      const moon = chartData.planets.find(p => p.planet === 'moon');
+      if (!sun || !moon) return null;
+      return calculateLots(
+        chartData.angles.ascendant,
+        sun.longitude,
+        moon.longitude,
+        chartData.angles.descendant,
+      );
+    }, [chartData, showLots]);
 
     // Ring radii (as fractions of size/2)
-    const R = {
-      outer: center * 0.95,          // outermost edge
-      tickOuter: center * 0.95,      // tick marks outer
-      tickInner: center * 0.88,      // tick marks inner / zodiac sign band outer
-      zodiacOuter: center * 0.88,    // zodiac sign glyphs band outer
-      zodiacInner: center * 0.76,    // zodiac sign glyphs band inner
-      planetOuter: center * 0.76,    // planet band outer
-      planetInner: center * 0.38,    // planet band inner / house number ring outer
-      houseNumOuter: center * 0.38,  // house number ring outer
-      houseNumInner: center * 0.30,  // house number ring inner / aspect area outer
-      houseInner: center * 0.0,      // center
+    // When transits active, shrink the inner chart to make room for an outer transit band
+    const R = hasTransits ? {
+      transitOuter: center * 0.98,     // outermost transit planet labels
+      transitInner: center * 0.78,     // inner edge of transit band (tick base)
+      outer: center * 0.76,            // outer edge of zodiac ring
+      zodiacInner: center * 0.62,      // inner edge of zodiac ring
+      planetOuter: center * 0.62,      // natal planet band outer
+      planetInner: center * 0.32,      // natal planet band inner
+      houseNumOuter: center * 0.32,
+      houseNumInner: center * 0.26,
+      houseInner: center * 0.0,
+    } : {
+      transitOuter: center * 0.95,
+      transitInner: center * 0.95,
+      outer: center * 0.95,
+      zodiacInner: center * 0.76,
+      planetOuter: center * 0.76,
+      planetInner: center * 0.38,
+      houseNumOuter: center * 0.38,
+      houseNumInner: center * 0.30,
+      houseInner: center * 0.0,
     };
+    // Derived: tick zone on inner edge of merged ring, glyphs in outer portion
+    const ringWidth = R.outer - R.zodiacInner;
+    const tickEdge = R.zodiacInner + ringWidth * 0.37; // boundary between ticks and glyphs
 
     // Convert ecliptic longitude to angle in SVG coordinate system
     // ASC at 9 o'clock (180°), counter-clockwise
@@ -169,6 +216,48 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       });
     }, [chartData.houses]);
 
+    // Collision avoidance for transit planet labels
+    const transitLayouts = React.useMemo(() => {
+      if (!transitData) return [];
+      const sorted = [...transitData.planets].sort((a, b) => a.longitude - b.longitude);
+      const n = sorted.length;
+      if (n === 0) return [];
+
+      const minSeparation = 10;
+      const labelPositions = sorted.map(p => p.longitude);
+
+      const angleDiff = (a: number, b: number): number => {
+        let d = b - a;
+        while (d > 180) d -= 360;
+        while (d < -180) d += 360;
+        return d;
+      };
+
+      for (let pass = 0; pass < 20; pass++) {
+        let moved = false;
+        for (let i = 0; i < n; i++) {
+          const j = (i + 1) % n;
+          const diff = angleDiff(labelPositions[i]!, labelPositions[j]!);
+          const absDiff = Math.abs(diff);
+          if (absDiff < minSeparation && absDiff > 0) {
+            const push = (minSeparation - absDiff) / 2 * 0.6;
+            const sign = diff > 0 ? 1 : -1;
+            labelPositions[i] = (labelPositions[i]! - sign * push + 360) % 360;
+            labelPositions[j] = (labelPositions[j]! + sign * push + 360) % 360;
+            moved = true;
+          }
+        }
+        if (!moved) break;
+      }
+
+      return sorted.map((planet, i) => ({
+        planet,
+        tickLongitude: planet.longitude,
+        labelLongitude: labelPositions[i]!,
+        color: PLANET_COLORS[planet.planet] || '#8B7355',
+      }));
+    }, [transitData]);
+
     const svgRef = useRef<SVGSVGElement>(null);
 
     useImperativeHandle(ref, () => ({
@@ -197,16 +286,16 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           </defs>
 
           {/* === BACKGROUND === */}
-          <circle cx={center} cy={center} r={R.outer + 4} fill="#f5f0e8" />
+          <circle cx={center} cy={center} r={(hasTransits ? R.transitOuter : R.outer) + 4} fill="#f5f0e8" />
 
-          {/* === ZODIAC SIGN SEGMENTS (alternating fills) === */}
+          {/* === ZODIAC SIGN SEGMENTS (alternating fills, merged ring) === */}
           {Array.from({ length: 12 }).map((_, i) => {
             const startLon = i * 30;
             const endLon = (i + 1) * 30;
             return (
               <path
                 key={`sign-seg-${i}`}
-                d={arcPath(startLon, endLon, R.zodiacOuter, R.zodiacInner)}
+                d={arcPath(startLon, endLon, R.outer, R.zodiacInner)}
                 fill={SIGN_FILLS[i % 2]}
                 stroke="#c4a96a"
                 strokeWidth={0.5}
@@ -214,12 +303,12 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             );
           })}
 
-          {/* === TICK MARK RING (outer edge) === */}
+          {/* === TICK MARKS (inner edge, facing outward) === */}
           {Array.from({ length: 360 }).map((_, deg) => {
             // Sign boundaries at every 30°
             if (deg % 30 === 0) {
-              const p1 = toPoint(deg, R.tickOuter + 2);
-              const p2 = toPoint(deg, R.zodiacInner);
+              const p1 = toPoint(deg, R.zodiacInner);
+              const p2 = toPoint(deg, hasTransits ? R.transitOuter : R.outer + 2);
               return (
                 <line
                   key={`bound-${deg}`}
@@ -228,10 +317,10 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 />
               );
             }
-            // 5° ticks
+            // 5° ticks (from inner edge outward ~60% of tick zone)
             if (deg % 5 === 0) {
-              const p1 = toPoint(deg, R.tickOuter);
-              const p2 = toPoint(deg, R.tickInner + (R.tickOuter - R.tickInner) * 0.4);
+              const p1 = toPoint(deg, R.zodiacInner);
+              const p2 = toPoint(deg, R.zodiacInner + (tickEdge - R.zodiacInner) * 0.6);
               return (
                 <line
                   key={`tick5-${deg}`}
@@ -240,9 +329,9 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 />
               );
             }
-            // 1° ticks
-            const p1 = toPoint(deg, R.tickOuter);
-            const p2 = toPoint(deg, R.tickInner + (R.tickOuter - R.tickInner) * 0.7);
+            // 1° ticks (from inner edge outward ~30% of tick zone)
+            const p1 = toPoint(deg, R.zodiacInner);
+            const p2 = toPoint(deg, R.zodiacInner + (tickEdge - R.zodiacInner) * 0.3);
             return (
               <line
                 key={`tick1-${deg}`}
@@ -252,12 +341,12 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             );
           })}
 
-          {/* === ZODIAC SIGN GLYPHS (Unicode text) === */}
+          {/* === ZODIAC SIGN GLYPHS (Unicode text, colored by element) === */}
           {Array.from({ length: 12 }).map((_, i) => {
             const midLon = i * 30 + 15;
-            const midR = (R.zodiacOuter + R.zodiacInner) / 2;
+            const midR = (tickEdge + R.outer) / 2;
             const pos = toPoint(midLon, midR);
-            const glyphSize = (R.zodiacOuter - R.zodiacInner) * 0.6;
+            const glyphSize = (R.outer - tickEdge) * 0.6;
 
             return (
               <text
@@ -268,7 +357,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 dominantBaseline="central"
                 fontSize={glyphSize}
                 fontFamily={GLYPH_FONT}
-                fill="#5a4a3a"
+                fill={SIGN_ELEMENT_COLORS[i]}
                 data-glyph="zodiac"
                 data-glyph-index={i}
               >
@@ -279,7 +368,6 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
 
           {/* === STRUCTURAL CIRCLES === */}
           <circle cx={center} cy={center} r={R.outer} fill="none" stroke="#b8860b" strokeWidth={1.5} />
-          <circle cx={center} cy={center} r={R.tickInner} fill="none" stroke="#b8860b" strokeWidth={0.8} />
           <circle cx={center} cy={center} r={R.zodiacInner} fill="none" stroke="#b8860b" strokeWidth={1} />
           <circle cx={center} cy={center} r={R.houseNumOuter} fill="none" stroke="#b8860b" strokeWidth={1} />
           <circle cx={center} cy={center} r={R.houseNumInner} fill="url(#parchmentGradient)" stroke="#b8860b" strokeWidth={1} />
@@ -287,7 +375,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           {/* === HOUSE CUSP LINES (from outer circle to house number ring inner) === */}
           {chartData.houses.map((house) => {
             const isAngular = [1, 4, 7, 10].includes(house.house);
-            const p1 = toPoint(house.longitude, R.outer);
+            const p1 = toPoint(house.longitude, hasTransits ? R.transitOuter : R.outer);
             const p2 = toPoint(house.longitude, R.houseNumInner);
             return (
               <line
@@ -496,6 +584,164 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
               </g>
             );
           })}
+
+          {/* === LOT POSITIONS (Fortune and Spirit) === */}
+          {lots && (() => {
+            const lotMarkers = [
+              { name: 'Fortune', longitude: lots.fortune, glyph: '\u2295', color: '#b8860b' },
+              { name: 'Spirit', longitude: lots.spirit, glyph: '\u2609', color: '#4A6B8A' },
+            ];
+            const lotR = (R.planetOuter + R.planetInner) / 2;
+            const glyphSz = (R.planetOuter - R.planetInner) * 0.22;
+            return lotMarkers.map(({ name, longitude, glyph, color }) => {
+              const pos = toPoint(longitude, lotR);
+              const tickTop = toPoint(longitude, R.zodiacInner);
+              const tickBot = toPoint(longitude, R.zodiacInner - (R.planetOuter - R.planetInner) * 0.08);
+              return (
+                <g key={`lot-${name}`}>
+                  <line
+                    x1={tickTop.x} y1={tickTop.y} x2={tickBot.x} y2={tickBot.y}
+                    stroke={color} strokeWidth={1.5} strokeDasharray="3,2"
+                  />
+                  <circle
+                    cx={pos.x} cy={pos.y} r={glyphSz * 0.7}
+                    fill="none" stroke={color} strokeWidth={1} opacity={0.5}
+                  />
+                  <text
+                    x={pos.x} y={pos.y}
+                    textAnchor="middle" dominantBaseline="central"
+                    fontSize={glyphSz} fontFamily={GLYPH_FONT}
+                    fill={color}
+                  >
+                    {glyph}
+                  </text>
+                </g>
+              );
+            });
+          })()}
+
+          {/* === TRANSIT OUTER RING (when active) === */}
+          {hasTransits && transitData && (
+            <>
+              {/* Transit band boundary circles */}
+              <circle cx={center} cy={center} r={R.transitOuter} fill="none" stroke="#b8860b" strokeWidth={1} />
+              <circle cx={center} cy={center} r={R.transitInner} fill="none" stroke="#b8860b" strokeWidth={0.5} />
+
+              {/* Transit planet glyphs with degree/sign/minute labels */}
+              {transitLayouts.map((layout) => {
+                const { planet, tickLongitude, labelLongitude, color } = layout;
+                const bandWidth = R.transitOuter - R.transitInner;
+
+                // Tick mark from outer edge of zodiac outward into transit band
+                const tickBase = toPoint(tickLongitude, R.outer);
+                const tickEnd = toPoint(tickLongitude, R.outer + bandWidth * 0.15);
+
+                // Connector from tick to label position
+                const glyphR = R.transitInner + bandWidth * 0.62;
+                const connectorEnd = toPoint(labelLongitude, R.transitInner + bandWidth * 0.15);
+
+                // Glyph center
+                const glyphPos = toPoint(labelLongitude, glyphR);
+                const glyphSz = bandWidth * 0.3;
+
+                // Degree label (above glyph, further outward)
+                const degPos = toPoint(labelLongitude, glyphR + bandWidth * 0.22);
+                // Sign abbreviation
+                const signPos = toPoint(labelLongitude, glyphR - bandWidth * 0.22);
+                // Minute label
+                const minPos = toPoint(labelLongitude, glyphR - bandWidth * 0.38);
+
+                return (
+                  <g key={`transit-${planet.planet}`}>
+                    {/* Tick mark at true position */}
+                    <line
+                      x1={tickBase.x} y1={tickBase.y} x2={tickEnd.x} y2={tickEnd.y}
+                      stroke={color} strokeWidth={2}
+                    />
+
+                    {/* Connector line from tick to label */}
+                    <line
+                      x1={tickEnd.x} y1={tickEnd.y}
+                      x2={connectorEnd.x} y2={connectorEnd.y}
+                      stroke={color} strokeWidth={0.6} strokeOpacity={0.5}
+                    />
+
+                    {/* Planet glyph */}
+                    <text
+                      x={glyphPos.x} y={glyphPos.y}
+                      textAnchor="middle" dominantBaseline="central"
+                      fontSize={glyphSz}
+                      fontFamily={GLYPH_FONT}
+                      fill={color}
+                    >
+                      {PLANET_UNICODE[planet.planet] || '○'}
+                    </text>
+
+                    {/* Retrograde indicator */}
+                    {planet.retrograde && (
+                      <text
+                        x={glyphPos.x + glyphSz * 0.6}
+                        y={glyphPos.y - glyphSz * 0.4}
+                        textAnchor="middle" dominantBaseline="middle"
+                        fontSize={size * 0.011} fill="#A0522D" fontStyle="italic"
+                      >
+                        R
+                      </text>
+                    )}
+
+                    {/* Degree */}
+                    <text
+                      x={degPos.x} y={degPos.y}
+                      textAnchor="middle" dominantBaseline="middle"
+                      fontSize={size * 0.013} fill="#5a4a3a"
+                    >
+                      {planet.degree}°
+                    </text>
+
+                    {/* Sign abbreviation */}
+                    <text
+                      x={signPos.x} y={signPos.y}
+                      textAnchor="middle" dominantBaseline="middle"
+                      fontSize={size * 0.011} fill="#8a7a6a"
+                    >
+                      {SIGN_ABBREVIATIONS[Math.floor(planet.longitude / 30) % 12]}
+                    </text>
+
+                    {/* Minute */}
+                    <text
+                      x={minPos.x} y={minPos.y}
+                      textAnchor="middle" dominantBaseline="middle"
+                      fontSize={size * 0.012} fill="#5a4a3a"
+                    >
+                      {planet.minute.toString().padStart(2, '0')}′
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Transit aspect lines (natal-to-transit, dashed) */}
+              {transitData.aspects.map((aspect, index) => {
+                const natalP = chartData.planets.find(p => p.planet === aspect.natalPlanet);
+                const transitP = transitData.planets.find(p => p.planet === aspect.transitPlanet);
+                if (!natalP || !transitP) return null;
+
+                const pos1 = toPoint(natalP.longitude, R.houseNumInner * 0.92);
+                const pos2 = toPoint(transitP.longitude, R.houseNumInner * 0.92);
+                const color = ASPECT_COLORS[aspect.type] || '#a09080';
+
+                return (
+                  <line
+                    key={`transit-aspect-${index}`}
+                    x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
+                    stroke={color}
+                    strokeWidth={aspect.exact ? 1.2 : 0.6}
+                    strokeOpacity={aspect.exact ? 0.6 : 0.3}
+                    strokeDasharray="2,4"
+                  />
+                );
+              })}
+            </>
+          )}
 
           {/* Center dot */}
           <circle cx={center} cy={center} r={size * 0.006} fill="#b8860b" />

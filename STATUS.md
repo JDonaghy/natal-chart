@@ -1,11 +1,11 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-03-29*
+*Last Updated: 2026-03-30*
 
 ## 🚀 Deployment Status
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.4.0
+- **Current Version**: 0.5.0
 
 ## ✅ What Works
 
@@ -22,6 +22,10 @@
 - [x] Retrograde indicators in table and chart
 - [x] Client-side PDF export with hybrid glyph rendering (text→path swap for svg2pdf)
 - [x] Shareable URLs — encode birth data as query params, auto-load shared charts
+- [x] Separate Natal Chart (`/chart`) and Transit Chart (`/transits`) routes
+- [x] Transit Chart auto-initializes to current date with always-on controls
+- [x] Route-aware share URLs and saved chart loading
+- [x] NavLink active styling in navigation header
 - [x] LocalStorage persistence of birth data and form state
 - [x] Real geocoding via Cloudflare Worker
 - [x] Coordinate input detection with OpenStreetMap validation link

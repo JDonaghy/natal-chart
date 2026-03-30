@@ -1,22 +1,43 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChart, type ExtendedBirthData } from '../contexts/ChartContext';
-import { geocodeCity, type GeocodeResult, isRealGeocodingAvailable, isCoordinateQuery, parseCoordinates } from '../services/geocoding';
+import { type GeocodeResult, isRealGeocodingAvailable, isCoordinateQuery, parseCoordinates } from '../services/geocoding';
+import { CitySearch } from './CitySearch';
 import { convertToUTC, convertFromUTC } from '../services/timezone';
 import '../App.css';
+
+// Get IANA timezone list from the runtime
+const timezoneList: string[] = (() => {
+  try {
+    return (Intl as unknown as { supportedValuesOf: (key: string) => string[] }).supportedValuesOf('timeZone');
+  } catch {
+    // Fallback for older browsers
+    return [
+      'UTC',
+      'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
+      'America/Anchorage', 'America/Sao_Paulo', 'America/Argentina/Buenos_Aires',
+      'America/Mexico_City', 'America/Toronto', 'America/Vancouver',
+      'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Rome', 'Europe/Madrid',
+      'Europe/Moscow', 'Europe/Istanbul', 'Europe/Athens', 'Europe/Amsterdam',
+      'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Kolkata', 'Asia/Dubai', 'Asia/Singapore',
+      'Asia/Seoul', 'Asia/Bangkok', 'Asia/Hong_Kong', 'Asia/Taipei',
+      'Australia/Sydney', 'Australia/Melbourne', 'Australia/Perth',
+      'Pacific/Auckland', 'Pacific/Honolulu',
+      'Africa/Cairo', 'Africa/Johannesburg', 'Africa/Lagos',
+    ];
+  }
+})();
 
 export const BirthDataForm: React.FC = () => {
   const navigate = useNavigate();
   const { calculateChart } = useChart();
   const [loading, setLoading] = useState(false);
-  const [geocodingLoading, setGeocodingLoading] = useState(false);
-  const [geocodingError, setGeocodingError] = useState<string | null>(null);
-  const [geocodingResults, setGeocodingResults] = useState<GeocodeResult[]>([]);
-  const [showResults, setShowResults] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const [utcDisplay, setUtcDisplay] = useState<string | null>(null);
   const [utcError, setUtcError] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [tzFilter, setTzFilter] = useState('');
+  const [showTzDropdown, setShowTzDropdown] = useState(false);
+  const tzDropdownRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState({
     birthDate: '1990-06-15',
@@ -84,7 +105,6 @@ export const BirthDataForm: React.FC = () => {
           ...prev,
           latitude: lat,
           longitude: lng,
-          timezone: '', // Clear timezone since coordinates changed
         };
       }
       return prev;
@@ -193,14 +213,14 @@ export const BirthDataForm: React.FC = () => {
     }
   }, []);
   
-  // Close dropdown when clicking outside
+  // Close timezone dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setShowResults(false);
+      if (tzDropdownRef.current && !tzDropdownRef.current.contains(event.target as Node)) {
+        setShowTzDropdown(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -235,34 +255,9 @@ export const BirthDataForm: React.FC = () => {
     }
   }, [formData.birthDate, formData.birthTime, formData.timezone]);
   
-  const handleCitySearch = async () => {
-    if (!formData.city.trim()) return;
-    
-    setGeocodingLoading(true);
-    setGeocodingError(null);
-    setGeocodingResults([]);
-    
-    try {
-      const results = await geocodeCity(formData.city);
-      setGeocodingResults(results);
-      setShowResults(true);
-      
-      if (results.length === 0) {
-        setGeocodingError('No results found. Try a different city name.');
-      }
-    } catch (error) {
-      console.error('Geocoding error:', error);
-      setGeocodingError('Failed to search for city. Please try again.');
-    } finally {
-      setGeocodingLoading(false);
-    }
-  };
-  
-  const handleSelectResult = (result: GeocodeResult) => {
-    // Validate that geocoding result includes a timezone
+  const handleSelectCity = (result: GeocodeResult) => {
     if (!result.timezone) {
       setTimezoneError(`Unable to detect timezone for ${result.formatted}. Please manually enter coordinates with a known timezone.`);
-      // Still update city and coordinates, but clear timezone
       setFormData(prev => ({
         ...prev,
         city: result.formatted,
@@ -280,11 +275,8 @@ export const BirthDataForm: React.FC = () => {
       }));
       setTimezoneError(null);
     }
-    setGeocodingResults([]);
-    setShowResults(false);
-    setGeocodingError(null);
   };
-  
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -356,13 +348,12 @@ export const BirthDataForm: React.FC = () => {
       [name]: value,
     }));
     
-    // Clear geocoding results when city input changes
     if (name === 'city') {
-      setGeocodingResults([]);
-      setShowResults(false);
-      setGeocodingError(null);
       setTimezoneError(null);
-      setFormData(prev => ({ ...prev, timezone: '' }));
+      // Only clear timezone when switching away from coordinates to city name
+      if (!isCoordinateQuery(value)) {
+        setFormData(prev => ({ ...prev, timezone: '' }));
+      }
     }
   };
   
@@ -384,93 +375,22 @@ export const BirthDataForm: React.FC = () => {
       <form onSubmit={handleSubmit}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
           {/* Place of Birth */}
-          <div style={{ gridColumn: 'span 2', position: 'relative' }} ref={dropdownRef}>
+          <div style={{ gridColumn: 'span 2', position: 'relative' }}>
             <label htmlFor="city" style={{ display: 'block', marginBottom: '0.5rem' }}>
               Place of Birth
             </label>
-            <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
-              <input
-                id="city"
-                name="city"
-                type="text"
-                value={formData.city}
-                onChange={handleInputChange}
-                placeholder="Search for a city or enter coordinates (e.g., London, UK or 51.5074, -0.1278)..."
-                style={{ flex: 1 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleCitySearch();
-                  }
-                }}
-              />
-              <button 
-                type="button" 
-                onClick={handleCitySearch}
-                disabled={geocodingLoading || !formData.city.trim()}
-                style={{ whiteSpace: 'nowrap', minWidth: '80px' }}
-              >
-                {geocodingLoading ? 'Searching...' : 'Search'}
-              </button>
-            </div>
-            
-            {/* Geocoding results dropdown */}
-            {showResults && geocodingResults.length > 0 && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                backgroundColor: 'white',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                zIndex: 1000,
-                maxHeight: '300px',
-                overflowY: 'auto',
-                marginTop: '2px',
-              }}>
-                {geocodingResults.map((result, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handleSelectResult(result)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem 1rem',
-                      textAlign: 'left',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid #f0f0f0',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8f4e8';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                  >
-                    <div style={{ fontWeight: 'bold', color: '#333' }}>
-                      {result.name}, {result.country}
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                      {result.formatted}
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
-                      {formatCoordinate(result.lat, true)}, {formatCoordinate(result.lng, false)}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-            
-            {/* Status messages */}
-            {geocodingError && (
-              <p style={{ fontSize: '0.9rem', color: '#d32f2f', marginTop: '0.5rem' }}>
-                {geocodingError}
-              </p>
-            )}
+            <CitySearch
+              value={formData.city}
+              onChange={(value) => {
+                setFormData(prev => ({ ...prev, city: value }));
+                setTimezoneError(null);
+                if (!isCoordinateQuery(value)) {
+                  setFormData(prev => ({ ...prev, timezone: '' }));
+                }
+              }}
+              onSelect={handleSelectCity}
+              placeholder="Search for a city or enter coordinates (e.g., London, UK or 51.5074, -0.1278)..."
+            />
             
             {/* Selected coordinates */}
             <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
@@ -602,33 +522,106 @@ export const BirthDataForm: React.FC = () => {
             />
           </div>
           
-          {/* Timezone Display */}
+          {/* Timezone Display / Selector */}
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem' }}>
+            <label htmlFor="timezone" style={{ display: 'block', marginBottom: '0.5rem' }}>
               Birth Timezone
             </label>
-            <div style={{
-              padding: '0.75rem',
-              backgroundColor: '#f8f4e8',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '0.95rem',
-              color: formData.timezone ? '#333' : '#888',
-            }}>
-              {formData.timezone ? (
-                <>
-                  <span style={{ fontWeight: 'bold' }}>{formData.timezone}</span>
-                  <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
-                    (detected from city)
-                  </span>
-                </>
-              ) : (
-                'Not yet detected — please search and select a city above'
-              )}
-            </div>
-            <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
-              Timezone is automatically determined from the birth city
-            </p>
+            {isCoordinatesInput ? (
+              <div ref={tzDropdownRef} style={{ position: 'relative' }}>
+                <input
+                  id="timezone"
+                  type="text"
+                  value={showTzDropdown ? tzFilter : formData.timezone}
+                  placeholder="Type to filter timezones..."
+                  onFocus={() => {
+                    setShowTzDropdown(true);
+                    setTzFilter('');
+                  }}
+                  onChange={(e) => {
+                    setTzFilter(e.target.value);
+                    setShowTzDropdown(true);
+                  }}
+                  style={{ width: '100%' }}
+                  autoComplete="off"
+                />
+                {showTzDropdown && (() => {
+                  const lowerFilter = tzFilter.toLowerCase();
+                  const filtered = timezoneList.filter(tz => tz.toLowerCase().includes(lowerFilter));
+                  return filtered.length > 0 ? (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      zIndex: 1000,
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      marginTop: '2px',
+                    }}>
+                      {filtered.slice(0, 50).map(tz => (
+                        <button
+                          key={tz}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, timezone: tz }));
+                            setShowTzDropdown(false);
+                            setTzFilter('');
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.4rem 0.75rem',
+                            textAlign: 'left',
+                            border: 'none',
+                            backgroundColor: tz === formData.timezone ? '#f8f4e8' : 'transparent',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f0f0f0',
+                            fontSize: '0.9rem',
+                            color: '#333',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f4e8'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = tz === formData.timezone ? '#f8f4e8' : 'transparent'; }}
+                        >
+                          {tz}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
+                  Select the timezone for these coordinates
+                </p>
+              </div>
+            ) : (
+              <>
+                <div style={{
+                  padding: '0.75rem',
+                  backgroundColor: '#f8f4e8',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px',
+                  fontSize: '0.95rem',
+                  color: formData.timezone ? '#333' : '#888',
+                }}>
+                  {formData.timezone ? (
+                    <>
+                      <span style={{ fontWeight: 'bold' }}>{formData.timezone}</span>
+                      <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
+                        (detected from city)
+                      </span>
+                    </>
+                  ) : (
+                    'Not yet detected — please search and select a city above'
+                  )}
+                </div>
+                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
+                  Timezone is automatically determined from the birth city
+                </p>
+              </>
+            )}
             {timezoneError && (
               <p style={{ fontSize: '0.85rem', color: '#d32f2f', marginTop: '0.5rem' }}>
                 {timezoneError}

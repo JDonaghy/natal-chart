@@ -138,4 +138,40 @@
 
 ---
 
+## Session 2026-03-30: v0.5.0 — Separate Natal & Transit Chart Routes
+
+### ✅ Features Completed
+1. **Split `/chart` and `/transits` routes** — Natal Chart at `/chart` (no transits), Transit Chart at `/transits` (always-on transit controls). Previously a single `/chart` route with a toggle button.
+2. **TransitView component** — New component with always-visible transit date picker, "Now" button, and city search. Auto-initializes to current date/time on mount.
+3. **Extracted chart-helpers.ts** — Shared helper functions (`getPlanetGlyph`, `getSignGlyph`, `formatPlanetName`, `formatSignName`, `formatAspectName`, `getAspectColor`) extracted from ChartView for reuse.
+4. **Route-aware share URLs** — `buildShareUrl()` routes to `/transits` when transit data present, `/chart` otherwise.
+5. **NavLink active styling** — Navigation links use React Router's `NavLink` with bold+underline for active route. Nav order: Calculate | Natal Chart | Transit Chart | Compare | Releasing.
+6. **Cross-route saved chart loading** — Loading a saved chart with transit data from Natal view navigates to Transit view (and vice versa).
+7. **ShareLoader handles both routes** — Detects share params on `/chart` or `/transits` and navigates to appropriate route after calculation.
+
+### ✅ Technical Improvements
+- Removed `transitsEnabled` boolean from ChartContext (route determines transit state)
+- Transit state (`transitData`, `transitDateStr`, `transitLocation`) persists in context across route changes
+- ChartView stripped of all transit code (toggle, controls, transit aspects section)
+- PDF export from natal = natal only; from transit = natal + transits
+
+### Files Created
+- `packages/web/src/components/TransitView.tsx`
+- `packages/web/src/utils/chart-helpers.ts`
+
+### Files Modified
+- `packages/web/src/components/ChartView.tsx` — Stripped transit code
+- `packages/web/src/contexts/ChartContext.tsx` — Removed `transitsEnabled`/`setTransitsEnabled`
+- `packages/web/src/App.tsx` — Added `/transits` route
+- `packages/web/src/components/Layout.tsx` — NavLink active styling, added Transit Chart nav
+- `packages/web/src/utils/shareUrl.ts` — Route-aware URL building
+- `packages/web/src/components/ShareLoader.tsx` — Handles `/chart` and `/transits` routes
+
+### 📝 Notes
+- Version bumped from 0.4.0 to 0.5.0
+- All tests pass, TypeScript clean, build succeeds
+- Pre-existing lint error in CompareView.tsx (setState in effect) unchanged
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

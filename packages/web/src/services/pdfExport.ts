@@ -2,8 +2,8 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { svg2pdf } from 'svg2pdf.js';
 import type { Svg2pdfOptions } from 'svg2pdf.js';
-import type { ChartResult } from '@natal-chart/core';
-import type { ExtendedBirthData } from '../contexts/ChartContext';
+import type { ChartResult, TransitResult, ZRTimeline, LotResult } from '@natal-chart/core';
+import type { ExtendedBirthData, TransitLocation } from '../contexts/ChartContext';
 import { getSignPathByIndex, getPlanetPath } from '../utils/astro-glyph-paths';
 
 type JsPDFWithAutoTable = jsPDF & { lastAutoTable: { finalY: number } };
@@ -142,7 +142,10 @@ const FONTS = {
 export async function generateChartPdf(
   chartData: ChartResult,
   birthData: ExtendedBirthData,
-  chartSvgElement: SVGElement | null
+  chartSvgElement: SVGElement | null,
+  transitData?: TransitResult | undefined,
+  transitLocation?: TransitLocation | undefined,
+  releasingData?: { lots: LotResult; timeline: ZRTimeline } | undefined,
 ): Promise<jsPDF> {
   // Create PDF document in portrait orientation (A4)
   const doc = new jsPDF({
@@ -163,15 +166,17 @@ export async function generateChartPdf(
   }
 
   // Set document properties
+  const hasTransits = !!transitData;
+  const docTitle = hasTransits ? 'Natal Chart with Transits' : 'Natal Chart';
   doc.setProperties({
-    title: 'Natal Chart',
+    title: docTitle,
     subject: 'Astrological birth chart',
     creator: 'Natal Chart Calculator',
     author: birthData.city || 'Unknown location',
   });
 
   // Add header with title and birth info
-  let currentY = addHeader(doc, birthData);
+  let currentY = addHeader(doc, birthData, transitData, transitLocation);
   
   // Add chart wheel if SVG element is provided
   if (chartSvgElement) {
@@ -183,9 +188,22 @@ export async function generateChartPdf(
   
   // Add aspects table (if any)
   if (chartData.aspects.length > 0) {
-    // No need to capture returned Y as we're done with content
-    addAspectTable(doc, chartData, currentY, fontLoaded);
+    currentY = addAspectTable(doc, chartData, currentY, fontLoaded);
   }
+
+  // Add transit data if present
+  if (transitData) {
+    currentY = addTransitPlanetTable(doc, transitData, currentY, fontLoaded);
+    if (transitData.aspects.length > 0) {
+      currentY = addTransitAspectTable(doc, transitData, currentY, fontLoaded);
+    }
+  }
+
+  // Add releasing data if present
+  if (releasingData) {
+    currentY = addReleasingSummary(doc, releasingData.lots, releasingData.timeline, currentY, fontLoaded);
+  }
+  void currentY;
   
   // Add footer with timestamp and page numbers
   addFooter(doc);
@@ -196,25 +214,26 @@ export async function generateChartPdf(
 /**
  * Add header with birth data summary
  */
-function addHeader(doc: jsPDF, birthData: ExtendedBirthData): number {
+function addHeader(doc: jsPDF, birthData: ExtendedBirthData, transitData?: TransitResult | undefined, transitLocation?: TransitLocation | undefined): number {
   const pageWidth = doc.internal.pageSize.width;
   const margin = 15;
-  
+  const hasTransits = !!transitData;
+
   // Background color for header
   doc.setFillColor(COLORS.parchment);
   doc.rect(0, 0, pageWidth, 40, 'F');
-  
+
   // Title
   doc.setFontSize(FONTS.title);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.darkGold);
-  doc.text('Natal Chart', pageWidth / 2, 20, { align: 'center' });
-  
+  doc.text(hasTransits ? 'Natal Chart with Transits' : 'Natal Chart', pageWidth / 2, 20, { align: 'center' });
+
   // Birth date and time
   doc.setFontSize(FONTS.body);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(COLORS.text);
-  
+
   const birthDate = new Date(birthData.dateTimeUtc);
   const dateStr = birthDate.toLocaleDateString('en-US', {
     year: 'numeric',
@@ -226,9 +245,9 @@ function addHeader(doc: jsPDF, birthData: ExtendedBirthData): number {
     minute: '2-digit',
     timeZone: 'UTC',
   }) + ' UTC';
-  
+
   doc.text(`Birth: ${dateStr} at ${timeStr}`, margin, 35);
-  
+
   // Location and house system
   const locationText = `Location: ${birthData.city || `${birthData.latitude.toFixed(4)}°, ${birthData.longitude.toFixed(4)}°`}`;
   const timezoneText = birthData.timezone ? `Timezone: ${birthData.timezone}` : '';
@@ -236,24 +255,45 @@ function addHeader(doc: jsPDF, birthData: ExtendedBirthData): number {
     birthData.houseSystem === 'P' ? 'Placidus' :
     birthData.houseSystem === 'W' ? 'Whole Sign' : 'Koch'
   }`;
-  
+
   doc.setFontSize(FONTS.small);
   doc.setTextColor(COLORS.lightText);
   doc.text(locationText, margin, 45);
-  
+
+  let nextY = 50;
   if (timezoneText) {
-    doc.text(timezoneText, margin, 50);
+    doc.text(timezoneText, margin, nextY);
+    nextY += 5;
   }
-  
-  doc.text(houseSystemText, margin, timezoneText ? 55 : 50);
-  
+
+  doc.text(houseSystemText, margin, nextY);
+  nextY += 5;
+
+  // Transit date info
+  if (hasTransits && transitData) {
+    const transitDate = new Date(transitData.dateTimeUtc);
+    const transitDateStr = transitDate.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const transitTimeStr = transitDate.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    doc.setTextColor(COLORS.accent);
+    const transitCityStr = transitLocation ? ` — ${transitLocation.city}` : '';
+    doc.text(`Transits: ${transitDateStr} at ${transitTimeStr}${transitCityStr}`, margin, nextY);
+    nextY += 5;
+  }
+
   // Add decorative line
   doc.setDrawColor(COLORS.gold);
   doc.setLineWidth(0.5);
-  doc.line(margin, 60, pageWidth - margin, 60);
-  
+  doc.line(margin, nextY + 2, pageWidth - margin, nextY + 2);
+
   // Return Y position for next content
-  return 70;
+  return nextY + 12;
 }
 
 /**
@@ -465,6 +505,146 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
 }
 
 /**
+ * Add transit planet positions table
+ */
+function addTransitPlanetTable(doc: jsPDF, transitData: TransitResult, startY: number, fontLoaded: boolean = false): number {
+  const margin = 15;
+  let y = startY;
+
+  // Check if we need a new page
+  if (y > doc.internal.pageSize.height - 60) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setFontSize(FONTS.heading);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.accent);
+
+  const transitDate = new Date(transitData.dateTimeUtc);
+  const transitDateStr = transitDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+  doc.text(`Transit Positions (${transitDateStr})`, margin, y);
+  y += 8;
+
+  if (fontLoaded) {
+    doc.setFont('DejaVuSans', 'normal');
+  } else {
+    doc.setFont('helvetica', 'normal');
+  }
+
+  const tableData = transitData.planets.map(planet => [
+    fontLoaded ? getPlanetGlyph(planet.planet) + ' ' + formatPlanetName(planet.planet) : formatPlanetName(planet.planet),
+    fontLoaded ? getSignGlyph(planet.sign) + ' ' + formatSignName(planet.sign) : formatSignName(planet.sign),
+    `${planet.degree}° ${planet.minute}′`,
+    planet.retrograde ? 'R' : '',
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Planet', 'Sign', 'Position', 'Retro']],
+    body: tableData,
+    headStyles: {
+      fillColor: COLORS.accent,
+      textColor: '#ffffff',
+      fontStyle: 'bold',
+      fontSize: FONTS.tableHeader,
+    },
+    bodyStyles: {
+      fontSize: FONTS.tableBody,
+      textColor: COLORS.text,
+    },
+    alternateRowStyles: {
+      fillColor: '#f0f7ff',
+    },
+    styles: {
+      cellPadding: 4,
+      lineWidth: 0.5,
+      lineColor: COLORS.accent,
+    },
+    columnStyles: {
+      0: { cellWidth: 30, fontStyle: 'bold' },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 15, halign: 'center' },
+    },
+  });
+
+  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
+  return y;
+}
+
+/**
+ * Add natal-to-transit aspects table
+ */
+function addTransitAspectTable(doc: jsPDF, transitData: TransitResult, startY: number, fontLoaded: boolean = false): number {
+  const margin = 15;
+  let y = startY;
+
+  if (y > doc.internal.pageSize.height - 60) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setFontSize(FONTS.heading);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.accent);
+  doc.text('Natal-to-Transit Aspects', margin, y);
+  y += 8;
+
+  if (fontLoaded) {
+    doc.setFont('DejaVuSans', 'normal');
+  } else {
+    doc.setFont('helvetica', 'normal');
+  }
+
+  const tableData = transitData.aspects.map(aspect => [
+    fontLoaded ? getPlanetGlyph(aspect.natalPlanet) + ' ' + formatPlanetName(aspect.natalPlanet) : formatPlanetName(aspect.natalPlanet),
+    fontLoaded ? getPlanetGlyph(aspect.transitPlanet) + ' ' + formatPlanetName(aspect.transitPlanet) : formatPlanetName(aspect.transitPlanet),
+    formatAspectName(aspect.type),
+    `${aspect.orb.toFixed(1)}°`,
+    aspect.applying ? 'Applying' : 'Separating',
+  ]);
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Natal', 'Transit', 'Aspect', 'Orb', 'Applying']],
+    body: tableData,
+    headStyles: {
+      fillColor: '#4A6B8A',
+      textColor: '#ffffff',
+      fontStyle: 'bold',
+      fontSize: FONTS.tableHeader,
+    },
+    bodyStyles: {
+      fontSize: FONTS.tableBody,
+      textColor: COLORS.text,
+    },
+    alternateRowStyles: {
+      fillColor: '#f0f4f8',
+    },
+    styles: {
+      cellPadding: 4,
+      lineWidth: 0.5,
+      lineColor: '#4A6B8A',
+    },
+    columnStyles: {
+      0: { cellWidth: 30 },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 25 },
+      3: { cellWidth: 15, halign: 'center' },
+      4: { cellWidth: 20, halign: 'center' },
+    },
+  });
+
+  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
+  return y;
+}
+
+/**
  * Replace glyph <text> elements (marked with data-glyph attributes) with
  * SVG <path> elements so svg2pdf renders them as vectors without needing fonts.
  */
@@ -527,6 +707,107 @@ function replaceGlyphTextWithPaths(svg: SVGElement): void {
     pathEl.setAttribute('fill', fill);
 
     el.parentNode?.replaceChild(pathEl, el);
+  });
+}
+
+/**
+ * Add zodiacal releasing summary to PDF
+ */
+function addReleasingSummary(
+  doc: jsPDF,
+  lots: LotResult,
+  timeline: ZRTimeline,
+  startY: number,
+  fontLoaded: boolean = false,
+): number {
+  const margin = 15;
+  let y = startY;
+
+  // Check if we need a new page
+  if (y > doc.internal.pageSize.height - 80) {
+    doc.addPage();
+    y = 20;
+  }
+
+  doc.setFontSize(FONTS.heading);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(COLORS.darkGold);
+  doc.text('Zodiacal Releasing', margin, y);
+  y += 6;
+
+  // Lot info
+  doc.setFontSize(FONTS.small);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(COLORS.lightText);
+
+  const lotLabel = timeline.lot === 'fortune' ? 'Fortune' : 'Spirit';
+  const lotSign = formatSignName(timeline.lotSign);
+  const dayNight = lots.isDayBirth ? 'Day birth' : 'Night birth';
+  doc.text(`${dayNight} • Lot of ${lotLabel} in ${lotSign} (${timeline.lotLongitude.toFixed(1)}°)`, margin, y);
+  y += 6;
+
+  if (fontLoaded) {
+    doc.setFont('DejaVuSans', 'normal');
+  } else {
+    doc.setFont('helvetica', 'normal');
+  }
+
+  // L1 periods table
+  const tableData = timeline.periods.map(period => {
+    const markers: string[] = [];
+    if (period.isPeak) markers.push('Peak');
+    if (period.isLoosingOfBond) markers.push('LB');
+    return [
+      fontLoaded
+        ? getSignGlyph(period.sign) + ' ' + formatSignName(period.sign)
+        : formatSignName(period.sign),
+      formatPdfDate(period.startDate),
+      formatPdfDate(period.endDate),
+      `${(period.durationDays / 365.25).toFixed(0)}y`,
+      markers.join(', '),
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [['Sign', 'Start', 'End', 'Duration', 'Markers']],
+    body: tableData,
+    headStyles: {
+      fillColor: COLORS.gold,
+      textColor: '#ffffff',
+      fontStyle: 'bold',
+      fontSize: FONTS.tableHeader,
+    },
+    bodyStyles: {
+      fontSize: FONTS.tableBody,
+      textColor: COLORS.text,
+    },
+    alternateRowStyles: {
+      fillColor: '#f9f5eb',
+    },
+    styles: {
+      cellPadding: 3,
+      lineWidth: 0.5,
+      lineColor: COLORS.gold,
+    },
+    columnStyles: {
+      0: { cellWidth: 30 },
+      1: { cellWidth: 30 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 25, halign: 'center' },
+    },
+  });
+
+  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
+  return y;
+}
+
+function formatPdfDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
   });
 }
 

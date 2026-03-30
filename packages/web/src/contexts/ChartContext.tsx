@@ -1,9 +1,16 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { BirthData as CoreBirthData, ChartResult, calculateChart } from '@natal-chart/core';
+import type { BirthData as CoreBirthData, ChartResult, TransitResult } from '@natal-chart/core';
 
 export interface ExtendedBirthData extends CoreBirthData {
   city?: string;
   timezone?: string;
+}
+
+export interface TransitLocation {
+  city: string;
+  latitude: number;
+  longitude: number;
+  timezone: string;
 }
 
 interface ChartContextType {
@@ -12,7 +19,16 @@ interface ChartContextType {
   loading: boolean;
   error: string | null;
   calculateChart: (data: ExtendedBirthData) => Promise<void>;
+  loadChart: (chartData: ChartResult, birthData: ExtendedBirthData) => void;
   clearChart: () => void;
+  transitData: TransitResult | null;
+  transitLoading: boolean;
+  transitDateStr: string;
+  transitLocation: TransitLocation | null;
+  setTransitDateStr: (dateStr: string) => void;
+  setTransitLocation: (location: TransitLocation | null) => void;
+  calculateTransits: (date: Date, location?: TransitLocation | null) => Promise<void>;
+  clearTransits: () => void;
 }
 
 const ChartContext = createContext<ChartContextType | undefined>(undefined);
@@ -51,6 +67,10 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [transitData, setTransitData] = useState<TransitResult | null>(null);
+  const [transitLoading, setTransitLoading] = useState(false);
+  const [transitDateStr, setTransitDateStr] = useState('');
+  const [transitLocation, setTransitLocation] = useState<TransitLocation | null>(null);
 
   const calculate = useCallback(async (data: ExtendedBirthData) => {
     setLoading(true);
@@ -61,9 +81,10 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
       
       // Extract core fields for calculation
       const { city: _city, timezone: _timezone, ...coreData } = data;
-      
-      // Call the core calculation engine
-      const result = await calculateChart(coreData);
+
+      // Lazy-load the WASM calculation engine
+      const { calculateChart: calc } = await import('@natal-chart/core');
+      const result = await calc(coreData);
       
       console.log('Chart calculation result:', result);
       
@@ -94,6 +115,18 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
     }
   }, []);
 
+  const loadChartData = useCallback((newChartData: ChartResult, newBirthData: ExtendedBirthData) => {
+    setChartData(newChartData);
+    setBirthData(newBirthData);
+    setError(null);
+    try {
+      localStorage.setItem('natal-chart-data', JSON.stringify(newChartData));
+      localStorage.setItem('natal-chart-birth-data', JSON.stringify(newBirthData));
+    } catch (e) {
+      console.warn('Failed to save loaded chart to localStorage:', e);
+    }
+  }, []);
+
   const clearChart = useCallback(() => {
     setChartData(null);
     setBirthData(null);
@@ -102,13 +135,47 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
     localStorage.removeItem('natal-chart-birth-data');
   }, []);
 
+  const calculateTransits = useCallback(async (date: Date, location?: TransitLocation | null) => {
+    if (!chartData) return;
+    setTransitLoading(true);
+    try {
+      const { calculateTransitPositions } = await import('@natal-chart/core');
+      const loc = location !== undefined ? location : transitLocation;
+      const locationInput = loc ? {
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        houseSystem: birthData?.houseSystem || 'P' as const,
+      } : undefined;
+      const result = await calculateTransitPositions(date, chartData.planets, locationInput);
+      setTransitData(result);
+    } catch (err) {
+      console.error('Transit calculation error:', err);
+      setTransitData(null);
+    } finally {
+      setTransitLoading(false);
+    }
+  }, [chartData, transitLocation, birthData]);
+
+  const clearTransits = useCallback(() => {
+    setTransitData(null);
+  }, []);
+
   const value: ChartContextType = {
     chartData,
     birthData,
     loading,
     error,
     calculateChart: calculate,
+    loadChart: loadChartData,
     clearChart,
+    transitData,
+    transitLoading,
+    transitDateStr,
+    transitLocation,
+    setTransitDateStr,
+    setTransitLocation,
+    calculateTransits,
+    clearTransits,
   };
 
   return (

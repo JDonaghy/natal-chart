@@ -1,8 +1,8 @@
 # Natal Chart Development Plan
 
-## Current Sprint: Polish & Sharing
+## Current Sprint: Transit Routing & Polish
 **Status**: In Progress
-**Last Updated**: 2026-03-29
+**Last Updated**: 2026-03-30
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -41,21 +41,26 @@
 - [x] **Auto-load from URL** - ShareLoader component detects share params and auto-calculates chart
 
 ### 🚧 Planned Features
-- [ ] **Multiple chart comparison** - Side-by-side chart comparison feature
+- [x] **Chart wheel ring consolidation** - Merge outer ruler circle with zodiac sign band; move degree ruler to inside edge (ticks facing outward); color sign glyphs by element (fire: red, earth: green, water: blue, air: yellow)
+- [x] **Chart header cleanup** - Remove excess whitespace around header row; remove "Generated based on your birth details" subtitle; move PDF and share link buttons to same row as "Your Natal Chart" title (title left-aligned, buttons right-aligned)
+- [x] **Planet positions legend panel** - Move chart wheel to the left; add a legend panel to the right (astroseek-style) showing: planet glyph, sign glyph, degree°minute', house number, and retrograde indicator for each planet. Include houses section below showing AC/DC/IC/MC cusps and all 12 house cusps with sign and degree.
+- [x] **Manual timezone selection** - Allow manual timezone selection when lat/lng coordinates are entered directly into the place of birth field, bypassing the geocoding search button. Enables chart generation without geocoding lookup.
+- [x] **Multiple chart comparison** - Side-by-side chart comparison feature
+- [x] **Transit chart feature** - Separate `/transits` route with always-on transit controls, auto-initializing to current date. Natal chart at `/chart` is transit-free. Share URLs route-aware. NavLink active styling in header.
 
 ### 📋 Technical Debt & Refactoring
-- [ ] **Test coverage** - Increase unit test coverage for timezone calculations
-- [ ] **Error handling** - More graceful error handling for failed geocoding
-- [ ] **Performance optimization** - Lazy loading of WASM modules
-- [ ] **Code splitting** - Split bundle by routes/features
-- [ ] **Type safety** - More strict TypeScript configuration
+- [x] **Test coverage** - Increase unit test coverage for timezone calculations
+- [x] **Error handling** - More graceful error handling for failed geocoding
+- [x] **Performance optimization** - Lazy loading of WASM modules
+- [x] **Code splitting** - Split bundle by routes/features
+- [x] **Type safety** - More strict TypeScript configuration
 
 ### 🔄 Deployment Pipeline
 - [x] **GitHub Actions workflow** - Automated build and deploy to GitHub Pages
 - [x] **Build version tracking** - Git commit hash and timestamp display in footer
-- [ ] **Environment variables** - Proper handling of dev vs production API URLs
-- [ ] **Build caching** - Ensure consistent builds between local and CI
-- [ ] **Health checks** - Automated testing of deployed application
+- [x] **Environment variables** - Proper handling of dev vs production API URLs
+- [x] **Build caching** - Ensure consistent builds between local and CI
+- [x] **Health checks** - Automated testing of deployed application
 
 ## Development Workflow
 1. **Local testing** → `pnpm --filter web dev`

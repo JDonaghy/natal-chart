@@ -316,9 +316,10 @@ export function convertFromUTC(utcDate: Date, timeZone: string): { dateString: s
  * Parse offset string like "-5", "+05:30", "-05:30" into minutes
  */
 function parseOffsetString(offsetStr: string): number {
+  if (!offsetStr) return 0; // GMT with no offset = UTC
   const sign = offsetStr.startsWith('-') ? -1 : 1;
   const cleanStr = offsetStr.replace(/^[+-]/, '');
-  
+
   const [hours = '0', minutes = '0'] = cleanStr.split(':');
   const totalMinutes = parseInt(hours, 10) * 60 + parseInt(minutes, 10);
   return sign * totalMinutes;
