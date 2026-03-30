@@ -1,6 +1,7 @@
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { BirthDataForm } from './components/BirthDataForm';
 import { ChartView } from './components/ChartView';
+import { ShareLoader } from './components/ShareLoader';
 import { Layout } from './components/Layout';
 import { ChartProvider } from './contexts/ChartContext';
 import './App.css';
@@ -9,6 +10,7 @@ function App() {
   return (
     <Router>
       <ChartProvider>
+        <ShareLoader />
         <Layout>
           <Routes>
             <Route path="/" element={<BirthDataForm />} />

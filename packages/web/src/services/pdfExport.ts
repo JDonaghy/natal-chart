@@ -4,6 +4,7 @@ import { svg2pdf } from 'svg2pdf.js';
 import type { Svg2pdfOptions } from 'svg2pdf.js';
 import type { ChartResult } from '@natal-chart/core';
 import type { ExtendedBirthData } from '../contexts/ChartContext';
+import { getSignPathByIndex, getPlanetPath } from '../utils/astro-glyph-paths';
 
 type JsPDFWithAutoTable = jsPDF & { lastAutoTable: { finalY: number } };
 
@@ -284,9 +285,10 @@ async function addChartWheel(
     svgClone.setAttribute('height', `${targetSize}mm`);
     svgClone.setAttribute('viewBox', `0 0 800 800`);
     
-    // Astrological glyphs are now rendered as SVG <path> elements (not <text>),
-    // so they convert to PDF as native vectors with no font dependency.
-    
+    // Replace Unicode glyph <text> elements with SVG <path> elements
+    // so svg2pdf renders them as native vectors (no font dependency).
+    replaceGlyphTextWithPaths(svgClone);
+
     // Convert SVG to PDF using svg2pdf
     console.log('svg2pdf function available?', typeof svg2pdf);
     if (typeof svg2pdf === 'function') {
@@ -421,7 +423,6 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
     fontLoaded ? getPlanetGlyph(aspect.planet1) + ' ' + formatPlanetName(aspect.planet1) : formatPlanetName(aspect.planet1),
     fontLoaded ? getPlanetGlyph(aspect.planet2) + ' ' + formatPlanetName(aspect.planet2) : formatPlanetName(aspect.planet2),
     formatAspectName(aspect.type),
-    `${aspect.angle.toFixed(1)}°`,
     `${aspect.orb.toFixed(1)}°`,
     aspect.applying ? 'Applying' : 'Separating',
   ]);
@@ -429,7 +430,7 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
   // Create table
   autoTable(doc, {
     startY: y,
-    head: [['Planet 1', 'Planet 2', 'Aspect', 'Angle', 'Orb', 'Applying']],
+    head: [['Planet 1', 'Planet 2', 'Aspect', 'Orb', 'Applying']],
     body: tableData,
     headStyles: {
       fillColor: COLORS.accent,
@@ -450,18 +451,83 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
       lineColor: COLORS.accent,
     },
     columnStyles: {
-      0: { cellWidth: 25 },
-      1: { cellWidth: 25 },
+      0: { cellWidth: 30 },
+      1: { cellWidth: 30 },
       2: { cellWidth: 25 },
       3: { cellWidth: 15, halign: 'center' },
-      4: { cellWidth: 15, halign: 'center' },
-      5: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 20, halign: 'center' },
     },
   });
   
   // Update Y position after table
   y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
   return y;
+}
+
+/**
+ * Replace glyph <text> elements (marked with data-glyph attributes) with
+ * SVG <path> elements so svg2pdf renders them as vectors without needing fonts.
+ */
+function replaceGlyphTextWithPaths(svg: SVGElement): void {
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  // Helper: compute transform from font-coordinate viewBox to target size
+  function glyphTransform(
+    pathData: { viewBox: string },
+    x: number,
+    y: number,
+    sz: number,
+  ): string {
+    const parts = pathData.viewBox.split(' ').map(Number);
+    const vbX = parts[0] ?? 0;
+    const vbY = parts[1] ?? 0;
+    const vbW = parts[2] ?? 100;
+    const vbH = parts[3] ?? 100;
+    const maxDim = Math.max(vbW, vbH);
+    const scale = sz / maxDim;
+    // Center the glyph: translate to (x,y) centered, scale down, then shift to viewBox origin
+    const padX = (sz - vbW * scale) / 2;
+    const padY = (sz - vbH * scale) / 2;
+    return `translate(${x - sz / 2 + padX}, ${y - sz / 2 + padY}) scale(${scale}) translate(${-vbX}, ${-vbY})`;
+  }
+
+  // Replace zodiac sign glyphs
+  svg.querySelectorAll('[data-glyph="zodiac"]').forEach((el) => {
+    const index = parseInt(el.getAttribute('data-glyph-index') || '0', 10);
+    const pathData = getSignPathByIndex(index);
+    if (!pathData) return;
+
+    const x = parseFloat(el.getAttribute('x') || '0');
+    const y = parseFloat(el.getAttribute('y') || '0');
+    const sz = parseFloat(el.getAttribute('font-size') || '20');
+    const fill = el.getAttribute('fill') || '#5a4a3a';
+
+    const pathEl = document.createElementNS(SVG_NS, 'path');
+    pathEl.setAttribute('d', pathData.d);
+    pathEl.setAttribute('transform', glyphTransform(pathData, x, y, sz));
+    pathEl.setAttribute('fill', fill);
+
+    el.parentNode?.replaceChild(pathEl, el);
+  });
+
+  // Replace planet glyphs
+  svg.querySelectorAll('[data-glyph="planet"]').forEach((el) => {
+    const planet = el.getAttribute('data-planet') || '';
+    const pathData = getPlanetPath(planet);
+    if (!pathData) return;
+
+    const x = parseFloat(el.getAttribute('x') || '0');
+    const y = parseFloat(el.getAttribute('y') || '0');
+    const sz = parseFloat(el.getAttribute('font-size') || '20');
+    const fill = el.getAttribute('fill') || '#5a4a3a';
+
+    const pathEl = document.createElementNS(SVG_NS, 'path');
+    pathEl.setAttribute('d', pathData.d);
+    pathEl.setAttribute('transform', glyphTransform(pathData, x, y, sz));
+    pathEl.setAttribute('fill', fill);
+
+    el.parentNode?.replaceChild(pathEl, el);
+  });
 }
 
 /**

@@ -2,12 +2,15 @@ import React, { useState, useRef } from 'react';
 import { useChart } from '../contexts/ChartContext';
 import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
 import { generateChartPdf } from '../services/pdfExport';
+import { buildShareUrl, type ShareData } from '../utils/shareUrl';
+import { convertFromUTC } from '../services/timezone';
 import '../App.css';
 
 export const ChartView: React.FC = () => {
-  const { chartData, loading, error } = useChart();
+  const { chartData, birthData, loading, error } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const chartWheelRef = useRef<ChartWheelHandle>(null);
   
   if (loading) {
@@ -35,12 +38,9 @@ export const ChartView: React.FC = () => {
     
     setPdfLoading(true);
     try {
-      // Retrieve birth data from localStorage (stored by ChartProvider)
-      const savedBirthData = localStorage.getItem('natal-chart-birth-data');
-      if (!savedBirthData) {
+      if (!birthData) {
         throw new Error('Birth data not found. Please calculate a chart first.');
       }
-      const birthData = JSON.parse(savedBirthData);
       
       // Get SVG element from chart wheel with retry
       console.debug('PDF export: attempting to get SVG element');
@@ -86,6 +86,46 @@ export const ChartView: React.FC = () => {
     }
   };
 
+  const handleShare = async () => {
+    if (!birthData) return;
+
+    try {
+      // Convert UTC back to local date/time for the share URL
+      const dateTimeUtc = new Date(birthData.dateTimeUtc);
+      let birthDate: string;
+      let birthTime: string;
+
+      if (birthData.timezone) {
+        const local = convertFromUTC(dateTimeUtc, birthData.timezone);
+        birthDate = local.dateString;
+        birthTime = local.timeString;
+      } else {
+        const iso = dateTimeUtc.toISOString();
+        birthDate = iso.slice(0, 10);
+        birthTime = iso.slice(11, 19);
+      }
+
+      const shareData: ShareData = {
+        birthDate,
+        birthTime,
+        latitude: birthData.latitude,
+        longitude: birthData.longitude,
+        timezone: birthData.timezone || 'UTC',
+        houseSystem: birthData.houseSystem,
+      };
+      if (birthData.city) {
+        shareData.city = birthData.city;
+      }
+
+      const url = buildShareUrl(shareData);
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy share URL:', err);
+    }
+  };
+
   if (!chartData) {
     return (
       <div className="card">
@@ -94,7 +134,6 @@ export const ChartView: React.FC = () => {
       </div>
     );
   }
-  
 
   return (
     <div>
@@ -103,24 +142,42 @@ export const ChartView: React.FC = () => {
         <p style={{ color: '#666' }}>
           Generated based on your birth details
         </p>
-        <button
-          onClick={handleDownloadPdf}
-          disabled={pdfLoading}
-          style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: pdfLoading ? '#cccccc' : '#b8860b',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: pdfLoading ? 'default' : 'pointer',
-            fontSize: '0.9rem',
-            fontWeight: 'bold',
-            marginTop: '0.5rem',
-            transition: 'background-color 0.2s',
-          }}
-        >
-          {pdfLoading ? 'Generating PDF...' : 'Download PDF'}
-        </button>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+          <button
+            onClick={handleDownloadPdf}
+            disabled={pdfLoading}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: pdfLoading ? '#cccccc' : '#b8860b',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: pdfLoading ? 'default' : 'pointer',
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              transition: 'background-color 0.2s',
+            }}
+          >
+            {pdfLoading ? 'Generating PDF...' : 'Download PDF'}
+          </button>
+          <button
+            onClick={handleShare}
+            disabled={!birthData}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: copied ? '#33cc66' : '#2c2c54',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: birthData ? 'pointer' : 'default',
+              fontSize: '0.9rem',
+              fontWeight: 'bold',
+              transition: 'background-color 0.2s',
+            }}
+          >
+            {copied ? 'Link Copied!' : 'Share Link'}
+          </button>
+        </div>
       </div>
 
       {/* Tab Navigation */}
@@ -264,7 +321,6 @@ export const ChartView: React.FC = () => {
                     <tr style={{ borderBottom: '1px solid #b8860b' }}>
                       <th style={{ textAlign: 'left', padding: '0.5rem' }}>Planets</th>
                       <th style={{ textAlign: 'left', padding: '0.5rem' }}>Aspect</th>
-                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Angle</th>
                       <th style={{ textAlign: 'left', padding: '0.5rem' }}>Orb</th>
                       <th style={{ textAlign: 'left', padding: '0.5rem' }}>Applying</th>
                     </tr>
@@ -284,9 +340,6 @@ export const ChartView: React.FC = () => {
                         </td>
                         <td style={{ padding: '0.5rem', color: getAspectColor(aspect.type) }}>
                           {formatAspectName(aspect.type)}
-                        </td>
-                        <td style={{ padding: '0.5rem' }}>
-                          {aspect.angle}°
                         </td>
                         <td style={{ padding: '0.5rem' }}>
                           {aspect.orb.toFixed(1)}°

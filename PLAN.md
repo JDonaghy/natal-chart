@@ -1,7 +1,7 @@
 # Natal Chart Development Plan
 
 ## Current Sprint: Polish & Sharing
-**Status**: Planning
+**Status**: In Progress
 **Last Updated**: 2026-03-29
 
 ### ✅ Completed Features
@@ -24,8 +24,23 @@
 - [x] **Planet collision avoidance** (v0.3.0) - Spread clustered planets with connector lines to true positions
 - [x] **International date picker** (v0.3.0) - Year/Month/Day dropdowns instead of browser-native date input
 
+### 🎨 Client Feedback (v0.4.0)
+- [x] **Replace zodiac sign glyphs** - Unicode text via DejaVu Sans @font-face (web), font-extracted SVG paths (PDF)
+- [x] **Replace planet glyphs** - Unicode text via DejaVu Sans @font-face (web), font-extracted SVG paths (PDF)
+- [x] **Extend house cusp lines** - All house cusp lines now extend from outer circle to house number ring inner edge
+- [x] **Add house number ring** - Dedicated ring between planet band and aspect area with numbers 1-12
+- [x] **Remove inner wheel text** - Removed cusp degree text from planet band
+- [x] **Aspects table: remove Angle column** - Removed from both web table and PDF export
+- [x] **Fix planet house assignments** - Fixed falsy-zero bug in cusp boundary lookup (`||` → explicit index check)
+- [x] **Fix inner wheel rotation** - Fixed `toAngle` JS modular arithmetic bug (negative values from `%` operator)
+- [x] **PDF glyph rendering** - Hybrid approach: Unicode `<text>` for web, SVG `<path>` swap for PDF via `replaceGlyphTextWithPaths()`
+
+### 🔗 Shareable URLs (v0.4.0)
+- [x] **Shareable URLs** - Encode birth data as URL query params for sharing charts via clipboard
+- [x] **Share button** - "Share Link" button next to "Download PDF" with copy-to-clipboard feedback
+- [x] **Auto-load from URL** - ShareLoader component detects share params and auto-calculates chart
+
 ### 🚧 Planned Features
-- [ ] **Shareable URLs** - Encode birth data in URL for sharing charts
 - [ ] **Multiple chart comparison** - Side-by-side chart comparison feature
 
 ### 📋 Technical Debt & Refactoring

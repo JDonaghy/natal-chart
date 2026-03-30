@@ -1,7 +1,16 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { ChartResult } from '@natal-chart/core';
-import { getPlanetPath, getSignPathByIndex, SIGN_ABBREVIATIONS } from '../utils/astro-glyph-paths';
+import { SIGN_ABBREVIATIONS } from '../utils/astro-glyph-paths';
 import '../App.css';
+
+// Unicode astrological glyphs — standard characters that render with Noto Sans Symbols
+const ZODIAC_UNICODE = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
+const PLANET_UNICODE: Record<string, string> = {
+  sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
+  jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '♇',
+  northNode: '☊', chiron: '⚷',
+};
+const GLYPH_FONT = "'DejaVuSans', sans-serif";
 
 // Planet colors (traditional astrology associations)
 const PLANET_COLORS: Record<string, string> = {
@@ -51,20 +60,22 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
 
     // Ring radii (as fractions of size/2)
     const R = {
-      outer: center * 0.95,        // outermost edge
-      tickOuter: center * 0.95,    // tick marks outer
-      tickInner: center * 0.88,    // tick marks inner / zodiac sign band outer
-      zodiacOuter: center * 0.88,  // zodiac sign glyphs band outer
-      zodiacInner: center * 0.76,  // zodiac sign glyphs band inner
-      planetOuter: center * 0.76,  // planet band outer
-      planetInner: center * 0.40,  // planet band inner / house wheel outer
-      houseInner: center * 0.0,    // center
+      outer: center * 0.95,          // outermost edge
+      tickOuter: center * 0.95,      // tick marks outer
+      tickInner: center * 0.88,      // tick marks inner / zodiac sign band outer
+      zodiacOuter: center * 0.88,    // zodiac sign glyphs band outer
+      zodiacInner: center * 0.76,    // zodiac sign glyphs band inner
+      planetOuter: center * 0.76,    // planet band outer
+      planetInner: center * 0.38,    // planet band inner / house number ring outer
+      houseNumOuter: center * 0.38,  // house number ring outer
+      houseNumInner: center * 0.30,  // house number ring inner / aspect area outer
+      houseInner: center * 0.0,      // center
     };
 
     // Convert ecliptic longitude to angle in SVG coordinate system
     // ASC at 9 o'clock (180°), counter-clockwise
     const toAngle = (longitude: number): number => {
-      return (180 - longitude + ascendant) % 360;
+      return ((180 - longitude + ascendant) % 360 + 360) % 360;
     };
 
     const toRad = (angleDeg: number): number => angleDeg * (Math.PI / 180);
@@ -241,26 +252,28 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             );
           })}
 
-          {/* === ZODIAC SIGN GLYPHS === */}
+          {/* === ZODIAC SIGN GLYPHS (Unicode text) === */}
           {Array.from({ length: 12 }).map((_, i) => {
             const midLon = i * 30 + 15;
             const midR = (R.zodiacOuter + R.zodiacInner) / 2;
             const pos = toPoint(midLon, midR);
-            const signPath = getSignPathByIndex(i);
-            if (!signPath) return null;
-            const glyphSize = (R.zodiacOuter - R.zodiacInner) * 0.55;
+            const glyphSize = (R.zodiacOuter - R.zodiacInner) * 0.6;
 
             return (
-              <path
+              <text
                 key={`sign-glyph-${i}`}
-                d={signPath.d}
-                transform={`translate(${pos.x - glyphSize / 2}, ${pos.y - glyphSize / 2}) scale(${glyphSize / 100})`}
-                fill="none"
-                stroke="#5a4a3a"
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+                x={pos.x}
+                y={pos.y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={glyphSize}
+                fontFamily={GLYPH_FONT}
+                fill="#5a4a3a"
+                data-glyph="zodiac"
+                data-glyph-index={i}
+              >
+                {ZODIAC_UNICODE[i]}
+              </text>
             );
           })}
 
@@ -268,14 +281,14 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           <circle cx={center} cy={center} r={R.outer} fill="none" stroke="#b8860b" strokeWidth={1.5} />
           <circle cx={center} cy={center} r={R.tickInner} fill="none" stroke="#b8860b" strokeWidth={0.8} />
           <circle cx={center} cy={center} r={R.zodiacInner} fill="none" stroke="#b8860b" strokeWidth={1} />
-          <circle cx={center} cy={center} r={R.planetInner} fill="url(#parchmentGradient)" stroke="#b8860b" strokeWidth={1} />
+          <circle cx={center} cy={center} r={R.houseNumOuter} fill="none" stroke="#b8860b" strokeWidth={1} />
+          <circle cx={center} cy={center} r={R.houseNumInner} fill="url(#parchmentGradient)" stroke="#b8860b" strokeWidth={1} />
 
-          {/* === HOUSE CUSP LINES (inside the house wheel) === */}
+          {/* === HOUSE CUSP LINES (from outer circle to house number ring inner) === */}
           {chartData.houses.map((house) => {
             const isAngular = [1, 4, 7, 10].includes(house.house);
-            const outerR = isAngular ? R.planetOuter : R.planetInner;
-            const p1 = toPoint(house.longitude, outerR);
-            const p2 = toPoint(house.longitude, R.houseInner);
+            const p1 = toPoint(house.longitude, R.outer);
+            const p2 = toPoint(house.longitude, R.houseNumInner);
             return (
               <line
                 key={`house-line-${house.house}`}
@@ -287,9 +300,9 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             );
           })}
 
-          {/* === HOUSE NUMBERS (centered in each house wedge) === */}
+          {/* === HOUSE NUMBERS (in dedicated house number ring) === */}
           {houseMiddles.map(({ house, longitude }) => {
-            const pos = toPoint(longitude, R.planetInner * 0.55);
+            const pos = toPoint(longitude, (R.houseNumOuter + R.houseNumInner) / 2);
             return (
               <text
                 key={`house-num-${house}`}
@@ -311,8 +324,8 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const p2 = chartData.planets.find(p => p.planet === aspect.planet2);
             if (!p1 || !p2) return null;
 
-            const pos1 = toPoint(p1.longitude, R.planetInner * 0.92);
-            const pos2 = toPoint(p2.longitude, R.planetInner * 0.92);
+            const pos1 = toPoint(p1.longitude, R.houseNumInner * 0.92);
+            const pos2 = toPoint(p2.longitude, R.houseNumInner * 0.92);
             const color = ASPECT_COLORS[aspect.type] || '#a09080';
             const isHard = ['opposition', 'square'].includes(aspect.type);
 
@@ -321,9 +334,9 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 key={`aspect-${index}`}
                 x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
                 stroke={color}
-                strokeWidth={aspect.exact ? 1.2 : 0.6}
-                strokeOpacity={aspect.exact ? 0.7 : 0.35}
-                strokeDasharray={isHard ? 'none' : '3,2'}
+                strokeWidth={aspect.exact ? 1.5 : 0.8}
+                strokeOpacity={aspect.exact ? 0.85 : 0.5}
+                strokeDasharray={isHard ? 'none' : '4,3'}
               />
             );
           })}
@@ -427,22 +440,20 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   stroke={color} strokeWidth={0.6} strokeOpacity={0.5}
                 />
 
-                {/* Planet glyph */}
-                {(() => {
-                  const planetPath = getPlanetPath(planet.planet);
-                  if (!planetPath) return null;
-                  return (
-                    <path
-                      d={planetPath.d}
-                      transform={`translate(${glyphPos.x - glyphSz / 2}, ${glyphPos.y - glyphSz / 2}) scale(${glyphSz / 100})`}
-                      fill="none"
-                      stroke={color}
-                      strokeWidth={2.5}
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  );
-                })()}
+                {/* Planet glyph (Unicode text) */}
+                <text
+                  x={glyphPos.x}
+                  y={glyphPos.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize={glyphSz}
+                  fontFamily={GLYPH_FONT}
+                  fill={color}
+                  data-glyph="planet"
+                  data-planet={planet.planet}
+                >
+                  {PLANET_UNICODE[planet.planet] || '○'}
+                </text>
 
                 {/* Retrograde indicator */}
                 {planet.retrograde && (
@@ -486,25 +497,6 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             );
           })}
 
-          {/* === HOUSE CUSP DEGREES (in planet band, near cusp lines) === */}
-          {chartData.houses.map((house) => {
-            // Place degree label just inside the planet band, offset from cusp line
-            const labelR = R.planetInner + (R.planetOuter - R.planetInner) * 0.12;
-            // Offset a few degrees so it doesn't sit right on the line
-            const offsetLon = (house.longitude + 3) % 360;
-            const pos = toPoint(offsetLon, labelR);
-            return (
-              <text
-                key={`cusp-deg-${house.house}`}
-                x={pos.x} y={pos.y}
-                textAnchor="middle" dominantBaseline="middle"
-                fontSize={size * 0.012} fill="#a09080"
-              >
-                {formatLongitude(house.longitude)}
-              </text>
-            );
-          })}
-
           {/* Center dot */}
           <circle cx={center} cy={center} r={size * 0.006} fill="#b8860b" />
         </svg>
@@ -513,22 +505,3 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
   },
 );
 
-// Helper functions
-function getSignIndex(longitude: number): number {
-  return Math.floor(longitude / 30) % 12;
-}
-
-function getDegreeInSign(longitude: number): number {
-  return longitude % 30;
-}
-
-function formatLongitude(longitude: number): string {
-  const signIndex = getSignIndex(longitude);
-  const degree = Math.floor(getDegreeInSign(longitude));
-  const minute = Math.round((getDegreeInSign(longitude) - degree) * 60);
-  const adjustedDegree = minute === 60 ? degree + 1 : degree;
-  const adjustedMinute = minute === 60 ? 0 : minute;
-  const signAbbr = SIGN_ABBREVIATIONS[signIndex] || '???';
-  const minuteStr = adjustedMinute.toString().padStart(2, '0');
-  return `${adjustedDegree}° ${signAbbr} ${minuteStr}′`;
-}

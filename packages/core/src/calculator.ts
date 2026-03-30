@@ -316,7 +316,8 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     const normalizedLongitude = ((longitude % 360) + 360) % 360;
     for (let i = 1; i <= 12; i++) {
       const cuspStart = ((cusps[i]! % 360) + 360) % 360;
-      const cuspEnd = ((cusps[i + 1] || cusps[1])! % 360 + 360) % 360;
+      const nextCusp = i < 12 ? cusps[i + 1] : cusps[1];
+      const cuspEnd = ((nextCusp! % 360) + 360) % 360;
       // Handle wrap across 360°
       if (cuspStart <= cuspEnd) {
         if (normalizedLongitude >= cuspStart && normalizedLongitude < cuspEnd) {
@@ -336,7 +337,8 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       console.log(`  Normalized longitude: ${normalizedLongitude}°`);
       for (let i = 1; i <= 12; i++) {
         const cuspStart = ((cusps[i]! % 360) + 360) % 360;
-        const cuspEnd = ((cusps[i + 1] || cusps[1])! % 360 + 360) % 360;
+        const nextCusp = i < 12 ? cusps[i + 1] : cusps[1];
+        const cuspEnd = ((nextCusp! % 360) + 360) % 360;
         console.log(`  House ${i}: cusp ${cuspStart.toFixed(2)}° to ${cuspEnd.toFixed(2)}°`);
       }
     }

@@ -83,4 +83,59 @@
 
 ---
 
+## Session 2026-03-29: v0.4.0 — Client Feedback Items (Part 1)
+
+### ✅ Features Completed
+1. **Fix planet house assignments** — Fixed falsy-zero bug in `calculator.ts` where `cusps[i + 1] || cusps[1]` treated 0° Aries as falsy, substituting the wrong cusp boundary. Replaced with explicit index check `i < 12 ? cusps[i + 1] : cusps[1]`.
+2. **Remove Angle column from aspects table** — Removed from both ChartView.tsx web table and pdfExport.ts PDF table. Adjusted PDF column widths.
+3. **Add house number ring** — New dedicated ring (radii 0.38–0.30) between planet band and aspect area. House numbers 1-12 positioned in this ring. Added two structural circles.
+4. **Extend house cusp lines** — All 12 house cusp lines now extend from outer circle (`R.outer`) through zodiac band and planet band down to house number ring inner edge (`R.houseNumInner`). Angular vs regular styling preserved.
+5. **Remove cusp degree text** — Deleted cusp degree labels from planet band and unused helper functions (`getSignIndex`, `getDegreeInSign`, `formatLongitude`).
+6. **Replace all 23 glyph SVG paths** — Rewrote all 12 zodiac sign + 11 planet SVG paths in `astro-glyph-paths.ts` with clean, properly proportioned traditional astrology symbols matching Astro-Seek reference style.
+7. **Aspect lines repositioned** — Now draw inside `houseNumInner` (0.30) instead of `planetInner` (was 0.40).
+
+---
+
+## Session 2026-03-29: v0.4.0 — Glyph Rendering & PDF Fixes (Part 2)
+
+### ✅ Features Completed
+1. **Fix `toAngle` normalization** — Fixed JS `%` operator returning negative values by using `((180 - longitude + ascendant) % 360 + 360) % 360` for correct inner wheel rotation matching Astro-Seek.
+2. **Switch to Unicode text glyphs (web)** — Replaced SVG `<path>` rendering with Unicode `<text>` elements using DejaVu Sans font (♈♉♊… ☉☽☿…). Added `@font-face` for local DejaVuSans.ttf. Symbols now match familiar Astro-Seek style.
+3. **Hybrid glyph rendering (web/PDF)** — Web uses Unicode `<text>` with `data-glyph` attributes; PDF uses `replaceGlyphTextWithPaths()` to swap text elements for SVG `<path>` vectors before svg2pdf conversion.
+4. **Extract font-accurate SVG paths** — Used opentype.js to extract actual glyph outlines from DejaVuSans.ttf. Paths in `astro-glyph-paths.ts` use native font coordinate space (viewBox like `'170 -1496 1496 1496'`).
+5. **Fix PDF glyph scaling** — Updated `replaceGlyphTextWithPaths()` to parse each glyph's `viewBox` and compute correct scale factor. Previously used hardcoded `scale(sz/100)` which was wrong for font-coordinate paths (~1500x1500). Now uses `scale = sz / maxDim` with proper centering and viewBox origin translation. Changed from stroke to fill rendering to match font path style.
+6. **Improved aspect line visibility** — Updated strokeWidth (0.8/1.5) and opacity (0.5/0.85).
+
+### 📝 Notes
+- All core tests pass (4/4), build succeeds
+- Changes on `develop` branch, not yet merged to `main`
+- DejaVuSans.ttf loaded via `@font-face` in App.css from `/natal-chart/fonts/`
+- Font extraction script at `/tmp/extract-glyphs.mjs` (requires opentype.js)
+
+---
+
+## Session 2026-03-29: v0.4.0 — Shareable URLs (Part 3)
+
+### ✅ Features Completed
+1. **Shareable URLs** — Birth data encoded as readable URL query params (`d`, `t`, `lat`, `lng`, `tz`, `city`, `hs`). Format: `/#/chart?d=1990-06-15&t=12:00&lat=51.5074&lng=-0.1278&tz=Europe/London&city=London&hs=P`
+2. **Share button** — "Share Link" button next to "Download PDF" in ChartView. Copies URL to clipboard with "Link Copied!" green feedback.
+3. **ShareLoader component** — Invisible component inside Router that detects share params on `/chart` route, converts to UTC via timezone service, triggers chart calculation. Always recalculates when share params present (overrides cached data).
+4. **Birth data in context** — Exposed `birthData` from ChartContext so ChartView can build share URLs without reading localStorage directly.
+
+### Files Created
+- `packages/web/src/utils/shareUrl.ts` — `encodeShareParams()`, `buildShareUrl()`, `parseShareParams()`
+- `packages/web/src/components/ShareLoader.tsx` — Auto-load shared charts
+
+### Files Modified
+- `packages/web/src/App.tsx` — Added `<ShareLoader />`
+- `packages/web/src/contexts/ChartContext.tsx` — Added `birthData` to context
+- `packages/web/src/components/ChartView.tsx` — Added share button, uses `birthData` from context
+
+### 📝 Notes
+- All core tests pass (4/4), build succeeds
+- Uses `exactOptionalPropertyTypes`-safe patterns (no `undefined` in optional props)
+- Placidus (`P`) is default house system and omitted from URL for brevity
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*
