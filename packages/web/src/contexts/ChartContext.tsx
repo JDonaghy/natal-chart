@@ -8,6 +8,7 @@ export interface ExtendedBirthData extends CoreBirthData {
 
 interface ChartContextType {
   chartData: ChartResult | null;
+  birthData: ExtendedBirthData | null;
   loading: boolean;
   error: string | null;
   calculateChart: (data: ExtendedBirthData) => Promise<void>;
@@ -39,7 +40,15 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
       return null;
     }
   });
-  
+  const [birthData, setBirthData] = useState<ExtendedBirthData | null>(() => {
+    try {
+      const saved = localStorage.getItem('natal-chart-birth-data');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,14 +68,15 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
       console.log('Chart calculation result:', result);
       
       setChartData(result);
-      
+      setBirthData(data);
+
       // Save to localStorage
       try {
         localStorage.setItem('natal-chart-data', JSON.stringify(result));
       } catch (e) {
         console.warn('Failed to save chart to localStorage:', e);
       }
-      
+
       // Also save extended birth data for future reference (including city/timezone)
       try {
         localStorage.setItem('natal-chart-birth-data', JSON.stringify(data));
@@ -86,6 +96,7 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
 
   const clearChart = useCallback(() => {
     setChartData(null);
+    setBirthData(null);
     setError(null);
     localStorage.removeItem('natal-chart-data');
     localStorage.removeItem('natal-chart-birth-data');
@@ -93,6 +104,7 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
 
   const value: ChartContextType = {
     chartData,
+    birthData,
     loading,
     error,
     calculateChart: calculate,

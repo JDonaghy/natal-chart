@@ -5,7 +5,7 @@
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.3.0 (pending merge of PR #3)
+- **Current Version**: 0.3.0 (v0.4.0 client feedback + shareable URLs implemented on `develop`)
 
 ## ✅ What Works
 
@@ -14,11 +14,14 @@
 - [x] Automatic timezone detection via OpenCage geocoding
 - [x] Swiss Ephemeris WASM calculations (planets, houses, aspects)
 - [x] Professional chart wheel with concentric ring layout
-- [x] SVG path-based astrological glyphs (font-independent vectors)
+- [x] Astrological glyphs: Unicode text (DejaVu Sans) on web, font-extracted SVG vector paths in PDF
 - [x] Planet collision avoidance with connector lines to true ecliptic positions
+- [x] Dedicated house number ring (1-12) between planet band and aspect area
+- [x] House cusp lines extending from outer circle through all bands
 - [x] Tabbed view (Chart Wheel, Planet Positions, Aspects)
 - [x] Retrograde indicators in table and chart
-- [x] Client-side PDF export with vector glyph rendering
+- [x] Client-side PDF export with hybrid glyph rendering (text→path swap for svg2pdf)
+- [x] Shareable URLs — encode birth data as query params, auto-load shared charts
 - [x] LocalStorage persistence of birth data and form state
 - [x] Real geocoding via Cloudflare Worker
 - [x] Coordinate input detection with OpenStreetMap validation link
@@ -44,6 +47,7 @@
 - **Core Calculator**: `packages/core/` — Swiss Ephemeris wrapper
 - **Geocoding Worker**: `packages/worker/` — Cloudflare Worker proxy
 - **Glyph Paths**: `packages/web/src/utils/astro-glyph-paths.ts` — SVG path data for astrological symbols
+- **Share URL Utils**: `packages/web/src/utils/shareUrl.ts` — Encode/decode birth data for shareable URLs
 - **Build Config**: `packages/web/vite.config.ts` — Base path, proxy, version injection
 - **Deployment**: `.github/workflows/deploy.yml` — GitHub Actions to Pages
 
