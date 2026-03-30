@@ -5,7 +5,7 @@
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.3.0 (v0.4.0 client feedback + shareable URLs implemented on `develop`)
+- **Current Version**: 0.4.0
 
 ## ✅ What Works
 

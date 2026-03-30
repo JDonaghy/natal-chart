@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useChart } from '../contexts/ChartContext';
 import { parseShareParams } from '../utils/shareUrl';
