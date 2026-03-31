@@ -194,9 +194,7 @@ export async function generateChartPdf(
   // Add transit data if present
   if (transitData) {
     currentY = addTransitPlanetTable(doc, transitData, currentY, fontLoaded);
-    if (transitData.aspects.length > 0) {
-      currentY = addTransitAspectTable(doc, transitData, currentY, fontLoaded);
-    }
+    currentY = addTransitAspectGrid(doc, chartData, transitData, currentY, fontLoaded);
   }
 
   // Add releasing data if present
@@ -437,70 +435,165 @@ function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number, font
   return y;
 }
 
+/** Aspect definitions for ASC/MC grid calculations */
+const ASPECT_DEFS: { angle: number; orb: number; type: string }[] = [
+  { angle: 0, orb: 8, type: 'conjunction' },
+  { angle: 180, orb: 8, type: 'opposition' },
+  { angle: 120, orb: 6, type: 'trine' },
+  { angle: 90, orb: 6, type: 'square' },
+  { angle: 60, orb: 4, type: 'sextile' },
+  { angle: 150, orb: 3, type: 'quincunx' },
+  { angle: 30, orb: 2, type: 'semiSextile' },
+];
+
+const LUMINARY_ASPECT_DEFS: { angle: number; orb: number; type: string }[] = [
+  { angle: 0, orb: 10, type: 'conjunction' },
+  { angle: 180, orb: 10, type: 'opposition' },
+  { angle: 120, orb: 10, type: 'trine' },
+  { angle: 90, orb: 10, type: 'square' },
+  { angle: 60, orb: 6, type: 'sextile' },
+  { angle: 150, orb: 3, type: 'quincunx' },
+  { angle: 30, orb: 2, type: 'semiSextile' },
+];
+
+const PDF_LUMINARIES = new Set(['sun', 'moon']);
+
+function findAspectByLongitude(lon1: number, lon2: number, isLuminary: boolean): { type: string; orb: number } | null {
+  let diff = Math.abs(lon1 - lon2);
+  if (diff > 180) diff = 360 - diff;
+  const defs = isLuminary ? LUMINARY_ASPECT_DEFS : ASPECT_DEFS;
+  for (const def of defs) {
+    if (Math.abs(diff - def.angle) <= def.orb) {
+      return { type: def.type, orb: Math.abs(diff - def.angle) };
+    }
+  }
+  return null;
+}
+
 /**
- * Add aspects table
+ * Add aspect grid (triangular aspectarian) to PDF
  */
 function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, fontLoaded: boolean = false): number {
   const margin = 15;
   let y = startY;
-  
-  // Add section title
+
+  // Check if we need a new page
+  if (y > doc.internal.pageSize.height - 80) {
+    doc.addPage();
+    y = 20;
+  }
+
+  // Section title
   doc.setFontSize(FONTS.heading);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.darkGold);
   doc.text('Aspects', margin, y);
   y += 8;
-  
-  // Set font for table based on font availability
-  if (fontLoaded) {
-    doc.setFont('DejaVuSans', 'normal');
-  } else {
-    doc.setFont('helvetica', 'normal');
+
+  // Build grid points: planets + ASC + MC
+  interface GridPoint { key: string; label: string; glyph: string; longitude: number }
+  const points: GridPoint[] = chartData.planets.map(p => ({
+    key: p.planet,
+    label: formatPlanetName(p.planet),
+    glyph: getPlanetGlyph(p.planet),
+    longitude: p.longitude,
+  }));
+  points.push(
+    { key: 'asc', label: 'AC', glyph: 'AC', longitude: chartData.angles.ascendant },
+    { key: 'mc', label: 'MC', glyph: 'MC', longitude: chartData.angles.midheaven },
+  );
+
+  // Build aspect lookup from pre-computed aspects
+  const aspectMap = new Map<string, { type: string; orb: number }>();
+  for (const a of chartData.aspects) {
+    aspectMap.set(`${a.planet1}|${a.planet2}`, { type: a.type, orb: a.orb });
+    aspectMap.set(`${a.planet2}|${a.planet1}`, { type: a.type, orb: a.orb });
   }
-  
-  // Prepare table data with glyphs if font available
-  const tableData = chartData.aspects.map(aspect => [
-    fontLoaded ? getPlanetGlyph(aspect.planet1) + ' ' + formatPlanetName(aspect.planet1) : formatPlanetName(aspect.planet1),
-    fontLoaded ? getPlanetGlyph(aspect.planet2) + ' ' + formatPlanetName(aspect.planet2) : formatPlanetName(aspect.planet2),
-    formatAspectName(aspect.type),
-    `${aspect.orb.toFixed(1)}°`,
-    aspect.applying ? 'Applying' : 'Separating',
-  ]);
-  
-  // Create table
-  autoTable(doc, {
-    startY: y,
-    head: [['Planet 1', 'Planet 2', 'Aspect', 'Orb', 'Applying']],
-    body: tableData,
-    headStyles: {
-      fillColor: COLORS.accent,
-      textColor: '#ffffff',
-      fontStyle: 'bold',
-      fontSize: FONTS.tableHeader,
-    },
-    bodyStyles: {
-      fontSize: FONTS.tableBody,
-      textColor: COLORS.text,
-    },
-    alternateRowStyles: {
-      fillColor: '#f0f7ff',
-    },
-    styles: {
-      cellPadding: 4,
-      lineWidth: 0.5,
-      lineColor: COLORS.accent,
-    },
-    columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: 15, halign: 'center' },
-      4: { cellWidth: 20, halign: 'center' },
-    },
-  });
-  
-  // Update Y position after table
-  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
+
+  function getGridAspect(keyA: string, keyB: string): { type: string; orb: number } | null {
+    const existing = aspectMap.get(`${keyA}|${keyB}`);
+    if (existing) return existing;
+    const ptA = points.find(p => p.key === keyA);
+    const ptB = points.find(p => p.key === keyB);
+    if (!ptA || !ptB) return null;
+    const isLuminary = PDF_LUMINARIES.has(keyA) || PDF_LUMINARIES.has(keyB);
+    return findAspectByLongitude(ptA.longitude, ptB.longitude, isLuminary);
+  }
+
+  const n = points.length;
+  const cellSize = 12; // mm
+  const gridTotalWidth = n * cellSize;
+
+  // Center the grid
+  const pageWidth = doc.internal.pageSize.width;
+  const gridX = (pageWidth - gridTotalWidth) / 2;
+
+  // Check if grid fits on current page, otherwise add page
+  const gridHeight = n * cellSize;
+  if (y + gridHeight > doc.internal.pageSize.height - 20) {
+    doc.addPage();
+    y = 20;
+  }
+
+  const useGlyphFont = fontLoaded;
+
+  // Draw the grid
+  for (let row = 0; row < n; row++) {
+    for (let col = 0; col <= row; col++) {
+      const cx = gridX + col * cellSize;
+      const cy = y + row * cellSize;
+
+      if (row === col) {
+        // Diagonal: planet label cell
+        doc.setFillColor('#f5f0e8');
+        doc.rect(cx, cy, cellSize, cellSize, 'FD');
+        doc.setDrawColor('#d4c9a8');
+        doc.rect(cx, cy, cellSize, cellSize, 'S');
+
+        if (useGlyphFont && points[row]!.key !== 'asc' && points[row]!.key !== 'mc') {
+          doc.setFont('DejaVuSans', 'normal');
+          doc.setFontSize(9);
+        } else {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7);
+        }
+        doc.setTextColor(COLORS.text);
+        doc.text(points[row]!.glyph, cx + cellSize / 2, cy + cellSize / 2 + 1.5, { align: 'center' });
+      } else {
+        // Lower-left triangle: aspect cell
+        const asp = getGridAspect(points[row]!.key, points[col]!.key);
+
+        doc.setDrawColor('#d4c9a8');
+        if (asp) {
+          doc.setFillColor('#ffffff');
+        } else {
+          doc.setFillColor('#faf7f0');
+        }
+        doc.rect(cx, cy, cellSize, cellSize, 'FD');
+
+        if (asp) {
+          // Aspect glyph
+          const color = getAspectColor(asp.type);
+          doc.setTextColor(color);
+          if (useGlyphFont) {
+            doc.setFont('DejaVuSans', 'normal');
+          } else {
+            doc.setFont('helvetica', 'normal');
+          }
+          doc.setFontSize(8);
+          doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, cy + cellSize / 2 - 0.5, { align: 'center' });
+
+          // Orb value below
+          doc.setTextColor('#888888');
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(5);
+          doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, cy + cellSize / 2 + 3.5, { align: 'center' });
+        }
+      }
+    }
+  }
+
+  y += gridHeight + 10;
   return y;
 }
 
@@ -577,70 +670,207 @@ function addTransitPlanetTable(doc: jsPDF, transitData: TransitResult, startY: n
   return y;
 }
 
+/** Transit aspect definitions (tighter orbs, matching calculator.ts) */
+const TRANSIT_ASPECT_DEFS_PDF: { angle: number; orb: number; type: string }[] = [
+  { angle: 0, orb: 6, type: 'conjunction' },
+  { angle: 180, orb: 6, type: 'opposition' },
+  { angle: 120, orb: 4, type: 'trine' },
+  { angle: 90, orb: 4, type: 'square' },
+  { angle: 60, orb: 3, type: 'sextile' },
+  { angle: 150, orb: 2, type: 'quincunx' },
+  { angle: 30, orb: 1.5, type: 'semiSextile' },
+];
+
+function findTransitAspectByLon(natalLon: number, transitLon: number): { type: string; orb: number } | null {
+  let diff = Math.abs(natalLon - transitLon);
+  if (diff > 180) diff = 360 - diff;
+  for (const def of TRANSIT_ASPECT_DEFS_PDF) {
+    if (Math.abs(diff - def.angle) <= def.orb) {
+      return { type: def.type, orb: Math.abs(diff - def.angle) };
+    }
+  }
+  return null;
+}
+
 /**
- * Add natal-to-transit aspects table
+ * Add natal-to-transit aspect grid (rectangular) to PDF
  */
-function addTransitAspectTable(doc: jsPDF, transitData: TransitResult, startY: number, fontLoaded: boolean = false): number {
+function addTransitAspectGrid(
+  doc: jsPDF,
+  chartData: ChartResult,
+  transitData: TransitResult,
+  startY: number,
+  fontLoaded: boolean = false,
+): number {
   const margin = 15;
   let y = startY;
 
-  if (y > doc.internal.pageSize.height - 60) {
+  // Check if we need a new page
+  if (y > doc.internal.pageSize.height - 80) {
     doc.addPage();
     y = 20;
   }
 
+  // Section title
   doc.setFontSize(FONTS.heading);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(COLORS.accent);
   doc.text('Natal-to-Transit Aspects', margin, y);
   y += 8;
 
-  if (fontLoaded) {
-    doc.setFont('DejaVuSans', 'normal');
-  } else {
-    doc.setFont('helvetica', 'normal');
+  // Build natal rows: planets + ASC + MC
+  interface GridRow { key: string; glyph: string; longitude: number; isText: boolean }
+  const natalRows: GridRow[] = chartData.planets.map(p => ({
+    key: p.planet,
+    glyph: getPlanetGlyph(p.planet),
+    longitude: p.longitude,
+    isText: p.planet === 'vertex',
+  }));
+  natalRows.push(
+    { key: 'asc', glyph: 'AC', longitude: chartData.angles.ascendant, isText: true },
+    { key: 'mc', glyph: 'MC', longitude: chartData.angles.midheaven, isText: true },
+  );
+
+  // Build transit columns
+  interface GridCol { key: string; glyph: string; signGlyph: string; deg: number; min: number; longitude: number }
+  const transitCols: GridCol[] = transitData.planets.map(p => ({
+    key: p.planet,
+    glyph: getPlanetGlyph(p.planet),
+    signGlyph: getSignGlyph(p.sign),
+    deg: p.degree,
+    min: p.minute,
+    longitude: p.longitude,
+  }));
+
+  // Aspect lookup from pre-computed transit aspects
+  const aspectMap = new Map<string, { type: string; orb: number }>();
+  for (const a of transitData.aspects) {
+    aspectMap.set(`${a.natalPlanet}|${a.transitPlanet}`, { type: a.type, orb: a.orb });
   }
 
-  const tableData = transitData.aspects.map(aspect => [
-    fontLoaded ? getPlanetGlyph(aspect.natalPlanet) + ' ' + formatPlanetName(aspect.natalPlanet) : formatPlanetName(aspect.natalPlanet),
-    fontLoaded ? getPlanetGlyph(aspect.transitPlanet) + ' ' + formatPlanetName(aspect.transitPlanet) : formatPlanetName(aspect.transitPlanet),
-    formatAspectName(aspect.type),
-    `${aspect.orb.toFixed(1)}°`,
-    aspect.applying ? 'Applying' : 'Separating',
-  ]);
+  function getAspect(natalKey: string, transitKey: string, natalLon: number, transitLon: number): { type: string; orb: number } | null {
+    const existing = aspectMap.get(`${natalKey}|${transitKey}`);
+    if (existing) return existing;
+    return findTransitAspectByLon(natalLon, transitLon);
+  }
 
-  autoTable(doc, {
-    startY: y,
-    head: [['Natal', 'Transit', 'Aspect', 'Orb', 'Applying']],
-    body: tableData,
-    headStyles: {
-      fillColor: '#4A6B8A',
-      textColor: '#ffffff',
-      fontStyle: 'bold',
-      fontSize: FONTS.tableHeader,
-    },
-    bodyStyles: {
-      fontSize: FONTS.tableBody,
-      textColor: COLORS.text,
-    },
-    alternateRowStyles: {
-      fillColor: '#f0f4f8',
-    },
-    styles: {
-      cellPadding: 4,
-      lineWidth: 0.5,
-      lineColor: '#4A6B8A',
-    },
-    columnStyles: {
-      0: { cellWidth: 30 },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: 15, halign: 'center' },
-      4: { cellWidth: 20, halign: 'center' },
-    },
-  });
+  const useGlyphFont = fontLoaded;
+  const cellSize = 10; // mm
+  const headerCellH = 14; // mm - taller for sign+degree header
+  const rowHeaderW = 10; // mm
 
-  y = (doc as JsPDFWithAutoTable).lastAutoTable.finalY + 10;
+  const nRows = natalRows.length;
+  const nCols = transitCols.length;
+  const gridTotalW = rowHeaderW + nCols * cellSize;
+  const gridTotalH = headerCellH + nRows * cellSize;
+
+  // Center the grid
+  const pageWidth = doc.internal.pageSize.width;
+  const gridX = Math.max(margin, (pageWidth - gridTotalW) / 2);
+
+  // Check if grid fits on page
+  if (y + gridTotalH > doc.internal.pageSize.height - 20) {
+    doc.addPage();
+    y = 20;
+  }
+
+  // Draw column headers (transit planets)
+  for (let c = 0; c < nCols; c++) {
+    const cx = gridX + rowHeaderW + c * cellSize;
+    const cy = y;
+    const col = transitCols[c]!;
+
+    doc.setFillColor('#f5f0e8');
+    doc.setDrawColor('#d4c9a8');
+    doc.rect(cx, cy, cellSize, headerCellH, 'FD');
+
+    // Planet glyph
+    if (useGlyphFont) {
+      doc.setFont('DejaVuSans', 'normal');
+    } else {
+      doc.setFont('helvetica', 'bold');
+    }
+    doc.setFontSize(7);
+    doc.setTextColor(COLORS.text);
+    doc.text(col.glyph, cx + cellSize / 2, cy + 4.5, { align: 'center' });
+
+    // Sign glyph + degree
+    if (useGlyphFont) {
+      doc.setFont('DejaVuSans', 'normal');
+    } else {
+      doc.setFont('helvetica', 'normal');
+    }
+    doc.setFontSize(4.5);
+    doc.setTextColor('#888888');
+    doc.text(col.signGlyph, cx + cellSize / 2, cy + 8, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(4);
+    doc.text(`${col.deg}°${col.min.toString().padStart(2, '0')}`, cx + cellSize / 2, cy + 11.5, { align: 'center' });
+  }
+
+  // Empty corner cell
+  doc.setFillColor('#f5f0e8');
+  doc.setDrawColor('#d4c9a8');
+  doc.rect(gridX, y, rowHeaderW, headerCellH, 'FD');
+
+  const bodyY = y + headerCellH;
+
+  // Draw rows
+  for (let r = 0; r < nRows; r++) {
+    const row = natalRows[r]!;
+    const ry = bodyY + r * cellSize;
+
+    // Row header: natal planet glyph
+    doc.setFillColor('#f5f0e8');
+    doc.setDrawColor('#d4c9a8');
+    doc.rect(gridX, ry, rowHeaderW, cellSize, 'FD');
+
+    if (useGlyphFont && !row.isText) {
+      doc.setFont('DejaVuSans', 'normal');
+      doc.setFontSize(7);
+    } else {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(5.5);
+    }
+    doc.setTextColor(COLORS.text);
+    doc.text(row.glyph, gridX + rowHeaderW / 2, ry + cellSize / 2 + 1.5, { align: 'center' });
+
+    // Aspect cells
+    for (let c = 0; c < nCols; c++) {
+      const col = transitCols[c]!;
+      const cx = gridX + rowHeaderW + c * cellSize;
+      const asp = getAspect(row.key, col.key, row.longitude, col.longitude);
+
+      doc.setDrawColor('#d4c9a8');
+      if (asp) {
+        doc.setFillColor('#ffffff');
+      } else {
+        doc.setFillColor('#faf7f0');
+      }
+      doc.rect(cx, ry, cellSize, cellSize, 'FD');
+
+      if (asp) {
+        // Aspect glyph
+        const color = getAspectColor(asp.type);
+        doc.setTextColor(color);
+        if (useGlyphFont) {
+          doc.setFont('DejaVuSans', 'normal');
+        } else {
+          doc.setFont('helvetica', 'normal');
+        }
+        doc.setFontSize(6);
+        doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, ry + cellSize / 2 - 0.5, { align: 'center' });
+
+        // Orb
+        doc.setTextColor('#888888');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(3.5);
+        doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, ry + cellSize / 2 + 3, { align: 'center' });
+      }
+    }
+  }
+
+  y = bodyY + nRows * cellSize + 10;
   return y;
 }
 
@@ -857,6 +1087,9 @@ function getPlanetGlyph(planet: string): string {
     pluto: '♇',
     northNode: '☊',
     chiron: '⚷',
+    lilith: '⚸',
+    fortune: '⊕',
+    vertex: 'Vx',
   };
   return glyphs[planet] || '○';
 }
@@ -880,6 +1113,13 @@ function getSignGlyph(sign: string): string {
 }
 
 function formatPlanetName(planet: string): string {
+  const names: Record<string, string> = {
+    northNode: 'North Node',
+    lilith: 'Lilith',
+    fortune: 'Fortune',
+    vertex: 'Vertex',
+  };
+  if (names[planet]) return names[planet];
   return planet.charAt(0).toUpperCase() + planet.slice(1).replace(/([A-Z])/g, ' $1');
 }
 
@@ -887,6 +1127,32 @@ function formatSignName(sign: string): string {
   return sign.charAt(0).toUpperCase() + sign.slice(1);
 }
 
-function formatAspectName(aspectType: string): string {
-  return aspectType.charAt(0).toUpperCase() + aspectType.slice(1);
+function getAspectGlyph(aspectType: string): string {
+  const glyphs: Record<string, string> = {
+    conjunction: '☌',
+    opposition: '☍',
+    trine: '△',
+    square: '□',
+    sextile: '⚹',
+    quincunx: '⚻',
+    semiSextile: '⚺',
+    parallel: '∥',
+    contraparallel: '⊥',
+  };
+  return glyphs[aspectType] || '•';
+}
+
+function getAspectColor(aspectType: string): string {
+  const colors: Record<string, string> = {
+    conjunction: '#333333',
+    opposition: '#cc3333',
+    trine: '#3366cc',
+    square: '#cc6633',
+    sextile: '#33cc66',
+    quincunx: '#9966cc',
+    semiSextile: '#66cccc',
+    parallel: '#cc3399',
+    contraparallel: '#cc3399',
+  };
+  return colors[aspectType] || '#333333';
 }

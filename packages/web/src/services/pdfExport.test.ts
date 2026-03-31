@@ -94,6 +94,7 @@ describe('generateChartPdf', () => {
         planet: 'sun',
         longitude: 95.5,
         latitude: 0,
+        declination: 0,
         distance: 1,
         speed: 1,
         sign: 'gemini',

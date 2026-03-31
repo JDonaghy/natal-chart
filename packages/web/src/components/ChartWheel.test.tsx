@@ -11,6 +11,7 @@ const mockChartData: ChartResult = {
       planet: 'sun',
       longitude: 95.5, // 5° Gemini
       latitude: 0,
+      declination: 0,
       distance: 1,
       speed: 1,
       sign: 'gemini',
@@ -23,6 +24,7 @@ const mockChartData: ChartResult = {
       planet: 'moon',
       longitude: 125.2, // 5° Leo
       latitude: 0,
+      declination: 0,
       distance: 1,
       speed: 1,
       sign: 'leo',

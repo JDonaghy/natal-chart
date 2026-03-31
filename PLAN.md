@@ -1,6 +1,6 @@
 # Natal Chart Development Plan
 
-## Current Sprint: Transit Routing & Polish
+## Current Sprint: Transit Polish & Chart Improvements
 **Status**: In Progress
 **Last Updated**: 2026-03-30
 
@@ -47,6 +47,10 @@
 - [x] **Manual timezone selection** - Allow manual timezone selection when lat/lng coordinates are entered directly into the place of birth field, bypassing the geocoding search button. Enables chart generation without geocoding lookup.
 - [x] **Multiple chart comparison** - Side-by-side chart comparison feature
 - [x] **Transit chart feature** - Separate `/transits` route with always-on transit controls, auto-initializing to current date. Natal chart at `/chart` is transit-free. Share URLs route-aware. NavLink active styling in header.
+- [x] **Aspect grid table (natal)** - Triangular aspectarian grid replacing linear aspects table. Planet glyphs along diagonal with retrograde indicators. Lower-left triangle shows color-coded aspect glyphs (☌ ☍ △ □ ⚹ ⚻ ⚺ ∥ ⊥) with orb values. Includes all planets (Sun through Chiron), Lilith, Part of Fortune, Vertex, ASC, MC. Luminary-aware orbs (wider for Sun/Moon). Parallel/contraparallel aspects (declination-based, 1° orb). Grid also rendered in PDF export. Fixed Chiron ephemeris loading (absolute paths in Emscripten FS).
+- [x] **Aspect grid table (transits)** - Rectangular grid for natal-to-transit aspects like Astro-Seek. Rows = natal planets (Sun through MC, including Node, Lilith, Chiron, Fortune, Vertex, ASC, MC). Columns = transit planets with sign glyph, degree, and minute in header. Each cell shows aspect glyph color-coded by type. Transit planet positions displayed in column headers with sign and degree. Include in Transit Chart view and PDF export. *(Polish pass needed: remaining visual differences vs Astro-Seek in row header detail, column header layout, and cell sizing.)*
+- [x] **Transit legend panel redesign** - Redesign the PlanetLegend side panel on Transit Chart to match Astro-Seek style. Header section: "Birth x Transits" with birth date/time on left, transit date/time on right. Planet table: three columns — Planet (glyph + name), Birth (sign glyph + degree°minute'), Transit (sign glyph + degree°minute'). Show all planets including Node, Lilith, Chiron, Fortune, Vertex. Color planet glyphs orange for traditional style. Houses section at bottom: show ASC/IC/DSC/MC with both birth and transit cusps (sign + degree). Placidus system label.
+- [x] **Planet cluster rendering improvements** - Improve how clustered planets render when many are close together in a sign. (1) Reduce planet glyph size slightly to allow more to fit without overlap. (2) Sort displaced labels by increasing degree so the radial order matches ecliptic order. (3) Replace text abbreviations (e.g. "Ari") with zodiac sign symbols (♈) in degree labels. (4) Show degree labels as "DD° sign-glyph" like Astro-Seek (e.g. "19° ♈" instead of "19° Ari"). Reference Astro-Seek's approach: planet glyphs stacked radially outward in degree order with degree+sign-symbol labels, connector lines to true positions on ecliptic.
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations

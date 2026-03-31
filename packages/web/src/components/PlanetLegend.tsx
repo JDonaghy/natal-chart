@@ -1,17 +1,6 @@
 import React from 'react';
 import { ChartResult, TransitResult } from '@natal-chart/core';
-
-const PLANET_GLYPHS: Record<string, string> = {
-  sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
-  jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '♇',
-  northNode: '☊', chiron: '⚷',
-};
-
-const SIGN_GLYPHS: Record<string, string> = {
-  aries: '♈', taurus: '♉', gemini: '♊', cancer: '♋',
-  leo: '♌', virgo: '♍', libra: '♎', scorpio: '♏',
-  sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
-};
+import { getPlanetGlyph, getSignGlyph } from '../utils/chart-helpers';
 
 const SIGN_ELEMENT_COLORS: Record<string, string> = {
   aries: '#CC3333', leo: '#CC3333', sagittarius: '#CC3333',
@@ -20,15 +9,12 @@ const SIGN_ELEMENT_COLORS: Record<string, string> = {
   cancer: '#3366CC', scorpio: '#3366CC', pisces: '#3366CC',
 };
 
-const PLANET_COLORS: Record<string, string> = {
-  sun: '#DAA520', moon: '#8C8C8C', mercury: '#E0A030',
-  venus: '#5BAF4E', mars: '#CC4422', jupiter: '#3D7AB8',
-  saturn: '#888888', uranus: '#2DB5B5', neptune: '#4A6DD8',
-  pluto: '#9055A2', northNode: '#8868B8', chiron: '#C08030',
-};
+const PLANET_COLOR_ORANGE = '#D4761C';
 
 function formatPlanetName(planet: string): string {
-  if (planet === 'northNode') return 'North Node';
+  if (planet === 'northNode') return 'Node';
+  if (planet === 'fortune') return 'Fortune';
+  if (planet === 'vertex') return 'Vertex';
   return planet.charAt(0).toUpperCase() + planet.slice(1);
 }
 
@@ -47,40 +33,215 @@ function degMinFromLongitude(longitude: number): { deg: number; min: number } {
   return { deg, min };
 }
 
+function formatDegMin(longitude: number): string {
+  const { deg, min } = degMinFromLongitude(longitude);
+  return `${deg}°${min.toString().padStart(2, '0')}′`;
+}
+
 interface PlanetLegendProps {
   chartData: ChartResult;
   transitData?: TransitResult | undefined;
+  birthDateLabel?: string | undefined;
+  transitDateLabel?: string | undefined;
 }
 
 const GLYPH_FONT = "'DejaVuSans', sans-serif";
 
 const cellStyle: React.CSSProperties = {
-  padding: '0.2rem 0.4rem',
+  padding: '0.15rem 0.3rem',
   whiteSpace: 'nowrap',
+  fontSize: '0.82rem',
 };
 
-export const PlanetLegend: React.FC<PlanetLegendProps> = ({ chartData, transitData }) => {
+const headerStyle: React.CSSProperties = {
+  margin: '0 0 0.3rem 0',
+  fontSize: '0.9rem',
+  borderBottom: '1px solid #b8860b',
+  paddingBottom: '0.2rem',
+  color: '#5a4a3a',
+};
+
+const SignDeg: React.FC<{ longitude: number }> = ({ longitude }) => {
+  const sign = signFromLongitude(longitude);
   return (
-    <div style={{ fontSize: '0.9rem', lineHeight: 1.4 }}>
-      {/* Planet Positions */}
-      <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '1rem', borderBottom: '1px solid #b8860b', paddingBottom: '0.25rem' }}>
-        Planet positions:
-      </h4>
+    <span style={{ whiteSpace: 'nowrap' }}>
+      <span style={{ fontFamily: GLYPH_FONT, color: SIGN_ELEMENT_COLORS[sign] || '#5a4a3a' }}>
+        {getSignGlyph(sign)}
+      </span>
+      {' '}
+      <span>{formatDegMin(longitude)}</span>
+    </span>
+  );
+};
+
+export const PlanetLegend: React.FC<PlanetLegendProps> = ({
+  chartData,
+  transitData,
+  birthDateLabel,
+  transitDateLabel,
+}) => {
+  const isTransit = !!transitData;
+  const houseSystemLabel = 'Placidus';
+
+  if (isTransit) {
+    return (
+      <div style={{ fontSize: '0.82rem', lineHeight: 1.35 }}>
+        {/* Header: Birth x Transits */}
+        <div style={{
+          ...headerStyle,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'baseline',
+          fontSize: '0.85rem',
+          fontWeight: 'bold',
+        }}>
+          <span>Birth</span>
+          <span style={{ fontSize: '0.75rem', color: '#888', fontWeight: 'normal' }}>×</span>
+          <span>Transits</span>
+        </div>
+        {(birthDateLabel || transitDateLabel) && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            fontSize: '0.75rem',
+            color: '#888',
+            marginBottom: '0.3rem',
+          }}>
+            <span>{birthDateLabel || ''}</span>
+            <span>{transitDateLabel || ''}</span>
+          </div>
+        )}
+
+        {/* Planet table: Planet | Birth | Transit */}
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #d4c9b0' }}>
+              <th style={{ ...cellStyle, textAlign: 'left', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Planet</th>
+              <th style={{ ...cellStyle, textAlign: 'right', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Birth</th>
+              <th style={{ ...cellStyle, textAlign: 'right', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Transit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {chartData.planets.map((natalPlanet) => {
+              const transitPlanet = transitData.planets.find(
+                (tp) => tp.planet === natalPlanet.planet,
+              );
+              return (
+                <tr key={natalPlanet.planet} style={{ borderBottom: '1px solid #ece5d8' }}>
+                  {/* Planet glyph + name */}
+                  <td style={{ ...cellStyle }}>
+                    <span style={{ fontFamily: GLYPH_FONT, color: PLANET_COLOR_ORANGE, marginRight: '0.25rem' }}>
+                      {getPlanetGlyph(natalPlanet.planet)}
+                    </span>
+                    <span style={{ color: '#5a4a3a' }}>{formatPlanetName(natalPlanet.planet)}</span>
+                    {natalPlanet.retrograde && (
+                      <span style={{ color: '#CC3333', fontSize: '0.7rem', marginLeft: '0.15rem' }}>R</span>
+                    )}
+                  </td>
+                  {/* Birth position */}
+                  <td style={{ ...cellStyle, textAlign: 'right' }}>
+                    <SignDeg longitude={natalPlanet.longitude} />
+                  </td>
+                  {/* Transit position */}
+                  <td style={{ ...cellStyle, textAlign: 'right' }}>
+                    {transitPlanet ? (
+                      <>
+                        <SignDeg longitude={transitPlanet.longitude} />
+                        {transitPlanet.retrograde && (
+                          <span style={{ color: '#CC3333', fontSize: '0.7rem', marginLeft: '0.15rem' }}>R</span>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{ color: '#ccc' }}>—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Houses: angles with birth + transit */}
+        <h4 style={{ ...headerStyle, marginTop: '0.5rem' }}>
+          Houses <span style={{ fontWeight: 'normal', fontSize: '0.72rem', color: '#888' }}>({houseSystemLabel})</span>
+        </h4>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid #d4c9b0' }}>
+              <th style={{ ...cellStyle, textAlign: 'left', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}></th>
+              <th style={{ ...cellStyle, textAlign: 'right', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Birth</th>
+              <th style={{ ...cellStyle, textAlign: 'right', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Transit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {([
+              ['ASC', chartData.angles.ascendant, transitData.angles?.ascendant],
+              ['IC', chartData.angles.imumCoeli, transitData.angles?.imumCoeli],
+              ['DSC', chartData.angles.descendant, transitData.angles?.descendant],
+              ['MC', chartData.angles.midheaven, transitData.angles?.midheaven],
+            ] as [string, number, number | undefined][]).map(([label, birthLong, transitLong]) => (
+              <tr key={label} style={{ borderBottom: '1px solid #ece5d8' }}>
+                <td style={{ ...cellStyle, fontWeight: 'bold', color: '#5a4a3a' }}>{label}</td>
+                <td style={{ ...cellStyle, textAlign: 'right' }}>
+                  <SignDeg longitude={birthLong} />
+                </td>
+                <td style={{ ...cellStyle, textAlign: 'right' }}>
+                  {transitLong !== undefined ? (
+                    <SignDeg longitude={transitLong} />
+                  ) : (
+                    <span style={{ color: '#ccc' }}>—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* House cusps (birth only, compact) */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.2rem' }}>
+          <tbody>
+            {chartData.houses.map((house) => {
+              const transitHouse = transitData.houses?.find(
+                (h) => h.house === house.house,
+              );
+              return (
+                <tr key={house.house} style={{ borderBottom: '1px solid #ece5d8' }}>
+                  <td style={{ ...cellStyle, color: '#888', width: '2rem' }}>{house.house}</td>
+                  <td style={{ ...cellStyle, textAlign: 'right' }}>
+                    <SignDeg longitude={house.longitude} />
+                  </td>
+                  <td style={{ ...cellStyle, textAlign: 'right' }}>
+                    {transitHouse ? (
+                      <SignDeg longitude={transitHouse.longitude} />
+                    ) : (
+                      <span style={{ color: '#ccc' }}>—</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  // --- Natal-only mode (no transit data) ---
+  return (
+    <div style={{ fontSize: '0.82rem', lineHeight: 1.35 }}>
+      <h4 style={headerStyle}>Planet positions:</h4>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           {chartData.planets.map((planet) => (
-            <tr key={planet.planet} style={{ borderBottom: '1px solid #e8e0d0' }}>
-              <td style={{ ...cellStyle, fontFamily: GLYPH_FONT, color: PLANET_COLORS[planet.planet] || '#5a4a3a' }}>
-                {PLANET_GLYPHS[planet.planet] || '○'}
+            <tr key={planet.planet} style={{ borderBottom: '1px solid #ece5d8' }}>
+              <td style={{ ...cellStyle, fontFamily: GLYPH_FONT, color: PLANET_COLOR_ORANGE }}>
+                {getPlanetGlyph(planet.planet)}
               </td>
-              <td style={cellStyle}>
+              <td style={{ ...cellStyle, color: '#5a4a3a' }}>
                 {formatPlanetName(planet.planet)}
               </td>
-              <td style={{ ...cellStyle, fontFamily: GLYPH_FONT, color: SIGN_ELEMENT_COLORS[planet.sign] || '#5a4a3a' }}>
-                {SIGN_GLYPHS[planet.sign] || ''}
-              </td>
               <td style={{ ...cellStyle, textAlign: 'right' }}>
-                {planet.degree}°{planet.minute.toString().padStart(2, '0')}′
+                <SignDeg longitude={planet.longitude} />
               </td>
               <td style={{ ...cellStyle, textAlign: 'right', color: '#888' }}>
                 {planet.house}
@@ -93,93 +254,39 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({ chartData, transitDa
         </tbody>
       </table>
 
-      {/* Houses */}
-      <h4 style={{ margin: '0.75rem 0 0.4rem 0', fontSize: '1rem', borderBottom: '1px solid #b8860b', paddingBottom: '0.25rem' }}>
-        Houses:
+      <h4 style={{ ...headerStyle, marginTop: '0.5rem' }}>
+        Houses <span style={{ fontWeight: 'normal', fontSize: '0.72rem', color: '#888' }}>({houseSystemLabel})</span>
       </h4>
-      {/* Angles */}
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '0.25rem' }}>
         <tbody>
           {([
-            ['AC:', chartData.angles.ascendant],
-            ['DC:', chartData.angles.descendant],
-            ['MC:', chartData.angles.midheaven],
-            ['IC:', chartData.angles.imumCoeli],
-          ] as [string, number][]).map(([label, longitude]) => {
-            const sign = signFromLongitude(longitude);
-            const { deg, min } = degMinFromLongitude(longitude);
-            return (
-              <tr key={label} style={{ borderBottom: '1px solid #e8e0d0' }}>
-                <td style={{ ...cellStyle, fontWeight: 'bold' }}>{label}</td>
-                <td style={{ ...cellStyle, fontFamily: GLYPH_FONT, color: SIGN_ELEMENT_COLORS[sign] || '#5a4a3a' }}>
-                  {SIGN_GLYPHS[sign] || ''}
-                </td>
-                <td style={{ ...cellStyle, textAlign: 'right' }}>
-                  {deg}°{min.toString().padStart(2, '0')}′
-                </td>
-              </tr>
-            );
-          })}
+            ['ASC', chartData.angles.ascendant],
+            ['IC', chartData.angles.imumCoeli],
+            ['DSC', chartData.angles.descendant],
+            ['MC', chartData.angles.midheaven],
+          ] as [string, number][]).map(([label, longitude]) => (
+            <tr key={label} style={{ borderBottom: '1px solid #ece5d8' }}>
+              <td style={{ ...cellStyle, fontWeight: 'bold', color: '#5a4a3a' }}>{label}</td>
+              <td style={{ ...cellStyle, textAlign: 'right' }}>
+                <SignDeg longitude={longitude} />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
 
-      {/* House cusps */}
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
-          {chartData.houses.map((house) => {
-            const sign = signFromLongitude(house.longitude);
-            const { deg, min } = degMinFromLongitude(house.longitude);
-            return (
-              <tr key={house.house} style={{ borderBottom: '1px solid #e8e0d0' }}>
-                <td style={{ ...cellStyle, color: '#888' }}>{house.house}:</td>
-                <td style={{ ...cellStyle, fontFamily: GLYPH_FONT, color: SIGN_ELEMENT_COLORS[sign] || '#5a4a3a' }}>
-                  {SIGN_GLYPHS[sign] || ''}
-                </td>
-                <td style={{ ...cellStyle, textAlign: 'right' }}>
-                  {deg}°{min.toString().padStart(2, '0')}′
-                </td>
-              </tr>
-            );
-          })}
+          {chartData.houses.map((house) => (
+            <tr key={house.house} style={{ borderBottom: '1px solid #ece5d8' }}>
+              <td style={{ ...cellStyle, color: '#888' }}>{house.house}:</td>
+              <td style={{ ...cellStyle, textAlign: 'right' }}>
+                <SignDeg longitude={house.longitude} />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
-
-      {/* Transit Positions */}
-      {transitData && (
-        <>
-          <h4 style={{ margin: '0.75rem 0 0.4rem 0', fontSize: '1rem', borderBottom: '1px solid #4A6B8A', paddingBottom: '0.25rem' }}>
-            Transit positions ({new Date(transitData.dateTimeUtc).toLocaleDateString()}):
-          </h4>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <tbody>
-              {transitData.planets.map((planet) => (
-                <tr key={planet.planet} style={{ borderBottom: '1px solid #e8e0d0' }}>
-                  <td style={{ ...cellStyle, fontFamily: GLYPH_FONT, color: PLANET_COLORS[planet.planet] || '#5a4a3a', opacity: 0.8 }}>
-                    {PLANET_GLYPHS[planet.planet] || '○'}
-                  </td>
-                  <td style={{ ...cellStyle, opacity: 0.8 }}>
-                    {formatPlanetName(planet.planet)}
-                  </td>
-                  <td style={{ ...cellStyle, fontFamily: GLYPH_FONT, color: SIGN_ELEMENT_COLORS[planet.sign] || '#5a4a3a', opacity: 0.8 }}>
-                    {SIGN_GLYPHS[planet.sign] || ''}
-                  </td>
-                  <td style={{ ...cellStyle, textAlign: 'right', opacity: 0.8 }}>
-                    {planet.degree}°{planet.minute.toString().padStart(2, '0')}′
-                  </td>
-                  {transitData.houses && (
-                    <td style={{ ...cellStyle, textAlign: 'right', color: '#888', opacity: 0.8 }}>
-                      {planet.house || ''}
-                    </td>
-                  )}
-                  <td style={{ ...cellStyle, color: '#CC3333', textAlign: 'center', opacity: 0.8 }}>
-                    {planet.retrograde ? 'R' : ''}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </>
-      )}
     </div>
   );
 };

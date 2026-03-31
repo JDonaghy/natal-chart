@@ -7,7 +7,9 @@ interface EmscriptenFS {
 }
 
 // Planet mapping to Swiss Ephemeris constants
-const PLANET_TO_SE: Record<Planet, number> = {
+// Planets calculated via Swiss Ephemeris calc_ut
+// (fortune and vertex are derived from other data, not from calc_ut)
+const PLANET_TO_SE: Partial<Record<Planet, number>> = {
   sun: 0, // SE_SUN
   moon: 1, // SE_MOON
   mercury: 2, // SE_MERCURY
@@ -20,6 +22,7 @@ const PLANET_TO_SE: Record<Planet, number> = {
   pluto: 9, // SE_PLUTO
   northNode: 11, // SE_TRUE_NODE
   chiron: 15, // SE_CHIRON - may fail if asteroid ephemeris not available
+  lilith: 12, // SE_MEAN_APOG (Mean Black Moon Lilith)
 };
 
 const HOUSE_SYSTEM_TO_CHAR: Record<HouseSystem, string> = {
@@ -34,16 +37,36 @@ const ZODIAC_SIGNS: ZodiacSign[] = [
   'sagittarius', 'capricorn', 'aquarius', 'pisces'
 ];
 
-// Aspect definitions: angle, orb, type
-const ASPECTS: { angle: number; orb: number; type: AspectType }[] = [
-  { angle: 0, orb: 8, type: 'conjunction' },
-  { angle: 180, orb: 8, type: 'opposition' },
-  { angle: 120, orb: 6, type: 'trine' },
-  { angle: 90, orb: 6, type: 'square' },
-  { angle: 60, orb: 4, type: 'sextile' },
-  { angle: 150, orb: 3, type: 'quincunx' },
-  { angle: 30, orb: 2, type: 'semiSextile' },
+// Aspect definitions: angle, orb (default), luminaryOrb (when Sun or Moon involved), type
+const ASPECTS: { angle: number; orb: number; luminaryOrb: number; type: AspectType }[] = [
+  { angle: 0, orb: 8, luminaryOrb: 10, type: 'conjunction' },
+  { angle: 180, orb: 8, luminaryOrb: 10, type: 'opposition' },
+  { angle: 120, orb: 6, luminaryOrb: 10, type: 'trine' },
+  { angle: 90, orb: 6, luminaryOrb: 10, type: 'square' },
+  { angle: 60, orb: 4, luminaryOrb: 6, type: 'sextile' },
+  { angle: 150, orb: 3, luminaryOrb: 3, type: 'quincunx' },
+  { angle: 30, orb: 2, luminaryOrb: 2, type: 'semiSextile' },
 ];
+
+const LUMINARIES: Set<Planet> = new Set(['sun', 'moon']);
+
+// Obliquity of the ecliptic (J2000.0 epoch, ~23.44°)
+const OBLIQUITY_DEG = 23.4393;
+const OBLIQUITY_RAD = OBLIQUITY_DEG * Math.PI / 180;
+
+/** Calculate declination from ecliptic longitude and latitude */
+function calcDeclination(longitude: number, latitude: number): number {
+  const lonRad = longitude * Math.PI / 180;
+  const latRad = latitude * Math.PI / 180;
+  const decRad = Math.asin(
+    Math.sin(latRad) * Math.cos(OBLIQUITY_RAD) +
+    Math.cos(latRad) * Math.sin(OBLIQUITY_RAD) * Math.sin(lonRad)
+  );
+  return decRad * 180 / Math.PI;
+}
+
+// Parallel/contraparallel orb (declination-based, 1° matches Astro-Seek default)
+const PARALLEL_ORB = 1.0;
 
 export async function calculateChart(data: BirthData): Promise<ChartResult> {
   console.log('calculateChart: starting calculation with data:', data);
@@ -106,26 +129,25 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       
       console.log('Attempting to load ephemeris files...');
       
-      // We'll write files to '/ephemeris' directory in virtual filesystem
-      const targetDir = 'ephemeris';
-      const targetPath = `/${targetDir}/`;
-      
-      // Create directory if it doesn't exist
+      // Use absolute path in Emscripten virtual FS to avoid CWD ambiguity
+      const targetPath = '/ephemeris/';
+
+      // Create directory at absolute path if it doesn't exist
       try {
-        FS.mkdir(targetDir);
-        console.log('Created directory:', targetDir);
+        FS.mkdir('/ephemeris');
+        console.log('Created directory: /ephemeris');
       } catch (_mkdirError) {
         // Directory might already exist, that's OK
-        console.log('Directory may already exist:', targetDir);
+        console.log('Directory /ephemeris may already exist');
       }
-      
+
       // List of ephemeris files we need
       const ephemerisFiles = ['seas_18.se1', 'sepl_18.se1'];
       let loadedAny = false;
-      
+
       for (const filename of ephemerisFiles) {
         const filePath = `${targetPath}${filename}`;
-        
+
         // Check if file already exists
         try {
           FS.stat(filePath);
@@ -135,27 +157,27 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
         } catch (_statError) {
           // File doesn't exist, need to load it
         }
-        
+
         // Fetch the file from server
         const response = await fetch(`/natal-chart/ephemeris/${filename}`);
         if (!response.ok) {
           console.warn(`Failed to fetch ${filename}: ${response.status} ${response.statusText}`);
           continue;
         }
-        
+
         const arrayBuffer = await response.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
-        
+
         // Write to virtual filesystem
         FS.writeFile(filePath, uint8Array);
         console.log(`Loaded ${filename} (${uint8Array.length} bytes) to ${filePath}`);
         loadedAny = true;
       }
-      
+
       if (loadedAny) {
         console.log('Ephemeris file loading complete, updating search path');
-        // Update ephemeris path to include both default 'sweph' and our 'ephemeris' directory
-        const newPath = 'sweph;ephemeris';
+        // Use absolute path so Swiss Ephemeris finds files regardless of CWD
+        const newPath = '/ephemeris';
         try {
             sweph.set_ephe_path(newPath);
           console.log('Updated ephemeris path to:', newPath);
@@ -355,11 +377,13 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     }
     
     console.log(`Planet ${planetName}: longitude ${longitude}°, house ${house}, cusp range check complete`);
-    
+
+    const declination = calcDeclination(longitude, latitude);
     planets.push({
       planet: planetName as Planet,
       longitude,
       latitude,
+      declination,
       distance,
       speed: speedLongitude,
       sign,
@@ -369,7 +393,59 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       retrograde,
     });
   }
-  
+
+  // Add derived points: Part of Fortune and Vertex
+  const sunPos = planets.find(p => p.planet === 'sun');
+  const moonPos = planets.find(p => p.planet === 'moon');
+  if (sunPos && moonPos) {
+    // Part of Fortune: Day = ASC + Moon - Sun, Night = ASC + Sun - Moon
+    const isSunAboveHorizon = (() => {
+      const sunLon = ((sunPos.longitude % 360) + 360) % 360;
+      const ascLon = ((ascendant % 360) + 360) % 360;
+      const descLon = ((descendant % 360) + 360) % 360;
+      if (ascLon < descLon) {
+        return sunLon >= descLon || sunLon < ascLon;
+      }
+      return sunLon >= descLon && sunLon < ascLon;
+    })();
+    const fortuneLon = isSunAboveHorizon
+      ? ((ascendant + moonPos.longitude - sunPos.longitude) % 360 + 360) % 360
+      : ((ascendant + sunPos.longitude - moonPos.longitude) % 360 + 360) % 360;
+    const fortuneSignDMS = longitudeToSignAndDMS(fortuneLon);
+    planets.push({
+      planet: 'fortune',
+      longitude: fortuneLon,
+      latitude: 0,
+      declination: calcDeclination(fortuneLon, 0),
+      distance: 0,
+      speed: 0,
+      sign: fortuneSignDMS.sign,
+      degree: fortuneSignDMS.degree,
+      minute: fortuneSignDMS.minute,
+      house: findHouse(fortuneLon, cusps),
+      retrograde: false,
+    });
+  }
+
+  // Vertex from ascmc[3]
+  const vertexLon = ascmc[3] ?? 0;
+  if (vertexLon !== 0) {
+    const vertexSignDMS = longitudeToSignAndDMS(vertexLon);
+    planets.push({
+      planet: 'vertex',
+      longitude: vertexLon,
+      latitude: 0,
+      declination: calcDeclination(vertexLon, 0),
+      distance: 0,
+      speed: 0,
+      sign: vertexSignDMS.sign,
+      degree: vertexSignDMS.degree,
+      minute: vertexSignDMS.minute,
+      house: findHouse(vertexLon, cusps),
+      retrograde: false,
+    });
+  }
+
   // Calculate aspects
   const aspects: Aspect[] = [];
   for (let i = 0; i < planets.length; i++) {
@@ -380,12 +456,14 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       let diff = Math.abs(p1.longitude - p2.longitude);
       if (diff > 180) diff = 360 - diff;
       
+      const isLuminary = LUMINARIES.has(p1.planet) || LUMINARIES.has(p2.planet);
       for (const aspectDef of ASPECTS) {
-        if (Math.abs(diff - aspectDef.angle) <= aspectDef.orb) {
+        const maxOrb = isLuminary ? aspectDef.luminaryOrb : aspectDef.orb;
+        if (Math.abs(diff - aspectDef.angle) <= maxOrb) {
           const orb = Math.abs(diff - aspectDef.angle);
           const applying = (p1.speed - p2.speed) * (p1.longitude - p2.longitude) > 0;
           const exact = orb < 0.1;
-          
+
           aspects.push({
             planet1: p1.planet,
             planet2: p2.planet,
@@ -400,7 +478,43 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       }
     }
   }
-  
+
+  // Calculate parallel/contraparallel aspects (declination-based)
+  for (let i = 0; i < planets.length; i++) {
+    for (let j = i + 1; j < planets.length; j++) {
+      const p1 = planets[i]!;
+      const p2 = planets[j]!;
+      // Skip calculated points without meaningful declination
+      if (p1.planet === 'fortune' || p2.planet === 'fortune') continue;
+      if (p1.planet === 'vertex' || p2.planet === 'vertex') continue;
+
+      const decDiff = Math.abs(p1.declination - p2.declination);
+      const decSum = Math.abs(p1.declination + p2.declination);
+
+      if (decDiff <= PARALLEL_ORB) {
+        aspects.push({
+          planet1: p1.planet,
+          planet2: p2.planet,
+          type: 'parallel',
+          angle: 0,
+          orb: decDiff,
+          applying: false,
+          exact: decDiff < 0.1,
+        });
+      } else if (decSum <= PARALLEL_ORB) {
+        aspects.push({
+          planet1: p1.planet,
+          planet2: p2.planet,
+          type: 'contraparallel',
+          angle: 180,
+          orb: decSum,
+          applying: false,
+          exact: decSum < 0.1,
+        });
+      }
+    }
+  }
+
   console.log('calculateChart: calculation complete, planets:', planets.length, 'aspects:', aspects.length, 'skipped:', skippedPlanets.length);
   return {
     planets,
@@ -484,10 +598,9 @@ async function loadEphemerisFilesForInstance(sweph: SwissEphInstance): Promise<b
     const FS = sweph.SweModule?.FS || sweph.FS || windowModule?.FS;
     if (!FS) return false;
 
-    const targetDir = 'ephemeris';
-    const targetPath = `/${targetDir}/`;
+    const targetPath = '/ephemeris/';
 
-    try { FS.mkdir(targetDir); } catch { /* may exist */ }
+    try { FS.mkdir('/ephemeris'); } catch { /* may exist */ }
 
     const ephemerisFiles = ['seas_18.se1', 'sepl_18.se1'];
     let loadedAny = false;
@@ -505,7 +618,7 @@ async function loadEphemerisFilesForInstance(sweph: SwissEphInstance): Promise<b
     }
 
     if (loadedAny) {
-      try { sweph.set_ephe_path('sweph;ephemeris'); } catch { /* continue */ }
+      try { sweph.set_ephe_path('/ephemeris'); } catch { /* continue */ }
     }
 
     return loadedAny;
@@ -549,6 +662,7 @@ function calculatePlanetsForJD(
       planet: planetName as Planet,
       longitude,
       latitude,
+      declination: calcDeclination(longitude, latitude),
       distance,
       speed: speedLongitude,
       sign,
@@ -684,6 +798,22 @@ export async function calculateTransitPositions(
     result.skippedPlanets = skippedPlanets;
   }
   return result;
+}
+
+// Helper: find house number for a given longitude
+function findHouse(longitude: number, cusps: Float64Array): number {
+  const normalizedLon = ((longitude % 360) + 360) % 360;
+  for (let i = 1; i <= 12; i++) {
+    const cuspStart = ((cusps[i]! % 360) + 360) % 360;
+    const nextCusp = i < 12 ? cusps[i + 1] : cusps[1];
+    const cuspEnd = ((nextCusp! % 360) + 360) % 360;
+    if (cuspStart <= cuspEnd) {
+      if (normalizedLon >= cuspStart && normalizedLon < cuspEnd) return i;
+    } else {
+      if (normalizedLon >= cuspStart || normalizedLon < cuspEnd) return i;
+    }
+  }
+  return 1;
 }
 
 // Helper functions

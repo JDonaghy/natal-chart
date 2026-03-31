@@ -174,4 +174,39 @@
 
 ---
 
+## Session 2026-03-30: Aspect Grid Tables & Chiron Fix
+
+### ✅ Features Completed
+1. **Aspect grid table (natal)** — Triangular aspectarian grid replacing linear aspects table. Planet glyphs along diagonal with retrograde indicators. Lower-left triangle shows color-coded aspect glyphs (☌ ☍ △ □ ⚹ ⚻ ⚺ ∥ ⊥) with orb values. Includes all planets (Sun through Chiron), Lilith, Part of Fortune, Vertex, ASC, MC. Luminary-aware orbs (wider for Sun/Moon). Parallel/contraparallel aspects (declination-based, 1° orb). Grid also rendered in PDF export.
+2. **Aspect grid table (transits)** — Rectangular grid for natal-to-transit aspects like Astro-Seek. Rows = natal planets (Sun through MC). Columns = transit planets with sign glyph, degree, and minute in header. Each cell shows aspect glyph color-coded by type. Transit planet positions displayed in column headers. Included in Transit Chart view and PDF export.
+3. **Fixed Chiron ephemeris loading** — Path mismatch in Emscripten virtual filesystem: `FS.mkdir` used relative path while `FS.writeFile` and `set_ephe_path` used absolute. All now use `/ephemeris` (absolute).
+
+### ✅ Technical Improvements
+- Extended calculator with declination-based parallel/contraparallel aspect support (1° orb)
+- Added `chart-helpers.ts` utility functions for aspect glyph/color formatting
+- PDF export updated to render both natal and transit aspect grids
+- Core types extended with declination and additional aspect types
+
+### Files Created
+- `packages/web/src/components/AspectGrid.tsx` — Natal triangular aspect grid
+- `packages/web/src/components/TransitAspectGrid.tsx` — Transit rectangular aspect grid
+
+### Files Modified
+- `packages/core/src/calculator.ts` — Declination calculations, parallel/contraparallel aspects, Chiron path fix
+- `packages/core/src/types.ts` — Extended aspect types, declination fields
+- `packages/core/test/calculator.test.ts` — Updated tests
+- `packages/web/src/components/ChartView.tsx` — Integrated AspectGrid
+- `packages/web/src/components/ChartWheel.tsx` — Minor updates
+- `packages/web/src/components/PlanetLegend.tsx` — Minor updates
+- `packages/web/src/components/TransitView.tsx` — Integrated TransitAspectGrid
+- `packages/web/src/services/pdfExport.ts` — Render aspect grids in PDF
+- `packages/web/src/utils/chart-helpers.ts` — Added aspect formatting helpers
+
+### 📝 Notes
+- Changes on `develop` branch, not yet committed
+- Polish pass still needed for transit aspect grid (visual differences vs Astro-Seek)
+- Two planned features remain: transit legend panel redesign, planet cluster rendering improvements
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

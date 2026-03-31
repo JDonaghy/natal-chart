@@ -28,7 +28,10 @@ describe('calculateChart', () => {
       // Allow latitude range for planets (Pluto can have up to ~17° inclination)
       expect(planet.latitude).toBeGreaterThanOrEqual(-20);
       expect(planet.latitude).toBeLessThan(20);
-      expect(planet.distance).toBeGreaterThan(0);
+      // Calculated points (Fortune, Vertex) have distance 0
+      if (planet.planet !== 'fortune' && planet.planet !== 'vertex') {
+        expect(planet.distance).toBeGreaterThan(0);
+      }
       expect(planet.sign).toBeDefined();
       expect(planet.degree).toBeGreaterThanOrEqual(0);
       expect(planet.degree).toBeLessThan(30);
