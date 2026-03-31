@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ChartResult, TransitResult, AspectType, ZodiacSign } from '@natal-chart/core';
 import { getPlanetGlyph, getSignGlyph, getAspectGlyph, getAspectColor } from '../utils/chart-helpers';
+import { useResponsive } from '../hooks/useResponsive';
 
 /** Transit aspect orbs (tighter than natal, matching calculator.ts) */
 const TRANSIT_ASPECT_DEFS: { angle: number; orb: number; type: AspectType }[] = [
@@ -66,9 +67,12 @@ interface TransitAspectGridProps {
   transitData: TransitResult;
 }
 
-const CELL_SIZE = 34;
+const CELL_SIZE_DESKTOP = 34;
+const CELL_SIZE_MOBILE = 28;
 
 export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData, transitData }) => {
+  const { isMobile } = useResponsive();
+  const CELL_SIZE = isMobile ? CELL_SIZE_MOBILE : CELL_SIZE_DESKTOP;
   // Build natal rows: all planets + ASC + MC
   const natalRows: NatalPoint[] = chartData.planets.map(p => ({
     key: p.planet,

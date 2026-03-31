@@ -5,7 +5,7 @@
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.6.0
+- **Current Version**: 0.7.0
 
 ## ✅ What Works
 
@@ -36,6 +36,17 @@
 - [x] Coordinate input detection with OpenStreetMap validation link
 - [x] Chiron calculations via asteroid ephemeris files
 
+### Mobile-Responsive Layout (v0.7.0)
+- [x] Tamagui v1.116.14 with custom responsive hook (`useResponsive`)
+- [x] Breakpoints: mobile (<=640px), tablet (641-1024px), desktop (>=1025px)
+- [x] Hamburger navigation menu on mobile
+- [x] Chart wheel scales to any width via SVG viewBox (pinch-to-zoom on mobile)
+- [x] Chart + legend stacks vertically on mobile
+- [x] BirthDataForm single-column grid on mobile with full-width submit
+- [x] CompareView stacks charts vertically on mobile
+- [x] Aspect grids: 28px cells on mobile, 34px on desktop, horizontal scroll
+- [x] Button bars and transit controls wrap gracefully on narrow viewports
+
 ### Infrastructure
 - [x] Monorepo with pnpm workspaces
 - [x] TypeScript strict mode across packages (zero `as any` in core)
@@ -43,13 +54,14 @@
 - [x] HashRouter for GitHub Pages compatibility
 - [x] GitHub Actions CI/CD
 - [x] Build version tracking (git commit + timestamp)
+- [x] Tamagui Vite plugin for responsive design tokens
 
 ## 🐛 Known Issues
 
 ### Low Priority
 1. **Ephemeris file loading in tests** — "Failed to parse URL" error logs in Node.js test environment (tests still pass)
 2. **City search returns only 5 results** — OpenCage API may cap results for short/ambiguous queries
-3. **Mobile responsiveness** — Chart wheel works but could be further optimized for small screens
+3. ~~**Mobile responsiveness**~~ — Resolved in v0.7.0 with Tamagui responsive layout
 
 ## 📁 Key Files & Locations
 - **Web App**: `packages/web/` — Vite + React frontend
