@@ -1,5 +1,7 @@
 import React, { Suspense } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
+import { TamaguiProvider } from 'tamagui';
+import config from '../tamagui.config';
 import { ShareLoader } from './components/ShareLoader';
 import { Layout } from './components/Layout';
 import { ChartProvider } from './contexts/ChartContext';
@@ -13,6 +15,7 @@ const ReleasingView = React.lazy(() => import('./components/ReleasingView').then
 
 function App() {
   return (
+    <TamaguiProvider config={config} disableInjectCSS>
     <Router>
       <ChartProvider>
         <ShareLoader />
@@ -29,6 +32,7 @@ function App() {
         </Layout>
       </ChartProvider>
     </Router>
+    </TamaguiProvider>
   );
 }
 

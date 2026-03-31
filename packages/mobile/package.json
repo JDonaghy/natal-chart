@@ -1,6 +1,6 @@
 {
   "name": "@natal-chart/mobile",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "React Native mobile app for natal chart visualization",
   "private": true,
   "main": "index.js",

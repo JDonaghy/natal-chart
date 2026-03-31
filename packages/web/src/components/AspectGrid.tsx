@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ChartResult, Aspect, AspectType } from '@natal-chart/core';
 import { getPlanetGlyph, getAspectGlyph, getAspectColor } from '../utils/chart-helpers';
+import { useResponsive } from '../hooks/useResponsive';
 
 /** Points shown on the grid diagonal: all calculated planets + ASC + MC */
 interface GridPoint {
@@ -71,9 +72,12 @@ interface CellAspect {
   orb: number;
 }
 
-const CELL_SIZE = 34;
+const CELL_SIZE_DESKTOP = 34;
+const CELL_SIZE_MOBILE = 28;
 
 export const AspectGrid: React.FC<AspectGridProps> = ({ chartData }) => {
+  const { isMobile } = useResponsive();
+  const CELL_SIZE = isMobile ? CELL_SIZE_MOBILE : CELL_SIZE_DESKTOP;
   // Build ordered list of grid points
   const points: GridPoint[] = chartData.planets.map(p => ({
     key: p.planet,

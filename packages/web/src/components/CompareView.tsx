@@ -3,6 +3,7 @@ import { getSavedCharts, deleteSavedChart, type SavedChart } from '../services/s
 import { ChartWheel } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
 import type { ExtendedBirthData } from '../contexts/ChartContext';
+import { useResponsive } from '../hooks/useResponsive';
 import '../App.css';
 
 const BirthDataSummary: React.FC<{ birthData: ExtendedBirthData }> = ({ birthData }) => (
@@ -31,6 +32,7 @@ export const CompareView: React.FC = () => {
   const [savedCharts, setSavedCharts] = useState<SavedChart[]>(() => getSavedCharts());
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState('');
+  const { isMobile, isTablet } = useResponsive();
 
   const handleDelete = (id: string) => {
     deleteSavedChart(id);
@@ -51,12 +53,21 @@ export const CompareView: React.FC = () => {
     );
   }
 
+  // Responsive chart size — on mobile, render at full 600 internal size
+  // for maximum detail; the SVG viewBox + width:100% scales it to fit.
+  const chartSize = isTablet ? 450 : 600;
+
   return (
     <div>
       <h1 style={{ margin: '0 0 0.5rem 0' }}>Compare Charts</h1>
 
       {/* Chart selectors */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+      <div style={{
+        display: 'flex',
+        gap: '1rem',
+        marginBottom: '1rem',
+        flexDirection: isMobile ? 'column' : 'row',
+      }}>
         <div style={{ flex: 1 }}>
           <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: 'bold' }}>Left Chart</label>
           <select
@@ -85,15 +96,20 @@ export const CompareView: React.FC = () => {
         </div>
       </div>
 
-      {/* Side-by-side charts */}
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+      {/* Side-by-side or stacked charts */}
+      <div style={{
+        display: 'flex',
+        gap: '1rem',
+        alignItems: 'flex-start',
+        flexDirection: isMobile ? 'column' : 'row',
+      }}>
         {/* Left */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, width: isMobile ? '100%' : undefined }}>
           {leftChart ? (
             <>
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{leftChart.name}</h3>
               <BirthDataSummary birthData={leftChart.birthData} />
-              <ChartWheel chartData={leftChart.chartData} size={600} />
+              <ChartWheel chartData={leftChart.chartData} size={chartSize} />
               <PlanetLegend chartData={leftChart.chartData} />
             </>
           ) : (
@@ -104,12 +120,12 @@ export const CompareView: React.FC = () => {
         </div>
 
         {/* Right */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0, width: isMobile ? '100%' : undefined }}>
           {rightChart ? (
             <>
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{rightChart.name}</h3>
               <BirthDataSummary birthData={rightChart.birthData} />
-              <ChartWheel chartData={rightChart.chartData} size={600} />
+              <ChartWheel chartData={rightChart.chartData} size={chartSize} />
               <PlanetLegend chartData={rightChart.chartData} />
             </>
           ) : (
@@ -123,43 +139,45 @@ export const CompareView: React.FC = () => {
       {/* Saved charts list */}
       <div style={{ marginTop: '1.5rem', borderTop: '1px solid #b8860b', paddingTop: '1rem' }}>
         <h3 style={{ margin: '0 0 0.5rem 0' }}>Saved Charts</h3>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #b8860b' }}>
-              <th style={{ textAlign: 'left', padding: '0.4rem' }}>Name</th>
-              <th style={{ textAlign: 'left', padding: '0.4rem' }}>City</th>
-              <th style={{ textAlign: 'left', padding: '0.4rem' }}>Date</th>
-              <th style={{ textAlign: 'right', padding: '0.4rem' }}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {savedCharts.map(c => (
-              <tr key={c.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '0.4rem' }}>{c.name}</td>
-                <td style={{ padding: '0.4rem', color: '#666' }}>{c.birthData.city || '—'}</td>
-                <td style={{ padding: '0.4rem', color: '#666' }}>
-                  {new Date(c.savedAt).toLocaleDateString()}
-                </td>
-                <td style={{ padding: '0.4rem', textAlign: 'right' }}>
-                  <button
-                    onClick={() => handleDelete(c.id)}
-                    style={{
-                      padding: '0.2rem 0.5rem',
-                      fontSize: '0.8rem',
-                      backgroundColor: '#cc4422',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '3px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Delete
-                  </button>
-                </td>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #b8860b' }}>
+                <th style={{ textAlign: 'left', padding: '0.4rem' }}>Name</th>
+                <th style={{ textAlign: 'left', padding: '0.4rem' }}>City</th>
+                <th style={{ textAlign: 'left', padding: '0.4rem' }}>Date</th>
+                <th style={{ textAlign: 'right', padding: '0.4rem' }}></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {savedCharts.map(c => (
+                <tr key={c.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: '0.4rem' }}>{c.name}</td>
+                  <td style={{ padding: '0.4rem', color: '#666' }}>{c.birthData.city || '—'}</td>
+                  <td style={{ padding: '0.4rem', color: '#666' }}>
+                    {new Date(c.savedAt).toLocaleDateString()}
+                  </td>
+                  <td style={{ padding: '0.4rem', textAlign: 'right' }}>
+                    <button
+                      onClick={() => handleDelete(c.id)}
+                      style={{
+                        padding: '0.2rem 0.5rem',
+                        fontSize: '0.8rem',
+                        backgroundColor: '#cc4422',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

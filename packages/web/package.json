@@ -1,6 +1,6 @@
 {
   "name": "@natal-chart/web",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Vite + React web application for natal chart visualization",
   "type": "module",
   "private": true,
@@ -14,6 +14,9 @@
   },
   "dependencies": {
     "@natal-chart/core": "workspace:*",
+    "@tamagui/config": "1.116.14",
+    "@tamagui/shorthands": "1.116.14",
+    "@tamagui/vite-plugin": "1.116.14",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
     "jspdf": "^2.5.1",
@@ -22,7 +25,8 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
-    "svg2pdf.js": "^2.2.0"
+    "svg2pdf.js": "^2.2.0",
+    "tamagui": "1.116.14"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

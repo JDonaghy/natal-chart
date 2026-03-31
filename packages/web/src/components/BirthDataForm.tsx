@@ -4,6 +4,7 @@ import { useChart, type ExtendedBirthData } from '../contexts/ChartContext';
 import { type GeocodeResult, isRealGeocodingAvailable, isCoordinateQuery, parseCoordinates } from '../services/geocoding';
 import { CitySearch } from './CitySearch';
 import { convertToUTC, convertFromUTC } from '../services/timezone';
+import { useResponsive } from '../hooks/useResponsive';
 import '../App.css';
 
 // Get IANA timezone list from the runtime
@@ -357,6 +358,8 @@ export const BirthDataForm: React.FC = () => {
     }
   };
   
+  const { isMobile } = useResponsive();
+
   const formatCoordinate = (coord: number, isLatitude: boolean) => {
     const direction = isLatitude 
       ? (coord >= 0 ? 'N' : 'S')
@@ -373,9 +376,9 @@ export const BirthDataForm: React.FC = () => {
       </p>
       
       <form onSubmit={handleSubmit}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '1.5rem' }}>
           {/* Place of Birth */}
-          <div style={{ gridColumn: 'span 2', position: 'relative' }}>
+          <div style={{ gridColumn: isMobile ? undefined : 'span 2', position: 'relative' }}>
             <label htmlFor="city" style={{ display: 'block', marginBottom: '0.5rem' }}>
               Place of Birth
             </label>
@@ -630,7 +633,7 @@ export const BirthDataForm: React.FC = () => {
            </div>
            
            {/* House System */}
-           <div style={{ gridColumn: 'span 2' }}>
+           <div style={{ gridColumn: isMobile ? undefined : 'span 2' }}>
              <label htmlFor="houseSystem" style={{ display: 'block', marginBottom: '0.5rem' }}>
                House System
              </label>
@@ -677,14 +680,15 @@ export const BirthDataForm: React.FC = () => {
             type="submit" 
             disabled={loading || !isFormValid}
             title={!isFormValid ? 'Please search and select a birth city to detect the timezone' : ''}
-            style={{ 
-              padding: '1rem 3rem', 
+            style={{
+              padding: '1rem 3rem',
               fontSize: '1.2rem',
               backgroundColor: (loading || !isFormValid) ? '#ccc' : '#b8860b',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
               cursor: (loading || !isFormValid) ? 'not-allowed' : 'pointer',
+              width: isMobile ? '100%' : undefined,
             }}
           >
             {loading ? 'Calculating...' : 'Calculate Natal Chart'}

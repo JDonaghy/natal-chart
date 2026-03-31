@@ -9,6 +9,7 @@ import { convertFromUTC } from '../services/timezone';
 import { saveChart, getSavedCharts, type SavedChart } from '../services/savedCharts';
 import { AspectGrid } from './AspectGrid';
 import { getPlanetGlyph, getSignGlyph, formatPlanetName, formatSignName } from '../utils/chart-helpers';
+import { useResponsive } from '../hooks/useResponsive';
 import '../App.css';
 
 export const ChartView: React.FC = () => {
@@ -19,6 +20,7 @@ export const ChartView: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const chartWheelRef = useRef<ChartWheelHandle>(null);
+  const { isMobile, isTablet } = useResponsive();
 
   const handleLoadSaved = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -153,11 +155,23 @@ export const ChartView: React.FC = () => {
     );
   }
 
+  // Responsive chart size — on mobile, render at full 800 internal size
+  // for maximum detail; the SVG viewBox + width:100% scales it to fit.
+  const chartSize = isTablet ? 600 : 800;
+
   return (
     <div>
-       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+       {/* Header: title + buttons */}
+       <div style={{
+         display: 'flex',
+         alignItems: isMobile ? 'flex-start' : 'center',
+         justifyContent: 'space-between',
+         marginBottom: '0.5rem',
+         flexDirection: isMobile ? 'column' : 'row',
+         gap: isMobile ? '0.5rem' : undefined,
+       }}>
         <h1 style={{ margin: 0 }}>Natal Chart</h1>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <select
             onChange={handleLoadSaved}
             defaultValue=""
@@ -252,13 +266,13 @@ export const ChartView: React.FC = () => {
         <button
           onClick={() => setActiveTab('chart')}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
             backgroundColor: activeTab === 'chart' ? '#b8860b' : 'transparent',
             color: activeTab === 'chart' ? 'white' : '#333',
             border: 'none',
             borderBottom: activeTab === 'chart' ? '2px solid #b8860b' : '2px solid transparent',
             cursor: 'pointer',
-            fontSize: '1rem',
+            fontSize: isMobile ? '0.9rem' : '1rem',
             fontWeight: activeTab === 'chart' ? 'bold' : 'normal',
             transition: 'all 0.2s',
           }}
@@ -268,29 +282,29 @@ export const ChartView: React.FC = () => {
         <button
           onClick={() => setActiveTab('planets')}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
             backgroundColor: activeTab === 'planets' ? '#b8860b' : 'transparent',
             color: activeTab === 'planets' ? 'white' : '#333',
             border: 'none',
             borderBottom: activeTab === 'planets' ? '2px solid #b8860b' : '2px solid transparent',
             cursor: 'pointer',
-            fontSize: '1rem',
+            fontSize: isMobile ? '0.9rem' : '1rem',
             fontWeight: activeTab === 'planets' ? 'bold' : 'normal',
             transition: 'all 0.2s',
           }}
         >
-          Planet Positions
+          Planets
         </button>
         <button
           onClick={() => setActiveTab('aspects')}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
             backgroundColor: activeTab === 'aspects' ? '#b8860b' : 'transparent',
             color: activeTab === 'aspects' ? 'white' : '#333',
             border: 'none',
             borderBottom: activeTab === 'aspects' ? '2px solid #b8860b' : '2px solid transparent',
             cursor: 'pointer',
-            fontSize: '1rem',
+            fontSize: isMobile ? '0.9rem' : '1rem',
             fontWeight: activeTab === 'aspects' ? 'bold' : 'normal',
             transition: 'all 0.2s',
           }}
@@ -302,11 +316,19 @@ export const ChartView: React.FC = () => {
       {/* Tab Content - always rendered, hidden via display */}
       <div>
         {/* Chart Wheel Tab */}
-        <div style={{ display: activeTab === 'chart' ? 'flex' : 'none', gap: '1rem', alignItems: 'flex-start' }}>
-          <div style={{ flex: '1 1 0', minWidth: 0, overflow: 'auto' }}>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} size={800} />
+        <div style={{
+          display: activeTab === 'chart' ? 'flex' : 'none',
+          gap: '1rem',
+          alignItems: 'flex-start',
+          flexDirection: isMobile ? 'column' : 'row',
+        }}>
+          <div style={isMobile
+            ? { width: '100%' }
+            : { flex: '1 1 0', minWidth: 0, overflow: 'auto' }
+          }>
+            <ChartWheel ref={chartWheelRef} chartData={chartData} size={chartSize} />
           </div>
-          <div style={{ flex: '0 0 auto', width: '240px' }}>
+          <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend chartData={chartData} />
           </div>
         </div>
@@ -315,7 +337,7 @@ export const ChartView: React.FC = () => {
         <div style={{ display: activeTab === 'planets' ? 'block' : 'none' }}>
           <div className="card">
             <h3>Planet Positions</h3>
-            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+            <div style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #b8860b' }}>

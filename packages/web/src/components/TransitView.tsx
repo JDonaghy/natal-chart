@@ -12,6 +12,7 @@ import { CitySearch } from './CitySearch';
 import { AspectGrid } from './AspectGrid';
 import { TransitAspectGrid } from './TransitAspectGrid';
 import { getPlanetGlyph, getSignGlyph, formatPlanetName, formatSignName } from '../utils/chart-helpers';
+import { useResponsive } from '../hooks/useResponsive';
 import '../App.css';
 
 export const TransitView: React.FC = () => {
@@ -24,6 +25,7 @@ export const TransitView: React.FC = () => {
   const [transitCityQuery, setTransitCityQuery] = useState('');
   const chartWheelRef = useRef<ChartWheelHandle>(null);
   const initialized = useRef(false);
+  const { isMobile, isTablet } = useResponsive();
 
   // Auto-initialize transits on mount if no transit date is set
   useEffect(() => {
@@ -215,11 +217,23 @@ export const TransitView: React.FC = () => {
     );
   }
 
+  // Responsive chart size — on mobile, render at full 800 internal size
+  // for maximum detail; the SVG viewBox + width:100% scales it to fit.
+  const chartSize = isTablet ? 600 : 800;
+
   return (
     <div>
-       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+       {/* Header: title + buttons */}
+       <div style={{
+         display: 'flex',
+         alignItems: isMobile ? 'flex-start' : 'center',
+         justifyContent: 'space-between',
+         marginBottom: '0.5rem',
+         flexDirection: isMobile ? 'column' : 'row',
+         gap: isMobile ? '0.5rem' : undefined,
+       }}>
         <h1 style={{ margin: 0 }}>Transit Chart</h1>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <select
             onChange={handleLoadSaved}
             defaultValue=""
@@ -281,38 +295,56 @@ export const TransitView: React.FC = () => {
           >
             {saved ? 'Saved!' : 'Save Chart'}
           </button>
-          <input
-            type="datetime-local"
-            value={transitDateStr}
-            onChange={handleTransitDateChange}
-            style={{
-              padding: '0.35rem 0.5rem',
-              fontSize: '0.85rem',
-              borderRadius: '4px',
-              border: '1px solid #ccc',
-            }}
-          />
-          <button
-            onClick={handleTransitNow}
-            disabled={transitLoading}
-            style={{
-              padding: '0.4rem 0.6rem',
-              backgroundColor: '#4A6B8A',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: transitLoading ? 'default' : 'pointer',
-              fontSize: '0.85rem',
-              fontWeight: 'bold',
-            }}
-          >
-            {transitLoading ? '...' : 'Now'}
-          </button>
         </div>
       </div>
 
+      {/* Transit date/time controls */}
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem',
+        alignItems: 'center',
+        marginBottom: '0.5rem',
+        flexWrap: 'wrap',
+      }}>
+        <input
+          type="datetime-local"
+          value={transitDateStr}
+          onChange={handleTransitDateChange}
+          style={{
+            padding: '0.35rem 0.5rem',
+            fontSize: '0.85rem',
+            borderRadius: '4px',
+            border: '1px solid #ccc',
+            flex: isMobile ? '1 1 auto' : undefined,
+          }}
+        />
+        <button
+          onClick={handleTransitNow}
+          disabled={transitLoading}
+          style={{
+            padding: '0.4rem 0.6rem',
+            backgroundColor: '#4A6B8A',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: transitLoading ? 'default' : 'pointer',
+            fontSize: '0.85rem',
+            fontWeight: 'bold',
+          }}
+        >
+          {transitLoading ? '...' : 'Now'}
+        </button>
+      </div>
+
       {/* Transit city search */}
-      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem', position: 'relative' }}>
+      <div style={{
+        display: 'flex',
+        gap: '0.5rem',
+        alignItems: 'center',
+        marginBottom: '0.5rem',
+        position: 'relative',
+        flexWrap: isMobile ? 'wrap' : undefined,
+      }}>
         <span style={{ fontSize: '0.85rem', color: '#666', whiteSpace: 'nowrap' }}>Transit city:</span>
         <CitySearch
           value={transitCityQuery}
@@ -320,7 +352,7 @@ export const TransitView: React.FC = () => {
           onSelect={handleSelectTransitCity}
           placeholder={transitLocation ? transitLocation.city : 'Search city...'}
           compact
-          inputWidth="220px"
+          inputWidth={isMobile ? '100%' : '220px'}
         />
         {transitLocation && (
           <span style={{ fontSize: '0.8rem', color: '#888' }}>
@@ -359,13 +391,13 @@ export const TransitView: React.FC = () => {
         <button
           onClick={() => setActiveTab('chart')}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
             backgroundColor: activeTab === 'chart' ? '#b8860b' : 'transparent',
             color: activeTab === 'chart' ? 'white' : '#333',
             border: 'none',
             borderBottom: activeTab === 'chart' ? '2px solid #b8860b' : '2px solid transparent',
             cursor: 'pointer',
-            fontSize: '1rem',
+            fontSize: isMobile ? '0.9rem' : '1rem',
             fontWeight: activeTab === 'chart' ? 'bold' : 'normal',
             transition: 'all 0.2s',
           }}
@@ -375,29 +407,29 @@ export const TransitView: React.FC = () => {
         <button
           onClick={() => setActiveTab('planets')}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
             backgroundColor: activeTab === 'planets' ? '#b8860b' : 'transparent',
             color: activeTab === 'planets' ? 'white' : '#333',
             border: 'none',
             borderBottom: activeTab === 'planets' ? '2px solid #b8860b' : '2px solid transparent',
             cursor: 'pointer',
-            fontSize: '1rem',
+            fontSize: isMobile ? '0.9rem' : '1rem',
             fontWeight: activeTab === 'planets' ? 'bold' : 'normal',
             transition: 'all 0.2s',
           }}
         >
-          Planet Positions
+          Planets
         </button>
         <button
           onClick={() => setActiveTab('aspects')}
           style={{
-            padding: '0.75rem 1.5rem',
+            padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
             backgroundColor: activeTab === 'aspects' ? '#b8860b' : 'transparent',
             color: activeTab === 'aspects' ? 'white' : '#333',
             border: 'none',
             borderBottom: activeTab === 'aspects' ? '2px solid #b8860b' : '2px solid transparent',
             cursor: 'pointer',
-            fontSize: '1rem',
+            fontSize: isMobile ? '0.9rem' : '1rem',
             fontWeight: activeTab === 'aspects' ? 'bold' : 'normal',
             transition: 'all 0.2s',
           }}
@@ -409,11 +441,19 @@ export const TransitView: React.FC = () => {
       {/* Tab Content - always rendered, hidden via display */}
       <div>
         {/* Chart Wheel Tab */}
-        <div style={{ display: activeTab === 'chart' ? 'flex' : 'none', gap: '1rem', alignItems: 'flex-start' }}>
-          <div style={{ flex: '1 1 0', minWidth: 0, overflow: 'auto' }}>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} transitData={transitData ?? undefined} size={800} />
+        <div style={{
+          display: activeTab === 'chart' ? 'flex' : 'none',
+          gap: '1rem',
+          alignItems: 'flex-start',
+          flexDirection: isMobile ? 'column' : 'row',
+        }}>
+          <div style={isMobile
+            ? { width: '100%' }
+            : { flex: '1 1 0', minWidth: 0, overflow: 'auto' }
+          }>
+            <ChartWheel ref={chartWheelRef} chartData={chartData} transitData={transitData ?? undefined} size={chartSize} />
           </div>
-          <div style={{ flex: '0 0 auto', width: '240px' }}>
+          <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend
               chartData={chartData}
               transitData={transitData ?? undefined}
@@ -427,7 +467,7 @@ export const TransitView: React.FC = () => {
         <div style={{ display: activeTab === 'planets' ? 'block' : 'none' }}>
           <div className="card">
             <h3>Planet Positions</h3>
-            <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+            <div style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid #b8860b' }}>

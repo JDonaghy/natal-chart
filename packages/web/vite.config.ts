@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
+import { tamaguiPlugin } from '@tamagui/vite-plugin';
 import { execSync } from 'child_process';
 import type { IncomingMessage, ServerResponse, OutgoingHttpHeaders } from 'http';
 
@@ -35,7 +36,13 @@ function getBuildInfo() {
 const buildInfo = getBuildInfo();
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    tamaguiPlugin({
+      config: './tamagui.config.ts',
+      components: ['tamagui'],
+    }),
+  ],
   base: '/natal-chart/',
   define: {
     '__APP_VERSION__': JSON.stringify(buildInfo.commitHash),

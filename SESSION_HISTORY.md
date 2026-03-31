@@ -209,4 +209,42 @@
 
 ---
 
+## Session 2026-03-30: Mobile-Responsive Layout (v0.7.0)
+
+### ✅ Features Completed
+1. **Tamagui integration** — Installed Tamagui v1.116.14 with Vite plugin, custom tokens (parchment, gold, navy, cream), and responsive breakpoints (sm<=640px, md<=1024px, lg>=1025px)
+2. **Custom useResponsive hook** — `window.matchMedia` + `useSyncExternalStore` (Tamagui's `useMedia()` was unreliable for viewport detection)
+3. **Hamburger navigation** — Mobile nav collapses to animated hamburger toggle with vertical dropdown
+4. **Responsive chart rendering** — Chart SVG renders at full 800px internal size and scales down via viewBox to any container width; works on screens as small as 320px
+5. **Chart + legend stacking** — Side-by-side on desktop/tablet, vertically stacked on mobile with full-width legend
+6. **Responsive header bars** — Title + buttons wrap on mobile; transit date/time controls reflow
+7. **BirthDataForm responsive grid** — 2-column desktop, single-column mobile, full-width submit button
+8. **CompareView responsive** — Charts stack vertically on mobile with responsive sizes (600px desktop, 450px tablet)
+9. **Aspect grid responsive cells** — 28px cells on mobile, 34px on desktop, horizontal scroll preserved
+
+### 🐛 Bugs Resolved
+- **#7 Mobile responsiveness** — Fully resolved with responsive layout across all views
+
+### 📁 Files Changed
+- `packages/web/tamagui.config.ts` — New: Tamagui configuration
+- `packages/web/src/hooks/useResponsive.ts` — New: Responsive breakpoint hook
+- `packages/web/vite.config.ts` — Added Tamagui Vite plugin
+- `packages/web/src/App.tsx` — TamaguiProvider wrapper
+- `packages/web/src/components/Layout.tsx` — Hamburger menu, responsive padding
+- `packages/web/src/components/ChartView.tsx` — Responsive chart size, stacked layout
+- `packages/web/src/components/TransitView.tsx` — Responsive chart size, controls reflow
+- `packages/web/src/components/CompareView.tsx` — Stacked charts, responsive sizes
+- `packages/web/src/components/BirthDataForm.tsx` — Single-column mobile grid
+- `packages/web/src/components/AspectGrid.tsx` — Responsive cell size
+- `packages/web/src/components/TransitAspectGrid.tsx` — Responsive cell size
+- `packages/web/src/components/ChartWheel.tsx` — Touch action for mobile
+- `packages/web/package.json` — Tamagui dependencies
+
+### 📝 Notes
+- Tamagui v2.0.0-rc requires React 19; used v1.116.14 for React 18 compatibility
+- Tamagui's `useMedia()` didn't respond to viewport changes — custom hook using native `window.matchMedia` works reliably
+- Chart SVG already had viewBox + width:100%; the fix was removing flex constraints that prevented the container from shrinking below 640px
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*
