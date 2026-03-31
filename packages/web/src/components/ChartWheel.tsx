@@ -1,7 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { ChartResult, TransitResult, calculateLots } from '@natal-chart/core';
 import type { LotResult } from '@natal-chart/core';
-import { SIGN_ABBREVIATIONS } from '../utils/astro-glyph-paths';
 import '../App.css';
 
 // Unicode astrological glyphs — standard characters that render with Noto Sans Symbols
@@ -9,7 +8,7 @@ const ZODIAC_UNICODE = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', 
 const PLANET_UNICODE: Record<string, string> = {
   sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
   jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '♇',
-  northNode: '☊', chiron: '⚷',
+  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊕', vertex: 'Vx',
 };
 const GLYPH_FONT = "'DejaVuSans', sans-serif";
 
@@ -27,6 +26,9 @@ const PLANET_COLORS: Record<string, string> = {
   pluto: '#9055A2',   // bright purple
   northNode: '#8868B8', // bright lavender
   chiron: '#C08030',  // bright bronze
+  lilith: '#4A3728',  // dark brown
+  fortune: '#B8860B', // goldenrod
+  vertex: '#4A6B8A',  // slate blue
 };
 
 // Aspect colors — warm palette
@@ -163,7 +165,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       const n = sorted.length;
       if (n === 0) return [];
 
-      const minSeparation = 10; // minimum degrees between label positions
+      const minSeparation = 8; // minimum degrees between label positions
       const labelPositions = sorted.map(p => p.longitude);
 
       // Normalize angular difference to [-180, 180]
@@ -175,13 +177,11 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       };
 
       // Iteratively push overlapping labels apart (more passes for convergence)
-      for (let pass = 0; pass < 20; pass++) {
+      for (let pass = 0; pass < 30; pass++) {
         let moved = false;
         for (let i = 0; i < n; i++) {
           const j = (i + 1) % n;
           const diff = angleDiff(labelPositions[i]!, labelPositions[j]!);
-          // Only push apart if they're close in the positive (sorted) direction
-          // For the wrap-around pair (last→first), diff will be large positive (~360-ish via modular)
           const absDiff = Math.abs(diff);
           if (absDiff < minSeparation && absDiff > 0) {
             const push = (minSeparation - absDiff) / 2 * 0.6; // damped push
@@ -194,12 +194,24 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
         if (!moved) break;
       }
 
-      return sorted.map((planet, i) => ({
+      // Sort displaced labels by ecliptic degree order so radial stacking matches
+      const layouts = sorted.map((planet, i) => ({
         planet,
         tickLongitude: planet.longitude,
         labelLongitude: labelPositions[i]!,
         color: PLANET_COLORS[planet.planet] || '#8B7355',
       }));
+      layouts.sort((a, b) => {
+        const da = angleDiff(a.tickLongitude, a.labelLongitude);
+        const db = angleDiff(b.tickLongitude, b.labelLongitude);
+        // If both displaced in same direction from their cluster, sort by degree
+        if (Math.abs(da) > 1 || Math.abs(db) > 1) {
+          return a.planet.longitude - b.planet.longitude;
+        }
+        return 0;
+      });
+
+      return layouts;
     }, [chartData.planets]);
 
     // House number positions: midpoint of each house arc
@@ -223,7 +235,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       const n = sorted.length;
       if (n === 0) return [];
 
-      const minSeparation = 10;
+      const minSeparation = 8;
       const labelPositions = sorted.map(p => p.longitude);
 
       const angleDiff = (a: number, b: number): number => {
@@ -233,7 +245,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
         return d;
       };
 
-      for (let pass = 0; pass < 20; pass++) {
+      for (let pass = 0; pass < 30; pass++) {
         let moved = false;
         for (let i = 0; i < n; i++) {
           const j = (i + 1) % n;
@@ -495,23 +507,28 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           {/* === PLANET BAND: glyphs, ticks, degree/sign/minute info === */}
           {planetLayouts.map((layout) => {
             const { planet, tickLongitude, labelLongitude, color } = layout;
+            const bandH = R.planetOuter - R.planetInner;
 
             // Tick from zodiac inner edge into planet band
             const tickTop = toPoint(tickLongitude, R.zodiacInner);
-            const tickBot = toPoint(tickLongitude, R.zodiacInner - (R.planetOuter - R.planetInner) * 0.12);
+            const tickBot = toPoint(tickLongitude, R.zodiacInner - bandH * 0.12);
 
             // Connector line from tick down to glyph (always shown)
-            const glyphR = (R.planetOuter + R.planetInner) / 2 + (R.planetOuter - R.planetInner) * 0.12;
-            const connectorBot = toPoint(labelLongitude, glyphR + (R.planetOuter - R.planetInner) * 0.1);
+            const glyphR = (R.planetOuter + R.planetInner) / 2 + bandH * 0.14;
+            const connectorBot = toPoint(labelLongitude, glyphR + bandH * 0.08);
 
             // Glyph center
             const glyphPos = toPoint(labelLongitude, glyphR);
-            const glyphSz = (R.planetOuter - R.planetInner) * 0.28;
+            const glyphSz = bandH * 0.22;
 
-            // Degree and minute labels below glyph
-            const degPos = toPoint(labelLongitude, glyphR - (R.planetOuter - R.planetInner) * 0.22);
-            const signPos = toPoint(labelLongitude, glyphR - (R.planetOuter - R.planetInner) * 0.38);
-            const minPos = toPoint(labelLongitude, glyphR - (R.planetOuter - R.planetInner) * 0.52);
+            // Degree + sign glyph label below planet glyph
+            const degSignPos = toPoint(labelLongitude, glyphR - bandH * 0.22);
+            // Minute label below degree
+            const minPos = toPoint(labelLongitude, glyphR - bandH * 0.38);
+
+            const signIndex = Math.floor(planet.longitude / 30) % 12;
+            const signGlyph = ZODIAC_UNICODE[signIndex];
+            const signColor = SIGN_ELEMENT_COLORS[signIndex];
 
             return (
               <g key={planet.planet}>
@@ -549,35 +566,27 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     x={glyphPos.x + glyphSz * 0.6}
                     y={glyphPos.y - glyphSz * 0.4}
                     textAnchor="middle" dominantBaseline="middle"
-                    fontSize={size * 0.014} fill="#A0522D" fontStyle="italic"
+                    fontSize={size * 0.012} fill="#A0522D" fontStyle="italic"
                   >
                     R
                   </text>
                 )}
 
-                {/* Degree */}
+                {/* Degree + sign glyph (e.g. "19° ♈") */}
                 <text
-                  x={degPos.x} y={degPos.y}
+                  x={degSignPos.x} y={degSignPos.y}
                   textAnchor="middle" dominantBaseline="middle"
-                  fontSize={size * 0.016} fill="#5a4a3a"
+                  fontSize={size * 0.014} fill="#5a4a3a"
                 >
-                  {planet.degree}°
-                </text>
-
-                {/* Sign abbreviation */}
-                <text
-                  x={signPos.x} y={signPos.y}
-                  textAnchor="middle" dominantBaseline="middle"
-                  fontSize={size * 0.013} fill="#8a7a6a"
-                >
-                  {SIGN_ABBREVIATIONS[Math.floor(planet.longitude / 30) % 12]}
+                  {planet.degree}°{' '}
+                  <tspan fontFamily={GLYPH_FONT} fill={signColor} data-glyph="zodiac">{signGlyph}</tspan>
                 </text>
 
                 {/* Minute */}
                 <text
                   x={minPos.x} y={minPos.y}
                   textAnchor="middle" dominantBaseline="middle"
-                  fontSize={size * 0.014} fill="#5a4a3a"
+                  fontSize={size * 0.012} fill="#5a4a3a"
                 >
                   {planet.minute.toString().padStart(2, '0')}′
                 </text>
@@ -642,14 +651,16 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
 
                 // Glyph center
                 const glyphPos = toPoint(labelLongitude, glyphR);
-                const glyphSz = bandWidth * 0.3;
+                const glyphSz = bandWidth * 0.25;
 
-                // Degree label (above glyph, further outward)
-                const degPos = toPoint(labelLongitude, glyphR + bandWidth * 0.22);
-                // Sign abbreviation
-                const signPos = toPoint(labelLongitude, glyphR - bandWidth * 0.22);
-                // Minute label
-                const minPos = toPoint(labelLongitude, glyphR - bandWidth * 0.38);
+                // Degree + sign glyph label (above glyph)
+                const degSignPos = toPoint(labelLongitude, glyphR + bandWidth * 0.22);
+                // Minute label (below glyph)
+                const minPos = toPoint(labelLongitude, glyphR - bandWidth * 0.22);
+
+                const signIndex = Math.floor(planet.longitude / 30) % 12;
+                const signGlyph = ZODIAC_UNICODE[signIndex];
+                const signColor = SIGN_ELEMENT_COLORS[signIndex];
 
                 return (
                   <g key={`transit-${planet.planet}`}>
@@ -683,35 +694,27 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                         x={glyphPos.x + glyphSz * 0.6}
                         y={glyphPos.y - glyphSz * 0.4}
                         textAnchor="middle" dominantBaseline="middle"
-                        fontSize={size * 0.011} fill="#A0522D" fontStyle="italic"
+                        fontSize={size * 0.010} fill="#A0522D" fontStyle="italic"
                       >
                         R
                       </text>
                     )}
 
-                    {/* Degree */}
+                    {/* Degree + sign glyph (e.g. "19° ♈") */}
                     <text
-                      x={degPos.x} y={degPos.y}
+                      x={degSignPos.x} y={degSignPos.y}
                       textAnchor="middle" dominantBaseline="middle"
-                      fontSize={size * 0.013} fill="#5a4a3a"
+                      fontSize={size * 0.011} fill="#5a4a3a"
                     >
-                      {planet.degree}°
-                    </text>
-
-                    {/* Sign abbreviation */}
-                    <text
-                      x={signPos.x} y={signPos.y}
-                      textAnchor="middle" dominantBaseline="middle"
-                      fontSize={size * 0.011} fill="#8a7a6a"
-                    >
-                      {SIGN_ABBREVIATIONS[Math.floor(planet.longitude / 30) % 12]}
+                      {planet.degree}°{' '}
+                      <tspan fontFamily={GLYPH_FONT} fill={signColor} data-glyph="zodiac">{signGlyph}</tspan>
                     </text>
 
                     {/* Minute */}
                     <text
                       x={minPos.x} y={minPos.y}
                       textAnchor="middle" dominantBaseline="middle"
-                      fontSize={size * 0.012} fill="#5a4a3a"
+                      fontSize={size * 0.010} fill="#5a4a3a"
                     >
                       {planet.minute.toString().padStart(2, '0')}′
                     </text>

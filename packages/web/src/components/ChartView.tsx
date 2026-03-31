@@ -7,7 +7,8 @@ import { generateChartPdf } from '../services/pdfExport';
 import { buildShareUrl, type ShareData } from '../utils/shareUrl';
 import { convertFromUTC } from '../services/timezone';
 import { saveChart, getSavedCharts, type SavedChart } from '../services/savedCharts';
-import { getPlanetGlyph, getSignGlyph, formatPlanetName, formatSignName, formatAspectName, getAspectColor } from '../utils/chart-helpers';
+import { AspectGrid } from './AspectGrid';
+import { getPlanetGlyph, getSignGlyph, formatPlanetName, formatSignName } from '../utils/chart-helpers';
 import '../App.css';
 
 export const ChartView: React.FC = () => {
@@ -377,43 +378,7 @@ export const ChartView: React.FC = () => {
           <div className="card">
             <h3>Aspects</h3>
             {chartData.aspects.length > 0 ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #b8860b' }}>
-                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Planets</th>
-                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Aspect</th>
-                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Orb</th>
-                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Applying</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {chartData.aspects.map((aspect, index) => (
-                      <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '0.5rem' }}>
-                          <span className="glyph" style={{ marginRight: '0.25rem' }}>
-                            {getPlanetGlyph(aspect.planet1)}
-                          </span>
-                          {formatPlanetName(aspect.planet1)} –
-                          <span className="glyph" style={{ marginLeft: '0.5rem', marginRight: '0.25rem' }}>
-                            {getPlanetGlyph(aspect.planet2)}
-                          </span>
-                          {formatPlanetName(aspect.planet2)}
-                        </td>
-                        <td style={{ padding: '0.5rem', color: getAspectColor(aspect.type) }}>
-                          {formatAspectName(aspect.type)}
-                        </td>
-                        <td style={{ padding: '0.5rem' }}>
-                          {aspect.orb.toFixed(1)}°
-                        </td>
-                        <td style={{ padding: '0.5rem' }}>
-                          {aspect.applying ? 'Applying' : 'Separating'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <AspectGrid chartData={chartData} />
             ) : (
               <p>No aspects found within orb limits.</p>
             )}

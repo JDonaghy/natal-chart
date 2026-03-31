@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { getSavedCharts, deleteSavedChart, type SavedChart } from '../services/savedCharts';
 import { ChartWheel } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
@@ -28,13 +28,9 @@ const BirthDataSummary: React.FC<{ birthData: ExtendedBirthData }> = ({ birthDat
 );
 
 export const CompareView: React.FC = () => {
-  const [savedCharts, setSavedCharts] = useState<SavedChart[]>([]);
+  const [savedCharts, setSavedCharts] = useState<SavedChart[]>(() => getSavedCharts());
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState('');
-
-  useEffect(() => {
-    setSavedCharts(getSavedCharts());
-  }, []);
 
   const handleDelete = (id: string) => {
     deleteSavedChart(id);

@@ -5,34 +5,40 @@
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.5.0
+- **Current Version**: 0.6.0
 
 ## ✅ What Works
 
 ### Core Functionality
 - [x] Birth data form with Year/Month/Day dropdowns (locale-independent)
 - [x] Automatic timezone detection via OpenCage geocoding
-- [x] Swiss Ephemeris WASM calculations (planets, houses, aspects)
+- [x] Swiss Ephemeris WASM calculations (planets, houses, aspects, declinations)
 - [x] Professional chart wheel with concentric ring layout
 - [x] Astrological glyphs: Unicode text (DejaVu Sans) on web, font-extracted SVG vector paths in PDF
-- [x] Planet collision avoidance with connector lines to true ecliptic positions
+- [x] Planet collision avoidance with degree-ordered radial stacking and connector lines
+- [x] Planet degree labels as "DD° sign-glyph" (e.g. "19° ♈") Astro-Seek style
 - [x] Dedicated house number ring (1-12) between planet band and aspect area
 - [x] House cusp lines extending from outer circle through all bands
 - [x] Tabbed view (Chart Wheel, Planet Positions, Aspects)
-- [x] Retrograde indicators in table and chart
-- [x] Client-side PDF export with hybrid glyph rendering (text→path swap for svg2pdf)
+- [x] Natal aspect grid — triangular aspectarian with color-coded glyphs, parallel/contraparallel aspects
+- [x] Transit aspect grid — rectangular natal-to-transit grid with sign/degree column headers
+- [x] Transit legend panel — Astro-Seek style "Birth × Transits" with side-by-side positions
+- [x] Retrograde indicators in table, chart, and legend
+- [x] Client-side PDF export with aspect grids and hybrid glyph rendering
 - [x] Shareable URLs — encode birth data as query params, auto-load shared charts
 - [x] Separate Natal Chart (`/chart`) and Transit Chart (`/transits`) routes
 - [x] Transit Chart auto-initializes to current date with always-on controls
+- [x] Chart comparison view — side-by-side saved chart comparison
 - [x] Route-aware share URLs and saved chart loading
 - [x] NavLink active styling in navigation header
 - [x] LocalStorage persistence of birth data and form state
 - [x] Real geocoding via Cloudflare Worker
 - [x] Coordinate input detection with OpenStreetMap validation link
+- [x] Chiron calculations via asteroid ephemeris files
 
 ### Infrastructure
 - [x] Monorepo with pnpm workspaces
-- [x] TypeScript strict mode across packages
+- [x] TypeScript strict mode across packages (zero `as any` in core)
 - [x] Vite build with React 18
 - [x] HashRouter for GitHub Pages compatibility
 - [x] GitHub Actions CI/CD
@@ -40,16 +46,17 @@
 
 ## 🐛 Known Issues
 
-### Medium Priority
-1. **Chiron calculations require asteroid ephemeris** — Files present in `public/ephemeris/` but Chiron currently skipped with warning
-
 ### Low Priority
-2. **TypeScript `as any` assertions** — 6 instances remain in core calculator where swisseph-wasm types are challenging
+1. **Ephemeris file loading in tests** — "Failed to parse URL" error logs in Node.js test environment (tests still pass)
+2. **City search returns only 5 results** — OpenCage API may cap results for short/ambiguous queries
+3. **Mobile responsiveness** — Chart wheel works but could be further optimized for small screens
 
 ## 📁 Key Files & Locations
 - **Web App**: `packages/web/` — Vite + React frontend
 - **Core Calculator**: `packages/core/` — Swiss Ephemeris wrapper
 - **Geocoding Worker**: `packages/worker/` — Cloudflare Worker proxy
+- **Aspect Grids**: `packages/web/src/components/AspectGrid.tsx`, `TransitAspectGrid.tsx`
+- **Chart Helpers**: `packages/web/src/utils/chart-helpers.ts` — Shared glyph/formatting utilities
 - **Glyph Paths**: `packages/web/src/utils/astro-glyph-paths.ts` — SVG path data for astrological symbols
 - **Share URL Utils**: `packages/web/src/utils/shareUrl.ts` — Encode/decode birth data for shareable URLs
 - **Build Config**: `packages/web/vite.config.ts` — Base path, proxy, version injection

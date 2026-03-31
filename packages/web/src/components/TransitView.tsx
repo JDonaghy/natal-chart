@@ -9,7 +9,9 @@ import { convertFromUTC } from '../services/timezone';
 import { saveChart, getSavedCharts, type SavedChart } from '../services/savedCharts';
 import { type GeocodeResult } from '../services/geocoding';
 import { CitySearch } from './CitySearch';
-import { getPlanetGlyph, getSignGlyph, formatPlanetName, formatSignName, formatAspectName, getAspectColor } from '../utils/chart-helpers';
+import { AspectGrid } from './AspectGrid';
+import { TransitAspectGrid } from './TransitAspectGrid';
+import { getPlanetGlyph, getSignGlyph, formatPlanetName, formatSignName } from '../utils/chart-helpers';
 import '../App.css';
 
 export const TransitView: React.FC = () => {
@@ -412,7 +414,12 @@ export const TransitView: React.FC = () => {
             <ChartWheel ref={chartWheelRef} chartData={chartData} transitData={transitData ?? undefined} size={800} />
           </div>
           <div style={{ flex: '0 0 auto', width: '240px' }}>
-            <PlanetLegend chartData={chartData} transitData={transitData ?? undefined} />
+            <PlanetLegend
+              chartData={chartData}
+              transitData={transitData ?? undefined}
+              birthDateLabel={birthData ? new Date(birthData.dateTimeUtc).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined}
+              transitDateLabel={transitDateStr ? new Date(transitDateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined}
+            />
           </div>
         </div>
 
@@ -480,97 +487,23 @@ export const TransitView: React.FC = () => {
 
         {/* Aspects Tab */}
         <div style={{ display: activeTab === 'aspects' ? 'block' : 'none' }}>
+          {/* Natal Aspect Grid */}
           <div className="card">
-            <h3>Aspects</h3>
+            <h3>Natal Aspects</h3>
             {chartData.aspects.length > 0 ? (
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid #b8860b' }}>
-                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Planets</th>
-                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Aspect</th>
-                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Orb</th>
-                      <th style={{ textAlign: 'left', padding: '0.5rem' }}>Applying</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {chartData.aspects.map((aspect, index) => (
-                      <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                        <td style={{ padding: '0.5rem' }}>
-                          <span className="glyph" style={{ marginRight: '0.25rem' }}>
-                            {getPlanetGlyph(aspect.planet1)}
-                          </span>
-                          {formatPlanetName(aspect.planet1)} –
-                          <span className="glyph" style={{ marginLeft: '0.5rem', marginRight: '0.25rem' }}>
-                            {getPlanetGlyph(aspect.planet2)}
-                          </span>
-                          {formatPlanetName(aspect.planet2)}
-                        </td>
-                        <td style={{ padding: '0.5rem', color: getAspectColor(aspect.type) }}>
-                          {formatAspectName(aspect.type)}
-                        </td>
-                        <td style={{ padding: '0.5rem' }}>
-                          {aspect.orb.toFixed(1)}°
-                        </td>
-                        <td style={{ padding: '0.5rem' }}>
-                          {aspect.applying ? 'Applying' : 'Separating'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <AspectGrid chartData={chartData} />
             ) : (
-              <p>No aspects found within orb limits.</p>
-            )}
-
-            {/* Natal-to-Transit Aspects */}
-            {transitData && transitData.aspects.length > 0 && (
-              <>
-                <h3 style={{ marginTop: '1.5rem' }}>Natal-to-Transit Aspects</h3>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid #4A6B8A' }}>
-                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Natal</th>
-                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Aspect</th>
-                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Transit</th>
-                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Orb</th>
-                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Applying</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {transitData.aspects.map((aspect, index) => (
-                        <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                          <td style={{ padding: '0.5rem' }}>
-                            <span className="glyph" style={{ marginRight: '0.25rem' }}>
-                              {getPlanetGlyph(aspect.natalPlanet)}
-                            </span>
-                            {formatPlanetName(aspect.natalPlanet)}
-                          </td>
-                          <td style={{ padding: '0.5rem', color: getAspectColor(aspect.type) }}>
-                            {formatAspectName(aspect.type)}
-                          </td>
-                          <td style={{ padding: '0.5rem' }}>
-                            <span className="glyph" style={{ marginRight: '0.25rem' }}>
-                              {getPlanetGlyph(aspect.transitPlanet)}
-                            </span>
-                            {formatPlanetName(aspect.transitPlanet)}
-                          </td>
-                          <td style={{ padding: '0.5rem' }}>
-                            {aspect.orb.toFixed(1)}°
-                          </td>
-                          <td style={{ padding: '0.5rem' }}>
-                            {aspect.applying ? 'Applying' : 'Separating'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
+              <p>No natal aspects found within orb limits.</p>
             )}
           </div>
+
+          {/* Transit Aspect Grid */}
+          {transitData && (
+            <div className="card" style={{ marginTop: '1rem' }}>
+              <h3>Natal-to-Transit Aspects</h3>
+              <TransitAspectGrid chartData={chartData} transitData={transitData} />
+            </div>
+          )}
         </div>
       </div>
 

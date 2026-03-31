@@ -19,7 +19,10 @@ export type Planet =
   | 'neptune'
   | 'pluto'
   | 'northNode'
-  | 'chiron';
+  | 'chiron'
+  | 'lilith'
+  | 'fortune'
+  | 'vertex';
 
 export type ZodiacSign =
   | 'aries'
@@ -39,6 +42,7 @@ export interface PlanetPosition {
   planet: Planet;
   longitude: number;
   latitude: number;
+  declination: number;
   distance: number;
   speed: number;
   sign: ZodiacSign;
@@ -70,7 +74,9 @@ export type AspectType =
   | 'square'
   | 'sextile'
   | 'quincunx'
-  | 'semiSextile';
+  | 'semiSextile'
+  | 'parallel'
+  | 'contraparallel';
 
 export interface Aspect {
   planet1: Planet;
