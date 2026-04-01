@@ -144,8 +144,7 @@ export const CurrentPlanetsView: React.FC = () => {
             ? { width: '100%' }
             : { flex: '1 1 0', minWidth: 0, overflow: 'auto' }
           }>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} size={chartSize} fixedAnchor={0} showAspects={showAspects} showBoundsDecans={showBoundsDecans} />
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.25rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.25rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666' }}>
                 <input type="checkbox" checked={showAspects} onChange={(e) => setShowAspects(e.target.checked)} />
                 Show aspect lines
@@ -155,6 +154,7 @@ export const CurrentPlanetsView: React.FC = () => {
                 Bounds &amp; decans
               </label>
             </div>
+            <ChartWheel ref={chartWheelRef} chartData={chartData} size={chartSize} fixedAnchor={0} showAspects={showAspects} showBoundsDecans={showBoundsDecans} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend chartData={chartData} />

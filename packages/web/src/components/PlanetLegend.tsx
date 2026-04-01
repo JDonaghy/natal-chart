@@ -1,6 +1,6 @@
 import React from 'react';
 import { ChartResult, TransitResult } from '@natal-chart/core';
-import { getPlanetGlyph, getSignGlyph } from '../utils/chart-helpers';
+import { PlanetGlyphIcon, SignGlyphIcon } from './GlyphIcon';
 
 const SIGN_ELEMENT_COLORS: Record<string, string> = {
   aries: '#CC3333', leo: '#CC3333', sagittarius: '#CC3333',
@@ -45,7 +45,7 @@ interface PlanetLegendProps {
   transitDateLabel?: string | undefined;
 }
 
-const GLYPH_FONT = "'DejaVuSans', sans-serif";
+
 
 const cellStyle: React.CSSProperties = {
   padding: '0.15rem 0.3rem',
@@ -65,9 +65,7 @@ const SignDeg: React.FC<{ longitude: number }> = ({ longitude }) => {
   const sign = signFromLongitude(longitude);
   return (
     <span style={{ whiteSpace: 'nowrap' }}>
-      <span style={{ fontFamily: GLYPH_FONT, color: SIGN_ELEMENT_COLORS[sign] || '#5a4a3a' }}>
-        {getSignGlyph(sign)}
-      </span>
+      <SignGlyphIcon sign={sign} color={SIGN_ELEMENT_COLORS[sign] || '#5a4a3a'} />
       {' '}
       <span>{formatDegMin(longitude)}</span>
     </span>
@@ -130,9 +128,7 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
                 <tr key={natalPlanet.planet} style={{ borderBottom: '1px solid #ece5d8' }}>
                   {/* Planet glyph + name */}
                   <td style={{ ...cellStyle }}>
-                    <span style={{ fontFamily: GLYPH_FONT, color: PLANET_COLOR_ORANGE, marginRight: '0.25rem' }}>
-                      {getPlanetGlyph(natalPlanet.planet)}
-                    </span>
+                    <PlanetGlyphIcon planet={natalPlanet.planet} color={PLANET_COLOR_ORANGE} style={{ marginRight: '0.25rem' }} />
                     <span style={{ color: '#5a4a3a' }}>{formatPlanetName(natalPlanet.planet)}</span>
                     {natalPlanet.retrograde && (
                       <span style={{ color: '#CC3333', fontSize: '0.7rem', marginLeft: '0.15rem' }}>R</span>
@@ -209,8 +205,8 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
         <tbody>
           {chartData.planets.map((planet) => (
             <tr key={planet.planet} style={{ borderBottom: '1px solid #ece5d8' }}>
-              <td style={{ ...cellStyle, fontFamily: GLYPH_FONT, color: PLANET_COLOR_ORANGE }}>
-                {getPlanetGlyph(planet.planet)}
+              <td style={{ ...cellStyle }}>
+                <PlanetGlyphIcon planet={planet.planet} color={PLANET_COLOR_ORANGE} />
               </td>
               <td style={{ ...cellStyle, color: '#5a4a3a' }}>
                 {formatPlanetName(planet.planet)}

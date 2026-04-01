@@ -1,8 +1,9 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { ChartResult, TransitResult } from '@natal-chart/core';
+import { getPlanetPath, getSignPathByIndex, glyphTransform } from '../utils/astro-glyph-paths';
 import '../App.css';
 
-// Unicode astrological glyphs — standard characters that render with Noto Sans Symbols
+// Unicode astrological glyphs — fallback for glyphs without SVG path data
 const ZODIAC_UNICODE = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
 const PLANET_UNICODE: Record<string, string> = {
   sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
@@ -11,6 +12,43 @@ const PLANET_UNICODE: Record<string, string> = {
 };
 const GLYPH_FONT = "'DejaVuSans', sans-serif";
 const LABEL_FONT = "'Cormorant', serif";
+
+/** Render a planet glyph as an SVG <path> (font-independent), falling back to <text> */
+function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity }: {
+  planet: string; x: number; y: number; sz: number; fill: string;
+  rotate?: number | undefined; opacity?: number | undefined;
+}): React.ReactElement {
+  const pathData = getPlanetPath(planet);
+  if (pathData) {
+    const t = glyphTransform(pathData.viewBox, x, y, sz);
+    const fullT = rotate ? `rotate(${rotate} ${x} ${y}) ${t}` : t;
+    return <path d={pathData.d} fill={fill} transform={fullT} fillOpacity={opacity} />;
+  }
+  // Fallback to text for glyphs without path data (lilith, fortune, vertex)
+  return (
+    <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
+      fontSize={sz} fontFamily={GLYPH_FONT} fill={fill} fillOpacity={opacity}
+      transform={rotate ? `rotate(${rotate} ${x} ${y})` : undefined}>
+      {PLANET_UNICODE[planet] || '○'}
+    </text>
+  );
+}
+
+/** Render a zodiac sign glyph as an SVG <path>, falling back to <text> */
+function SignGlyph({ index, x, y, sz, fill }: {
+  index: number; x: number; y: number; sz: number; fill: string;
+}): React.ReactElement {
+  const pathData = getSignPathByIndex(index);
+  if (pathData) {
+    return <path d={pathData.d} fill={fill} transform={glyphTransform(pathData.viewBox, x, y, sz)} />;
+  }
+  return (
+    <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
+      fontSize={sz} fontFamily={GLYPH_FONT} fill={fill}>
+      {ZODIAC_UNICODE[index]}
+    </text>
+  );
+}
 
 // Normalize angular difference to [-180, 180]
 const angleDiff = (a: number, b: number): number => {
@@ -399,20 +437,11 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const glyphSize = (R.outer - tickEdge) * 0.6;
 
             return (
-              <text
+              <SignGlyph
                 key={`sign-glyph-${i}`}
-                x={pos.x}
-                y={pos.y}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={glyphSize}
-                fontFamily={GLYPH_FONT}
-                fill={SIGN_ELEMENT_COLORS[i]}
-                data-glyph="zodiac"
-                data-glyph-index={i}
-              >
-                {ZODIAC_UNICODE[i]}
-              </text>
+                index={i} x={pos.x} y={pos.y}
+                sz={glyphSize} fill={SIGN_ELEMENT_COLORS[i]!}
+              />
             );
           })}
 
@@ -499,17 +528,11 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     const color = PLANET_COLORS[ruler] || '#8B7355';
                     const ringH = boundsOuter - boundsMid;
                     return (
-                      <text
+                      <PlanetGlyph
                         key={`bound-glyph-${signIdx}-${bIdx}`}
-                        x={pos.x} y={pos.y}
-                        textAnchor="middle" dominantBaseline="central"
-                        fontSize={ringH * 0.55}
-                        fontFamily={GLYPH_FONT}
-                        fill={color}
-                        fillOpacity={0.7}
-                      >
-                        {PLANET_UNICODE[ruler] || '○'}
-                      </text>
+                        planet={ruler} x={pos.x} y={pos.y}
+                        sz={ringH * 0.55} fill={color} opacity={0.7}
+                      />
                     );
                   });
                 })}
@@ -523,17 +546,11 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     const color = PLANET_COLORS[ruler] || '#8B7355';
                     const ringH = boundsMid - decansInner;
                     return (
-                      <text
+                      <PlanetGlyph
                         key={`decan-glyph-${signIdx}-${dIdx}`}
-                        x={pos.x} y={pos.y}
-                        textAnchor="middle" dominantBaseline="central"
-                        fontSize={ringH * 0.55}
-                        fontFamily={GLYPH_FONT}
-                        fill={color}
-                        fillOpacity={0.7}
-                      >
-                        {PLANET_UNICODE[ruler] || '○'}
-                      </text>
+                        planet={ruler} x={pos.x} y={pos.y}
+                        sz={ringH * 0.55} fill={color} opacity={0.7}
+                      />
                     );
                   }),
                 )}
@@ -684,7 +701,6 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
 
             const labelSz = bandH * 0.11;
             const signIndex = Math.floor(planet.longitude / 30) % 12;
-            const signGlyph = ZODIAC_UNICODE[signIndex];
             const signColor = SIGN_ELEMENT_COLORS[signIndex];
 
             return (
@@ -703,18 +719,12 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 />
 
                 {/* Planet glyph */}
-                <text
-                  x={glyphPos.x} y={glyphPos.y}
-                  textAnchor="middle" dominantBaseline="central"
-                  fontSize={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
-                  fontFamily={GLYPH_FONT}
+                <PlanetGlyph
+                  planet={planet.planet} x={glyphPos.x} y={glyphPos.y}
+                  sz={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
                   fill={color}
-                  data-glyph="planet"
-                  data-planet={planet.planet}
-                  transform={planet.planet === 'fortune' ? `rotate(45 ${glyphPos.x} ${glyphPos.y})` : undefined}
-                >
-                  {PLANET_UNICODE[planet.planet] || '○'}
-                </text>
+                  rotate={planet.planet === 'fortune' ? 45 : undefined}
+                />
 
                 {/* Retrograde indicator */}
                 {planet.retrograde && (
@@ -740,17 +750,10 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 </text>
 
                 {/* Sign glyph */}
-                <text
-                  x={signPos.x} y={signPos.y}
-                  textAnchor="middle" dominantBaseline="central"
-                  fontSize={labelSz}
-                  fontFamily={GLYPH_FONT}
-                  fill={signColor}
-                  data-glyph="zodiac"
-                  data-glyph-index={signIndex}
-                >
-                  {signGlyph}
-                </text>
+                <SignGlyph
+                  index={signIndex} x={signPos.x} y={signPos.y}
+                  sz={labelSz} fill={signColor!}
+                />
 
                 {/* Minute */}
                 <text
@@ -825,7 +828,6 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
 
                 const labelSz = bandWidth * 0.11;
                 const signIndex = Math.floor(planet.longitude / 30) % 12;
-                const signGlyph = ZODIAC_UNICODE[signIndex];
                 const signColor = SIGN_ELEMENT_COLORS[signIndex];
 
                 return (
@@ -844,18 +846,12 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     />
 
                     {/* Planet glyph */}
-                    <text
-                      x={glyphPos.x} y={glyphPos.y}
-                      textAnchor="middle" dominantBaseline="central"
-                      fontSize={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
-                      fontFamily={GLYPH_FONT}
+                    <PlanetGlyph
+                      planet={planet.planet} x={glyphPos.x} y={glyphPos.y}
+                      sz={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
                       fill={color}
-                      data-glyph="planet"
-                      data-planet={planet.planet}
-                      transform={planet.planet === 'fortune' ? `rotate(45 ${glyphPos.x} ${glyphPos.y})` : undefined}
-                    >
-                      {PLANET_UNICODE[planet.planet] || '○'}
-                    </text>
+                      rotate={planet.planet === 'fortune' ? 45 : undefined}
+                    />
 
                     {/* Retrograde indicator */}
                     {planet.retrograde && (
@@ -881,17 +877,10 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     </text>
 
                     {/* Sign glyph */}
-                    <text
-                      x={signPos.x} y={signPos.y}
-                      textAnchor="middle" dominantBaseline="central"
-                      fontSize={labelSz}
-                      fontFamily={GLYPH_FONT}
-                      fill={signColor}
-                      data-glyph="zodiac"
-                      data-glyph-index={signIndex}
-                    >
-                      {signGlyph}
-                    </text>
+                    <SignGlyph
+                      index={signIndex} x={signPos.x} y={signPos.y}
+                      sz={labelSz} fill={signColor!}
+                    />
 
                     {/* Minute */}
                     <text

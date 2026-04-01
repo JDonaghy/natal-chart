@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ChartResult, TransitResult, AspectType, ZodiacSign } from '@natal-chart/core';
-import { getPlanetGlyph, getSignGlyph, getAspectGlyph, getAspectColor } from '../utils/chart-helpers';
+import { getAspectGlyph, getAspectColor } from '../utils/chart-helpers';
+import { PlanetGlyphIcon, SignGlyphIcon } from './GlyphIcon';
 import { useResponsive } from '../hooks/useResponsive';
 
 /** Transit aspect orbs (tighter than natal, matching calculator.ts) */
@@ -76,7 +77,7 @@ export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData,
   // Build natal rows: all planets + ASC + MC
   const natalRows: NatalPoint[] = chartData.planets.map(p => ({
     key: p.planet,
-    glyph: getPlanetGlyph(p.planet),
+    glyph: p.planet,
     longitude: p.longitude,
     sign: p.sign,
     degree: p.degree,
@@ -147,13 +148,11 @@ export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData,
                   lineHeight: 1.1,
                 }}
               >
-                <span className="glyph" style={{ fontSize: '1rem', display: 'block', lineHeight: 1.2 }}>
-                  {getPlanetGlyph(col.planet)}
+                <span style={{ fontSize: '1rem', display: 'block', lineHeight: 1.2 }}>
+                  <PlanetGlyphIcon planet={col.planet} size="1em" />
                 </span>
                 <span style={{ fontSize: '0.6rem', display: 'block', lineHeight: 1.3 }}>
-                  <span className="glyph" style={{ color: SIGN_ELEMENT_COLORS[col.sign] || '#5a4a3a' }}>
-                    {getSignGlyph(col.sign)}
-                  </span>
+                  <SignGlyphIcon sign={col.sign} size="0.9em" color={SIGN_ELEMENT_COLORS[col.sign] || '#5a4a3a'} />
                   {' '}{col.degree}°{col.minute.toString().padStart(2, '0')}′
                 </span>
               </th>
@@ -175,12 +174,13 @@ export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData,
                   whiteSpace: 'nowrap',
                 }}
               >
-                <span
-                  className={!row.isTextLabel ? 'glyph' : undefined}
-                  style={{ fontSize: row.isTextLabel ? '0.7rem' : '1rem', fontWeight: 'bold' }}
-                >
-                  {row.glyph}
-                </span>
+                {row.isTextLabel || row.key === 'asc' || row.key === 'mc' ? (
+                  <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>
+                    {row.key === 'asc' ? 'AC' : row.key === 'mc' ? 'MC' : row.key === 'vertex' ? 'Vx' : row.glyph}
+                  </span>
+                ) : (
+                  <PlanetGlyphIcon planet={row.key} size="1em" />
+                )}
               </td>
               {/* Aspect cells */}
               {transitCols.map(col => {

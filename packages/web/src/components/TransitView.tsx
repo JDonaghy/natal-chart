@@ -11,7 +11,8 @@ import { type GeocodeResult } from '../services/geocoding';
 import { CitySearch } from './CitySearch';
 import { AspectGrid } from './AspectGrid';
 import { TransitAspectGrid } from './TransitAspectGrid';
-import { getPlanetGlyph, getSignGlyph, formatPlanetName, formatSignName } from '../utils/chart-helpers';
+import { formatPlanetName, formatSignName } from '../utils/chart-helpers';
+import { PlanetGlyphIcon, SignGlyphIcon } from './GlyphIcon';
 import { useResponsive } from '../hooks/useResponsive';
 import '../App.css';
 
@@ -464,11 +465,11 @@ export const TransitView: React.FC = () => {
             ? { width: '100%' }
             : { flex: '1 1 0', minWidth: 0, overflow: 'auto' }
           }>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} transitData={transitData ?? undefined} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem' }}>
               <input type="checkbox" checked={showAspects} onChange={(e) => setShowAspects(e.target.checked)} />
               Show aspect lines
             </label>
+            <ChartWheel ref={chartWheelRef} chartData={chartData} transitData={transitData ?? undefined} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend
@@ -499,15 +500,11 @@ export const TransitView: React.FC = () => {
                   {chartData.planets.map((planet, index) => (
                     <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: '0.5rem' }}>
-                        <span className="glyph" style={{ marginRight: '0.5rem' }}>
-                          {getPlanetGlyph(planet.planet)}
-                        </span>
+                        <PlanetGlyphIcon planet={planet.planet} style={{ marginRight: '0.5rem' }} />
                         {formatPlanetName(planet.planet)}
                       </td>
                       <td style={{ padding: '0.5rem' }}>
-                        <span className="glyph" style={{ marginRight: '0.5rem' }}>
-                          {getSignGlyph(planet.sign)}
-                        </span>
+                        <SignGlyphIcon sign={planet.sign} style={{ marginRight: '0.5rem' }} />
                         {formatSignName(planet.sign)}
                       </td>
                       <td style={{ padding: '0.5rem' }}>

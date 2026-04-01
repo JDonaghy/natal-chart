@@ -126,6 +126,23 @@ export function getPlanetPath(planet: string): { d: string; viewBox: string } | 
   return PLANET_GLYPH_PATHS[planet];
 }
 
+/**
+ * Compute an SVG transform that scales a glyph from its native font-coordinate
+ * viewBox down to `sz` pixels and centers it at (x, y).
+ */
+export function glyphTransform(viewBox: string, x: number, y: number, sz: number): string {
+  const parts = viewBox.split(' ').map(Number);
+  const vbX = parts[0] ?? 0;
+  const vbY = parts[1] ?? 0;
+  const vbW = parts[2] ?? 100;
+  const vbH = parts[3] ?? 100;
+  const maxDim = Math.max(vbW, vbH);
+  const scale = sz / maxDim;
+  const padX = (sz - vbW * scale) / 2;
+  const padY = (sz - vbH * scale) / 2;
+  return `translate(${x - sz / 2 + padX}, ${y - sz / 2 + padY}) scale(${scale}) translate(${-vbX}, ${-vbY})`;
+}
+
 // 3-letter abbreviations for zodiac signs (used in text labels)
 export const SIGN_ABBREVIATIONS: string[] = [
   'Ari', 'Tau', 'Gem', 'Can', 'Leo', 'Vir',
