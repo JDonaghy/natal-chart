@@ -1,4 +1,4 @@
-export type HouseSystem = 'P' | 'W' | 'K'; // Placidus | Whole Sign | Koch
+export type HouseSystem = 'P' | 'W'; // Placidus | Whole Sign
 
 export interface BirthData {
   dateTimeUtc: Date;

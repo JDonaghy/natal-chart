@@ -14,7 +14,7 @@ import '../App.css';
 
 export const ChartView: React.FC = () => {
   const navigate = useNavigate();
-  const { chartData, birthData, loading, error, loadChart, setTransitDateStr, setTransitLocation, calculateTransits } = useChart();
+  const { chartData, birthData, loading, error, loadChart, setTransitDateStr, setTransitLocation, calculateTransits, showAspects, setShowAspects, showBoundsDecans, setShowBoundsDecans } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -29,6 +29,8 @@ export const ChartView: React.FC = () => {
     const found = charts.find((c: SavedChart) => c.id === id);
     if (found) {
       loadChart(found.chartData, found.birthData);
+      setShowAspects(found.showAspects ?? true);
+      setShowBoundsDecans(found.showBoundsDecans ?? false);
       if (found.transitDateStr) {
         // Load natal data, set transit state, then navigate to transit view
         setTransitDateStr(found.transitDateStr);
@@ -127,9 +129,22 @@ export const ChartView: React.FC = () => {
       if (birthData.city) {
         shareData.city = birthData.city;
       }
+      shareData.showAspects = showAspects;
+      shareData.showBoundsDecans = showBoundsDecans;
 
       const url = buildShareUrl(shareData);
-      await navigator.clipboard.writeText(url);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -141,7 +156,7 @@ export const ChartView: React.FC = () => {
     if (!chartData || !birthData) return;
     const name = prompt('Name for this chart:', birthData.city || 'My Chart');
     if (!name) return;
-    saveChart(name, chartData, birthData);
+    saveChart(name, chartData, birthData, undefined, undefined, { showAspects, showBoundsDecans });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -253,7 +268,7 @@ export const ChartView: React.FC = () => {
           <span>{new Date(birthData.dateTimeUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</span>
           <span>{birthData.latitude.toFixed(2)}°, {birthData.longitude.toFixed(2)}°</span>
           {birthData.timezone && <span>{birthData.timezone}</span>}
-          <span>{birthData.houseSystem === 'P' ? 'Placidus' : birthData.houseSystem === 'W' ? 'Whole Sign' : 'Koch'}</span>
+          <span>{birthData.houseSystem === 'P' ? 'Placidus' : 'Whole Sign'}</span>
         </div>
       )}
 
@@ -326,7 +341,17 @@ export const ChartView: React.FC = () => {
             ? { width: '100%' }
             : { flex: '1 1 0', minWidth: 0, overflow: 'auto' }
           }>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} size={chartSize} />
+            <ChartWheel ref={chartWheelRef} chartData={chartData} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} showBoundsDecans={showBoundsDecans} />
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.25rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666' }}>
+                <input type="checkbox" checked={showAspects} onChange={(e) => setShowAspects(e.target.checked)} />
+                Show aspect lines
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666' }}>
+                <input type="checkbox" checked={showBoundsDecans} onChange={(e) => setShowBoundsDecans(e.target.checked)} />
+                Bounds &amp; decans
+              </label>
+            </div>
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend chartData={chartData} />

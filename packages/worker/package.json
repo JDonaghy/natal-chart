@@ -1,6 +1,6 @@
 {
   "name": "@natal-chart/worker",
-  "version": "0.7.0",
+  "version": "0.11.0",
   "description": "Cloudflare Worker for geocoding proxy and bot protection",
   "type": "module",
   "main": "dist/index.js",

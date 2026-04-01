@@ -7,6 +7,15 @@
   font-display: swap;
 }
 
+/* Cormorant — local copy for PDF export (svg2pdf needs it registered, not from Google CDN) */
+@font-face {
+  font-family: 'Cormorant';
+  src: url('/natal-chart/fonts/Cormorant-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Main app styles - traditional parchment aesthetic */
 
 :root {

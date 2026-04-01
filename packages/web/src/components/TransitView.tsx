@@ -17,7 +17,7 @@ import '../App.css';
 
 export const TransitView: React.FC = () => {
   const navigate = useNavigate();
-  const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation } = useChart();
+  const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation, showAspects, setShowAspects } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -62,6 +62,7 @@ export const TransitView: React.FC = () => {
     const found = charts.find((c: SavedChart) => c.id === id);
     if (found) {
       loadChart(found.chartData, found.birthData);
+      setShowAspects(found.showAspects ?? true);
       if (found.transitDateStr) {
         setTransitDateStr(found.transitDateStr);
         const loc = found.transitLocation || null;
@@ -174,9 +175,21 @@ export const TransitView: React.FC = () => {
           shareData.transitTz = transitLocation.timezone;
         }
       }
+      shareData.showAspects = showAspects;
 
       const url = buildShareUrl(shareData);
-      await navigator.clipboard.writeText(url);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -203,7 +216,7 @@ export const TransitView: React.FC = () => {
     if (!chartData || !birthData) return;
     const name = prompt('Name for this chart:', birthData.city || 'My Chart');
     if (!name) return;
-    saveChart(name, chartData, birthData, transitDateStr || undefined, transitLocation ?? undefined);
+    saveChart(name, chartData, birthData, transitDateStr || undefined, transitLocation ?? undefined, { showAspects });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -378,7 +391,7 @@ export const TransitView: React.FC = () => {
           <span>{new Date(birthData.dateTimeUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</span>
           <span>{birthData.latitude.toFixed(2)}°, {birthData.longitude.toFixed(2)}°</span>
           {birthData.timezone && <span>{birthData.timezone}</span>}
-          <span>{birthData.houseSystem === 'P' ? 'Placidus' : birthData.houseSystem === 'W' ? 'Whole Sign' : 'Koch'}</span>
+          <span>{birthData.houseSystem === 'P' ? 'Placidus' : 'Whole Sign'}</span>
         </div>
       )}
 
@@ -451,7 +464,11 @@ export const TransitView: React.FC = () => {
             ? { width: '100%' }
             : { flex: '1 1 0', minWidth: 0, overflow: 'auto' }
           }>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} transitData={transitData ?? undefined} size={chartSize} />
+            <ChartWheel ref={chartWheelRef} chartData={chartData} transitData={transitData ?? undefined} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+              <input type="checkbox" checked={showAspects} onChange={(e) => setShowAspects(e.target.checked)} />
+              Show aspect lines
+            </label>
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend

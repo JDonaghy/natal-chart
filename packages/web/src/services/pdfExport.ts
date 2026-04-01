@@ -9,33 +9,25 @@ import { getSignPathByIndex, getPlanetPath } from '../utils/astro-glyph-paths';
 type JsPDFWithAutoTable = jsPDF & { lastAutoTable: { finalY: number } };
 
 /**
- * Add DejaVuSans font to jsPDF instance if not already added
+ * Load a TTF font from public/fonts/ and register it with jsPDF
  */
-async function addDejaVuFont(doc: jsPDF): Promise<boolean> {
-  // Check if font already added to VFS
-  if (doc.existsFileInVFS && doc.existsFileInVFS('DejaVuSans.ttf')) {
-    console.log('DejaVuSans font already added to VFS');
-    // Also check if font is registered
+async function addFontToDoc(doc: jsPDF, fileName: string, fontName: string): Promise<boolean> {
+  // Check if font already registered
+  if (doc.existsFileInVFS && doc.existsFileInVFS(fileName)) {
     const fontList = doc.getFontList();
-    console.log('Available fonts:', fontList);
-    if (fontList && fontList['DejaVuSans']) {
-      console.log('DejaVuSans font already registered');
+    if (fontList && fontList[fontName]) {
       return true;
     }
   }
-  
+
   try {
-    // Fetch font file from public directory
-    const fontUrl = './fonts/DejaVuSans.ttf';
-    console.log(`Loading font from ${fontUrl} (full URL: ${new URL(fontUrl, window.location.href).href})`);
+    const fontUrl = `./fonts/${fileName}`;
     const response = await fetch(fontUrl, { mode: 'cors', credentials: 'same-origin' });
-    console.log(`Font fetch response: ${response.status} ${response.statusText}, ok: ${response.ok}, type: ${response.type}, content-type: ${response.headers.get('content-type')}`);
     if (!response.ok) {
-      throw new Error(`Failed to fetch font: ${response.status} ${response.statusText}`);
+      throw new Error(`Failed to fetch font ${fileName}: ${response.status}`);
     }
-    
+
     const fontBlob = await response.blob();
-    console.log(`Font blob size: ${fontBlob.size} bytes, type: ${fontBlob.type}`);
     const fontBase64 = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -44,7 +36,6 @@ async function addDejaVuFont(doc: jsPDF): Promise<boolean> {
           reject(new Error('Failed to read font as data URL'));
           return;
         }
-        // Remove data:application/octet-stream;base64, prefix
         const base64 = result.split(',')[1];
         if (!base64) {
           reject(new Error('Invalid data URL format'));
@@ -55,62 +46,38 @@ async function addDejaVuFont(doc: jsPDF): Promise<boolean> {
       reader.onerror = reject;
       reader.readAsDataURL(fontBlob);
     });
-    
-    // Add font to jsPDF Virtual File System (VFS)
-    doc.addFileToVFS('DejaVuSans.ttf', fontBase64);
-    // Register the font - suppress jsPDF PubSub errors that appear in console
+
+    doc.addFileToVFS(fileName, fontBase64);
+
+    // Suppress jsPDF PubSub errors during font registration
     const originalConsoleError = console.error;
-    let jsPdfErrorOccurred = false;
-    
-    // Override console.error to capture and suppress jsPDF PubSub errors
     console.error = (...args: unknown[]) => {
       const message = args[0]?.toString() || '';
-      if (message.includes('jsPDF PubSub Error')) {
-        jsPdfErrorOccurred = true;
-        console.log('Suppressed jsPDF PubSub Error during font registration');
-        return;
-      }
-      // Pass through other errors
+      if (message.includes('jsPDF PubSub Error')) return;
       originalConsoleError.apply(console, args);
     };
-    
+
     try {
-      // First try with encoding
-      doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal', 'Identity-H');
-    } catch (error) {
-      console.log('First addFont attempt failed, trying without encoding:', error);
+      doc.addFont(fileName, fontName, 'normal', 'Identity-H');
+    } catch {
       try {
-        // Try without encoding parameter
-        doc.addFont('DejaVuSans.ttf', 'DejaVuSans', 'normal');
-      } catch (error2) {
-        console.log('Second addFont attempt failed, font may not be compatible:', error2);
-        // Restore console.error before throwing
+        doc.addFont(fileName, fontName, 'normal');
+      } catch {
         console.error = originalConsoleError;
-        throw new Error('Failed to register DejaVuSans font with jsPDF');
+        throw new Error(`Failed to register ${fontName} font with jsPDF`);
       }
     } finally {
-      // Restore console.error
       console.error = originalConsoleError;
     }
-    
-    // Log if jsPDF error occurred but was suppressed
-    if (jsPdfErrorOccurred) {
-      console.log('jsPDF font parsing error occurred but was suppressed');
-    }
-    
-    // Verify font was actually registered
+
     const fontList = doc.getFontList();
-    console.log('Font list after adding:', fontList);
-    if (!fontList || !fontList['DejaVuSans']) {
-      throw new Error('DejaVuSans font not found in font list after registration');
+    if (!fontList || !fontList[fontName]) {
+      throw new Error(`${fontName} font not found in font list after registration`);
     }
-    
-    console.log('DejaVuSans font added successfully to VFS');
+
     return true;
   } catch (error) {
-    console.error('Failed to add DejaVuSans font:', error);
-    // Fallback to ZapfDingbats
-    console.log('Using ZapfDingbats as fallback');
+    console.error(`Failed to add ${fontName} font:`, error);
     return false;
   }
 }
@@ -155,13 +122,19 @@ export async function generateChartPdf(
     compress: true,
   });
 
-  // Try to load DejaVuSans font for astrological symbols
+  // Load fonts: DejaVuSans for astrological glyphs, Cormorant for degree/minute labels
   let fontLoaded: boolean;
   try {
-    fontLoaded = await addDejaVuFont(doc);
-    console.log('Font loading result:', fontLoaded ? 'success' : 'failed');
+    const [dejaVuLoaded, cormorantLoaded] = await Promise.all([
+      addFontToDoc(doc, 'DejaVuSans.ttf', 'DejaVuSans'),
+      addFontToDoc(doc, 'Cormorant-Regular.ttf', 'Cormorant'),
+    ]);
+    fontLoaded = dejaVuLoaded;
+    if (!cormorantLoaded) {
+      console.warn('Cormorant font not loaded, PDF degree/minute labels will use default font');
+    }
   } catch (error) {
-    console.error('Failed to load DejaVuSans font, using fallback without symbols:', error);
+    console.error('Failed to load fonts:', error);
     fontLoaded = false;
   }
 
@@ -250,8 +223,7 @@ function addHeader(doc: jsPDF, birthData: ExtendedBirthData, transitData?: Trans
   const locationText = `Location: ${birthData.city || `${birthData.latitude.toFixed(4)}°, ${birthData.longitude.toFixed(4)}°`}`;
   const timezoneText = birthData.timezone ? `Timezone: ${birthData.timezone}` : '';
   const houseSystemText = `House System: ${
-    birthData.houseSystem === 'P' ? 'Placidus' :
-    birthData.houseSystem === 'W' ? 'Whole Sign' : 'Koch'
+    birthData.houseSystem === 'P' ? 'Placidus' : 'Whole Sign'
   }`;
 
   doc.setFontSize(FONTS.small);
@@ -326,6 +298,22 @@ async function addChartWheel(
     // Replace Unicode glyph <text> elements with SVG <path> elements
     // so svg2pdf renders them as native vectors (no font dependency).
     replaceGlyphTextWithPaths(svgClone);
+
+    // Normalize font-family on remaining text elements so svg2pdf can
+    // match them to jsPDF-registered fonts (strip CSS quotes and fallbacks).
+    // Also replace Unicode prime ′ (U+2032) with ASCII apostrophe '
+    // because svg2pdf's default font doesn't include the prime character.
+    svgClone.querySelectorAll('text').forEach((el) => {
+      if (el.textContent && el.textContent.includes('\u2032')) {
+        el.textContent = el.textContent.replace(/\u2032/g, "'");
+      }
+      const ff = el.getAttribute('font-family');
+      if (ff && ff.includes('Cormorant')) {
+        el.setAttribute('font-family', 'Cormorant');
+      }
+    });
+    // Also set the root SVG font-family to bare name for inheritance
+    svgClone.style.fontFamily = 'Cormorant';
 
     // Convert SVG to PDF using svg2pdf
     console.log('svg2pdf function available?', typeof svg2pdf);
@@ -993,7 +981,7 @@ function addReleasingSummary(
         : formatSignName(period.sign),
       formatPdfDate(period.startDate),
       formatPdfDate(period.endDate),
-      `${(period.durationDays / 365.25).toFixed(0)}y`,
+      `${(period.durationDays / 360).toFixed(0)}y`,
       markers.join(', '),
     ];
   });
@@ -1084,7 +1072,7 @@ function getPlanetGlyph(planet: string): string {
     saturn: '♄',
     uranus: '♅',
     neptune: '♆',
-    pluto: '♇',
+    pluto: '⯓',
     northNode: '☊',
     chiron: '⚷',
     lilith: '⚸',

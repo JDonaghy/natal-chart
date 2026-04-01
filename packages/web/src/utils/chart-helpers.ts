@@ -9,7 +9,7 @@ export function getPlanetGlyph(planet: string): string {
     saturn: '♄',
     uranus: '♅',
     neptune: '♆',
-    pluto: '♇',
+    pluto: '⯓',
     northNode: '☊',
     chiron: '⚷',
     lilith: '⚸',

@@ -28,7 +28,6 @@ const PLANET_TO_SE: Partial<Record<Planet, number>> = {
 const HOUSE_SYSTEM_TO_CHAR: Record<HouseSystem, string> = {
   P: 'P', // Placidus
   W: 'W', // Whole sign
-  K: 'K', // Koch
 };
 
 const ZODIAC_SIGNS: ZodiacSign[] = [
@@ -347,20 +346,27 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     // Determine house placement (1-12)
     let house = 1;
     const normalizedLongitude = ((longitude % 360) + 360) % 360;
-    for (let i = 1; i <= 12; i++) {
-      const cuspStart = ((cusps[i]! % 360) + 360) % 360;
-      const nextCusp = i < 12 ? cusps[i + 1] : cusps[1];
-      const cuspEnd = ((nextCusp! % 360) + 360) % 360;
-      // Handle wrap across 360°
-      if (cuspStart <= cuspEnd) {
-        if (normalizedLongitude >= cuspStart && normalizedLongitude < cuspEnd) {
-          house = i;
-          break;
-        }
-      } else {
-        if (normalizedLongitude >= cuspStart || normalizedLongitude < cuspEnd) {
-          house = i;
-          break;
+    if (data.houseSystem === 'W') {
+      // Whole Sign: house = sign offset from ascending sign + 1
+      const ascSign = Math.floor(ascendant / 30);
+      const planetSign = Math.floor(normalizedLongitude / 30);
+      house = ((planetSign - ascSign + 12) % 12) + 1;
+    } else {
+      for (let i = 1; i <= 12; i++) {
+        const cuspStart = ((cusps[i]! % 360) + 360) % 360;
+        const nextCusp = i < 12 ? cusps[i + 1] : cusps[1];
+        const cuspEnd = ((nextCusp! % 360) + 360) % 360;
+        // Handle wrap across 360°
+        if (cuspStart <= cuspEnd) {
+          if (normalizedLongitude >= cuspStart && normalizedLongitude < cuspEnd) {
+            house = i;
+            break;
+          }
+        } else {
+          if (normalizedLongitude >= cuspStart || normalizedLongitude < cuspEnd) {
+            house = i;
+            break;
+          }
         }
       }
     }
@@ -422,7 +428,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       sign: fortuneSignDMS.sign,
       degree: fortuneSignDMS.degree,
       minute: fortuneSignDMS.minute,
-      house: findHouse(fortuneLon, cusps),
+      house: findHouse(fortuneLon, cusps, data.houseSystem, ascendant),
       retrograde: false,
     });
   }
@@ -441,7 +447,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       sign: vertexSignDMS.sign,
       degree: vertexSignDMS.degree,
       minute: vertexSignDMS.minute,
-      house: findHouse(vertexLon, cusps),
+      house: findHouse(vertexLon, cusps, data.houseSystem, ascendant),
       retrograde: false,
     });
   }
@@ -771,15 +777,22 @@ export async function calculateTransitPositions(
 
     // Assign houses to transit planets
     for (const planet of planets) {
-      const normalizedLon = ((planet.longitude % 360) + 360) % 360;
-      for (let i = 1; i <= 12; i++) {
-        const cuspStart = ((cusps[i]! % 360) + 360) % 360;
-        const nextCusp = i < 12 ? cusps[i + 1] : cusps[1];
-        const cuspEnd = ((nextCusp! % 360) + 360) % 360;
-        if (cuspStart <= cuspEnd) {
-          if (normalizedLon >= cuspStart && normalizedLon < cuspEnd) { planet.house = i; break; }
-        } else {
-          if (normalizedLon >= cuspStart || normalizedLon < cuspEnd) { planet.house = i; break; }
+      if (location.houseSystem === 'W') {
+        const normalizedLon = ((planet.longitude % 360) + 360) % 360;
+        const ascSign = Math.floor(ascendant / 30);
+        const planetSign = Math.floor(normalizedLon / 30);
+        planet.house = ((planetSign - ascSign + 12) % 12) + 1;
+      } else {
+        const normalizedLon = ((planet.longitude % 360) + 360) % 360;
+        for (let i = 1; i <= 12; i++) {
+          const cuspStart = ((cusps[i]! % 360) + 360) % 360;
+          const nextCusp = i < 12 ? cusps[i + 1] : cusps[1];
+          const cuspEnd = ((nextCusp! % 360) + 360) % 360;
+          if (cuspStart <= cuspEnd) {
+            if (normalizedLon >= cuspStart && normalizedLon < cuspEnd) { planet.house = i; break; }
+          } else {
+            if (normalizedLon >= cuspStart || normalizedLon < cuspEnd) { planet.house = i; break; }
+          }
         }
       }
     }
@@ -801,8 +814,13 @@ export async function calculateTransitPositions(
 }
 
 // Helper: find house number for a given longitude
-function findHouse(longitude: number, cusps: Float64Array): number {
+function findHouse(longitude: number, cusps: Float64Array, houseSystem?: HouseSystem, ascendant?: number): number {
   const normalizedLon = ((longitude % 360) + 360) % 360;
+  if (houseSystem === 'W' && ascendant !== undefined) {
+    const ascSign = Math.floor(((ascendant % 360) + 360) % 360 / 30);
+    const planetSign = Math.floor(normalizedLon / 30);
+    return ((planetSign - ascSign + 12) % 12) + 1;
+  }
   for (let i = 1; i <= 12; i++) {
     const cuspStart = ((cusps[i]! % 360) + 360) % 360;
     const nextCusp = i < 12 ? cusps[i + 1] : cusps[1];

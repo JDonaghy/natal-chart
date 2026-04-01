@@ -47,7 +47,8 @@ export const BirthDataForm: React.FC = () => {
     city: '',
     latitude: 51.5074,
     longitude: -0.1278,
-    houseSystem: 'P' as 'P' | 'W' | 'K',
+    houseSystem: 'W' as 'P' | 'W',
+    ascHorizontal: true,
   });
   
   // Save form state to localStorage
@@ -180,7 +181,10 @@ export const BirthDataForm: React.FC = () => {
             loadedData.latitude = data.latitude;
             loadedData.longitude = data.longitude;
             loadedData.houseSystem = data.houseSystem;
-            
+            if (typeof data.ascHorizontal === 'boolean') {
+              loadedData.ascHorizontal = data.ascHorizontal;
+            }
+
             // Use saved city if available, otherwise format coordinates
             if (data.city && data.city !== 'Saved location') {
               loadedData.city = data.city;
@@ -205,6 +209,7 @@ export const BirthDataForm: React.FC = () => {
           latitude: loadedData.latitude ?? prev.latitude,
           longitude: loadedData.longitude ?? prev.longitude,
           houseSystem: loadedData.houseSystem ?? prev.houseSystem,
+          ascHorizontal: loadedData.ascHorizontal ?? prev.ascHorizontal,
           city: loadedData.city ?? prev.city,
           timezone: loadedData.timezone ?? prev.timezone,
         }));
@@ -329,6 +334,7 @@ export const BirthDataForm: React.FC = () => {
         latitude: formData.latitude,
         longitude: formData.longitude,
         houseSystem: formData.houseSystem,
+        ascHorizontal: formData.ascHorizontal,
         city: formData.city,
         timezone: formData.timezone,
       });
@@ -600,30 +606,71 @@ export const BirthDataForm: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <>
-                <div style={{
-                  padding: '0.75rem',
-                  backgroundColor: '#f8f4e8',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '0.95rem',
-                  color: formData.timezone ? '#333' : '#888',
-                }}>
-                  {formData.timezone ? (
-                    <>
-                      <span style={{ fontWeight: 'bold' }}>{formData.timezone}</span>
-                      <span style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: '#666' }}>
-                        (detected from city)
-                      </span>
-                    </>
-                  ) : (
-                    'Not yet detected — please search and select a city above'
-                  )}
-                </div>
-                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.25rem' }}>
-                  Timezone is automatically determined from the birth city
-                </p>
-              </>
+              <div ref={tzDropdownRef} style={{ position: 'relative' }}>
+                <input
+                  id="timezone"
+                  type="text"
+                  value={showTzDropdown ? tzFilter : formData.timezone}
+                  placeholder="Detected from city, or type to override..."
+                  onFocus={() => {
+                    setShowTzDropdown(true);
+                    setTzFilter('');
+                  }}
+                  onChange={(e) => {
+                    setTzFilter(e.target.value);
+                    setShowTzDropdown(true);
+                  }}
+                  style={{ width: '100%' }}
+                  autoComplete="off"
+                />
+                {showTzDropdown && (() => {
+                  const lowerFilter = tzFilter.toLowerCase();
+                  const filtered = timezoneList.filter(tz => tz.toLowerCase().includes(lowerFilter));
+                  return filtered.length > 0 ? (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '4px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      zIndex: 1000,
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      marginTop: '2px',
+                    }}>
+                      {filtered.slice(0, 50).map(tz => (
+                        <button
+                          key={tz}
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, timezone: tz }));
+                            setShowTzDropdown(false);
+                            setTzFilter('');
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '0.4rem 0.75rem',
+                            textAlign: 'left',
+                            border: 'none',
+                            backgroundColor: tz === formData.timezone ? '#f8f4e8' : 'transparent',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f0f0f0',
+                            fontSize: '0.9rem',
+                            color: '#333',
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8f4e8'; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = tz === formData.timezone ? '#f8f4e8' : 'transparent'; }}
+                        >
+                          {tz}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
+              </div>
             )}
             {timezoneError && (
               <p style={{ fontSize: '0.85rem', color: '#d32f2f', marginTop: '0.5rem' }}>
@@ -637,17 +684,7 @@ export const BirthDataForm: React.FC = () => {
              <label htmlFor="houseSystem" style={{ display: 'block', marginBottom: '0.5rem' }}>
                House System
              </label>
-             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                 <input
-                   type="radio"
-                   name="houseSystem"
-                   value="P"
-                   checked={formData.houseSystem === 'P'}
-                   onChange={handleInputChange}
-                 />
-                 <span>Placidus (Most Common)</span>
-               </label>
+             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                  <input
                    type="radio"
@@ -662,16 +699,22 @@ export const BirthDataForm: React.FC = () => {
                  <input
                    type="radio"
                    name="houseSystem"
-                   value="K"
-                   checked={formData.houseSystem === 'K'}
+                   value="P"
+                   checked={formData.houseSystem === 'P'}
                    onChange={handleInputChange}
                  />
-                 <span>Koch</span>
+                 <span>Placidus</span>
+               </label>
+               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.5rem', borderLeft: '1px solid #ccc', paddingLeft: '1rem' }}>
+                 <input
+                   type="checkbox"
+                   name="ascHorizontal"
+                   checked={formData.ascHorizontal}
+                   onChange={(e) => setFormData(prev => ({ ...prev, ascHorizontal: e.target.checked }))}
+                 />
+                 <span>ASC Horizontal</span>
                </label>
              </div>
-             <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '0.5rem' }}>
-               Placidus is the standard in Western astrology. Whole Sign is used in Hellenistic and Vedic traditions.
-             </p>
             </div>
          </div>
         

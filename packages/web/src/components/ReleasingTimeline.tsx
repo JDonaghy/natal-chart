@@ -295,11 +295,11 @@ function formatDate(date: Date): string {
 
 function formatDuration(days: number, level: number): string {
   if (level === 1) {
-    const years = days / 365.25;
+    const years = days / 360;
     return `${years.toFixed(0)}y`;
   }
   if (level === 2) {
-    const months = days / 30.4375;
+    const months = days / 30;
     if (months >= 1) return `${months.toFixed(1)}mo`;
     return `${days.toFixed(0)}d`;
   }

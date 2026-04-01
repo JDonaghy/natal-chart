@@ -254,6 +254,34 @@ export const AspectGrid: React.FC<AspectGridProps> = ({ chartData }) => {
           ))}
         </tbody>
       </table>
+      {/* Aspect symbol legend */}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '0.4rem 1.2rem',
+        marginTop: '0.75rem',
+        fontSize: '0.8rem',
+        color: '#666',
+      }}>
+        {([
+          ['conjunction', 'Conjunction (0°)'],
+          ['opposition', 'Opposition (180°)'],
+          ['trine', 'Trine (120°)'],
+          ['square', 'Square (90°)'],
+          ['sextile', 'Sextile (60°)'],
+          ['quincunx', 'Quincunx (150°)'],
+          ['semiSextile', 'Semi-sextile (30°)'],
+          ['parallel', 'Parallel'],
+          ['contraparallel', 'Contraparallel'],
+        ] as const).map(([key, label]) => (
+          <span key={key} style={{ whiteSpace: 'nowrap' }}>
+            <span className="glyph" style={{ color: getAspectColor(key), fontSize: '0.95rem', marginRight: '0.2rem' }}>
+              {getAspectGlyph(key)}
+            </span>
+            {label}
+          </span>
+        ))}
+      </div>
     </div>
   );
 };

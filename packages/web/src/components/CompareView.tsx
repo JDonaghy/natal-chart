@@ -23,7 +23,7 @@ const BirthDataSummary: React.FC<{ birthData: ExtendedBirthData }> = ({ birthDat
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem 0.8rem' }}>
       <span>{new Date(birthData.dateTimeUtc).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
       <span>{new Date(birthData.dateTimeUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</span>
-      <span>{birthData.houseSystem === 'P' ? 'Placidus' : birthData.houseSystem === 'W' ? 'Whole Sign' : 'Koch'}</span>
+      <span>{birthData.houseSystem === 'P' ? 'Placidus' : 'Whole Sign'}</span>
     </div>
   </div>
 );
@@ -109,7 +109,7 @@ export const CompareView: React.FC = () => {
             <>
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{leftChart.name}</h3>
               <BirthDataSummary birthData={leftChart.birthData} />
-              <ChartWheel chartData={leftChart.chartData} size={chartSize} />
+              <ChartWheel chartData={leftChart.chartData} size={chartSize} ascHorizontal={leftChart.birthData?.ascHorizontal} />
               <PlanetLegend chartData={leftChart.chartData} />
             </>
           ) : (
@@ -125,7 +125,7 @@ export const CompareView: React.FC = () => {
             <>
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{rightChart.name}</h3>
               <BirthDataSummary birthData={rightChart.birthData} />
-              <ChartWheel chartData={rightChart.chartData} size={chartSize} />
+              <ChartWheel chartData={rightChart.chartData} size={chartSize} ascHorizontal={rightChart.birthData?.ascHorizontal} />
               <PlanetLegend chartData={rightChart.chartData} />
             </>
           ) : (
