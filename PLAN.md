@@ -1,6 +1,6 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.11.0 Release
+## Current Sprint: v0.11.1 Patch Release
 **Status**: Complete
 **Last Updated**: 2026-04-01
 
@@ -78,6 +78,12 @@
 - [x] **Persist chart view flags in share URLs and saved charts** - Store `showAspects` and `showBoundsDecans` toggle states in share URL params and saved chart data. Restore flag values when loading from either source so the chart renders identically to when it was shared/saved.
 - [x] **Shrink minute label font on chart wheel** - Reduce the font size of the minute text (MM′) in the planet radial labels to ~70% of the current size, in both natal and transit bands.
 - [x] **Fix PDF degree/minute rendering** - The minute prime character ′ (U+2032) was not in svg2pdf's default Helvetica font, causing garbled multi-character output. Fixed by replacing ′ with ASCII apostrophe ' in SVG text elements before svg2pdf processing.
+
+### 🔧 Bug Fixes (v0.11.1)
+- [x] **Fix PDF autoTable font handling** - autoTable ignored `doc.setFont('DejaVuSans')` and rendered Unicode glyphs in Helvetica, producing garbled output. Added `font: 'DejaVuSans'` to autoTable head/body styles. Registered DejaVuSans and Cormorant as both normal and bold weight to eliminate font lookup warnings.
+- [x] **Font-independent glyph rendering** - Replaced Unicode `<text>` elements in ChartWheel with SVG `<path>` elements for all planet and zodiac glyphs (using existing path data from astro-glyph-paths.ts). Created `GlyphIcon.tsx` with `PlanetGlyphIcon`/`SignGlyphIcon` components for HTML contexts. Fixes Pluto ⯓ (U+2BD3) rendering as rectangle on systems without DejaVuSans.
+- [x] **Fix timezone detection on city selection** - `CitySearch.handleSelect()` called `onSelect` (setting timezone) then `setQuery` (triggering onChange which cleared timezone). Fixed by swapping call order so onChange fires before onSelect.
+- [x] **Move chart toggle checkboxes above chart** - Moved "Show aspect lines" and "Bounds & decans" checkboxes from below to above the chart wheel in ChartView, TransitView, and CurrentPlanetsView.
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations

@@ -444,4 +444,30 @@ Added 16 new items to PLAN.md from client feedback:
 
 ---
 
+## Session 2026-04-01c: v0.11.1 Patch — Glyph Rendering, PDF Fonts, Timezone Fix
+
+### 🐛 Bugs Fixed
+1. **PDF autoTable garbled glyphs** — `autoTable` ignored `doc.setFont('DejaVuSans')` and rendered Unicode glyphs in Helvetica, producing garbled `&H &= &L` output. Fixed by adding `font: 'DejaVuSans'` to autoTable `headStyles`/`bodyStyles` when fontLoaded is true.
+2. **PDF font lookup warnings** — DejaVuSans and Cormorant were only registered as 'normal' weight. autoTable/svg2pdf tried bold/500normal, causing console warnings. Fixed by registering both fonts as 'bold' too (same regular TTF).
+3. **Pluto glyph ⯓ rendering as rectangle** — U+2BD3 is in a rare Unicode block unsupported by most system fonts. Replaced all `<text>` glyph rendering in ChartWheel with `<path>` elements using SVG path data from `astro-glyph-paths.ts`. Created `GlyphIcon.tsx` with `PlanetGlyphIcon`/`SignGlyphIcon` for HTML contexts (PlanetLegend, AspectGrid, TransitAspectGrid, ChartView, TransitView).
+4. **Timezone detection broken on city selection** — In `CitySearch.handleSelect()`, `onSelect(result)` set the timezone, then `setQuery(result.formatted)` triggered `onChange` which cleared it. Fixed by swapping call order: `setQuery` fires before `onSelect`.
+
+### ✅ UI Changes
+5. **Chart toggle checkboxes above chart** — Moved "Show aspect lines" and "Bounds & decans" checkboxes from below to above the chart wheel in ChartView, TransitView, and CurrentPlanetsView.
+
+### 📁 Key Files Changed
+- `packages/web/src/utils/astro-glyph-paths.ts` — Added exported `glyphTransform()` function
+- `packages/web/src/components/ChartWheel.tsx` — `PlanetGlyph`/`SignGlyph` components render SVG paths instead of text
+- `packages/web/src/components/GlyphIcon.tsx` — New: `PlanetGlyphIcon`/`SignGlyphIcon` for HTML inline SVG
+- `packages/web/src/components/PlanetLegend.tsx` — Use GlyphIcon instead of Unicode text
+- `packages/web/src/components/AspectGrid.tsx` — Use GlyphIcon for planet diagonal cells
+- `packages/web/src/components/TransitAspectGrid.tsx` — Use GlyphIcon for row/column headers
+- `packages/web/src/components/ChartView.tsx` — Use GlyphIcon, move checkboxes above chart
+- `packages/web/src/components/TransitView.tsx` — Use GlyphIcon, move checkbox above chart
+- `packages/web/src/components/CurrentPlanetsView.tsx` — Move checkboxes above chart
+- `packages/web/src/services/pdfExport.ts` — Register bold font variants, add font to autoTable styles
+- `packages/web/src/components/CitySearch.tsx` — Swap setQuery/onSelect order in handleSelect
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

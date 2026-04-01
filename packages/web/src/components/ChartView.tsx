@@ -8,7 +8,8 @@ import { buildShareUrl, type ShareData } from '../utils/shareUrl';
 import { convertFromUTC } from '../services/timezone';
 import { saveChart, getSavedCharts, type SavedChart } from '../services/savedCharts';
 import { AspectGrid } from './AspectGrid';
-import { getPlanetGlyph, getSignGlyph, formatPlanetName, formatSignName } from '../utils/chart-helpers';
+import { formatPlanetName, formatSignName } from '../utils/chart-helpers';
+import { PlanetGlyphIcon, SignGlyphIcon } from './GlyphIcon';
 import { useResponsive } from '../hooks/useResponsive';
 import '../App.css';
 
@@ -341,8 +342,7 @@ export const ChartView: React.FC = () => {
             ? { width: '100%' }
             : { flex: '1 1 0', minWidth: 0, overflow: 'auto' }
           }>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} showBoundsDecans={showBoundsDecans} />
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '0.25rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.25rem' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666' }}>
                 <input type="checkbox" checked={showAspects} onChange={(e) => setShowAspects(e.target.checked)} />
                 Show aspect lines
@@ -352,6 +352,7 @@ export const ChartView: React.FC = () => {
                 Bounds &amp; decans
               </label>
             </div>
+            <ChartWheel ref={chartWheelRef} chartData={chartData} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} showBoundsDecans={showBoundsDecans} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend chartData={chartData} />
@@ -377,15 +378,11 @@ export const ChartView: React.FC = () => {
                   {chartData.planets.map((planet, index) => (
                     <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: '0.5rem' }}>
-                        <span className="glyph" style={{ marginRight: '0.5rem' }}>
-                          {getPlanetGlyph(planet.planet)}
-                        </span>
+                        <PlanetGlyphIcon planet={planet.planet} style={{ marginRight: '0.5rem' }} />
                         {formatPlanetName(planet.planet)}
                       </td>
                       <td style={{ padding: '0.5rem' }}>
-                        <span className="glyph" style={{ marginRight: '0.5rem' }}>
-                          {getSignGlyph(planet.sign)}
-                        </span>
+                        <SignGlyphIcon sign={planet.sign} style={{ marginRight: '0.5rem' }} />
                         {formatSignName(planet.sign)}
                       </td>
                       <td style={{ padding: '0.5rem' }}>

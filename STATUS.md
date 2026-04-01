@@ -5,7 +5,7 @@
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.11.0
+- **Current Version**: 0.11.1
 
 ## ✅ What Works
 
@@ -14,7 +14,7 @@
 - [x] Automatic timezone detection via OpenCage geocoding
 - [x] Swiss Ephemeris WASM calculations (planets, houses, aspects, declinations)
 - [x] Professional chart wheel with concentric ring layout
-- [x] Astrological glyphs: Unicode text (DejaVu Sans) on web, font-extracted SVG vector paths in PDF
+- [x] Astrological glyphs: SVG vector paths on web chart wheel, inline SVG icons in HTML, SVG paths in PDF
 - [x] Planet collision avoidance with degree-ordered radial stacking and connector lines
 - [x] Planet degree labels as "DD° sign-glyph" (e.g. "19° ♈") Astro-Seek style
 - [x] Dedicated house number ring (1-12) between planet band and aspect area
@@ -55,10 +55,15 @@
 - [x] Shrink minute label font on chart wheel
 - [x] Fix PDF prime character rendering
 
-### PDF & Glyph Fixes (v0.11.0)
+### PDF & Glyph Fixes (v0.11.0–v0.11.1)
 - [x] Fix planet-band zodiac signs all rendering as Aries in PDF (missing data-glyph-index)
 - [x] Fix transit planet glyphs not converted to SVG paths in PDF (missing data attributes)
 - [x] Cormorant font bundled locally for PDF export (font mismatch still open — Bug #18)
+- [x] Fix PDF autoTable garbled glyphs — added DejaVuSans font to autoTable styles
+- [x] Register DejaVuSans/Cormorant bold variants to eliminate font lookup warnings
+- [x] Font-independent glyph rendering — SVG paths in chart wheel, inline SVG icons in HTML
+- [x] Fix timezone detection cleared on city selection (CitySearch event ordering)
+- [x] Chart toggle checkboxes moved above chart wheel
 
 ### Mobile-Responsive Layout (v0.7.0)
 - [x] Tamagui v1.116.14 with custom responsive hook (`useResponsive`)

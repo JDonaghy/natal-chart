@@ -71,8 +71,10 @@ export const CitySearch: React.FC<CitySearchProps> = ({
   };
 
   const handleSelect = (result: GeocodeResult) => {
-    onSelect(result);
+    // Set query text BEFORE onSelect so that the parent's onChange
+    // (which may clear timezone) fires before onSelect sets it.
     setQuery(result.formatted);
+    onSelect(result);
     setShowResults(false);
     setResults([]);
     setError(null);

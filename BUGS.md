@@ -28,6 +28,9 @@
 - ~~#6 Mock geocoding~~ — Real API enabled
 - ~~#8 ESLint not configured~~ — Configured and passing
 - ~~#10 Inner wheel rotation~~ — Fixed toAngle modular arithmetic
+- ~~#19 PDF autoTable garbled glyphs~~ — Added DejaVuSans font to autoTable styles (v0.11.1)
+- ~~#20 Pluto glyph ⯓ rendering as rectangle~~ — Replaced Unicode text with SVG path rendering (v0.11.1)
+- ~~#21 Timezone cleared on city selection~~ — Fixed CitySearch event ordering (v0.11.1)
 - ~~#5 Chiron calculation missing~~ — Fixed Emscripten FS path mismatch
 - ~~#9 TypeScript strictness~~ — All `as any` removed via proper type extensions
 - ~~#7 Mobile responsiveness~~ — Full responsive layout with Tamagui (v0.7.0)

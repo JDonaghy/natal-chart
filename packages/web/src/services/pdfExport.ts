@@ -59,9 +59,12 @@ async function addFontToDoc(doc: jsPDF, fileName: string, fontName: string): Pro
 
     try {
       doc.addFont(fileName, fontName, 'normal', 'Identity-H');
+      // Also register as bold so autoTable/svg2pdf don't fail on bold lookups
+      doc.addFont(fileName, fontName, 'bold', 'Identity-H');
     } catch {
       try {
         doc.addFont(fileName, fontName, 'normal');
+        doc.addFont(fileName, fontName, 'bold');
       } catch {
         console.error = originalConsoleError;
         throw new Error(`Failed to register ${fontName} font with jsPDF`);
@@ -396,10 +399,12 @@ function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number, font
       textColor: '#ffffff',
       fontStyle: 'bold',
       fontSize: FONTS.tableHeader,
+      ...(fontLoaded ? { font: 'DejaVuSans' } : {}),
     },
     bodyStyles: {
       fontSize: FONTS.tableBody,
       textColor: COLORS.text,
+      ...(fontLoaded ? { font: 'DejaVuSans' } : {}),
     },
     alternateRowStyles: {
       fillColor: '#f9f5eb',
@@ -633,10 +638,12 @@ function addTransitPlanetTable(doc: jsPDF, transitData: TransitResult, startY: n
       textColor: '#ffffff',
       fontStyle: 'bold',
       fontSize: FONTS.tableHeader,
+      ...(fontLoaded ? { font: 'DejaVuSans' } : {}),
     },
     bodyStyles: {
       fontSize: FONTS.tableBody,
       textColor: COLORS.text,
+      ...(fontLoaded ? { font: 'DejaVuSans' } : {}),
     },
     alternateRowStyles: {
       fillColor: '#f0f7ff',
@@ -995,10 +1002,12 @@ function addReleasingSummary(
       textColor: '#ffffff',
       fontStyle: 'bold',
       fontSize: FONTS.tableHeader,
+      ...(fontLoaded ? { font: 'DejaVuSans' } : {}),
     },
     bodyStyles: {
       fontSize: FONTS.tableBody,
       textColor: COLORS.text,
+      ...(fontLoaded ? { font: 'DejaVuSans' } : {}),
     },
     alternateRowStyles: {
       fillColor: '#f9f5eb',

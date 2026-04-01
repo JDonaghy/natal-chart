@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ChartResult, Aspect, AspectType } from '@natal-chart/core';
-import { getPlanetGlyph, getAspectGlyph, getAspectColor } from '../utils/chart-helpers';
+import { getAspectGlyph, getAspectColor } from '../utils/chart-helpers';
+import { PlanetGlyphIcon } from './GlyphIcon';
 import { useResponsive } from '../hooks/useResponsive';
 
 /** Points shown on the grid diagonal: all calculated planets + ASC + MC */
@@ -81,7 +82,7 @@ export const AspectGrid: React.FC<AspectGridProps> = ({ chartData }) => {
   // Build ordered list of grid points
   const points: GridPoint[] = chartData.planets.map(p => ({
     key: p.planet,
-    glyph: getPlanetGlyph(p.planet),
+    glyph: p.planet,
     longitude: p.longitude,
     retrograde: p.retrograde,
     isTextLabel: p.planet === 'vertex',
@@ -151,9 +152,13 @@ export const AspectGrid: React.FC<AspectGridProps> = ({ chartData }) => {
                         position: 'relative',
                       }}
                     >
-                      <span className={!rowPt.isTextLabel ? 'glyph' : undefined}>
-                        {rowPt.glyph}
-                      </span>
+                      {rowPt.isTextLabel ? (
+                        <span>{rowPt.glyph === 'vertex' ? 'Vx' : rowPt.glyph}</span>
+                      ) : rowPt.key === 'asc' || rowPt.key === 'mc' ? (
+                        <span>{rowPt.glyph}</span>
+                      ) : (
+                        <PlanetGlyphIcon planet={rowPt.key} size="1em" />
+                      )}
                       {rowPt.retrograde && (
                         <span style={{
                           position: 'absolute',
