@@ -2,6 +2,186 @@
 
 *This file tracks completed work across development sessions. Items are moved here from PLAN.md and BUGS.md when marked as completed or resolved.*
 
+## Session 2026-04-01b: v0.10.0 Complete — View Flags, Minute Labels, PDF Fix
+
+### ✅ Features Completed
+1. **Persist chart view flags in share URLs and saved charts** — Added `showAspects` (`asp=0`) and `showBoundsDecans` (`bd=1`) params to share URL encoding/decoding. Added fields to `SavedChart` interface. Flags restored when loading from share URL (via ShareLoader) or saved chart. Only non-default values encoded to keep URLs short.
+2. **Shrink minute label font on chart wheel** — Reduced minute text (MM′) from `labelSz` to `labelSz * 0.7` in both natal and transit planet bands in ChartWheel.
+3. **Fix PDF degree/minute rendering** — The prime character ′ (U+2032) was not in svg2pdf's default Helvetica font, causing garbled multi-character output. Fixed by replacing ′ with ASCII apostrophe in SVG text clone before svg2pdf processing.
+
+### 🐛 Bugs Fixed
+4. **Share link broken on HTTP** — `navigator.clipboard` is undefined in non-secure contexts (HTTP dev server). Added fallback using hidden textarea + `execCommand('copy')` in both ChartView and TransitView.
+5. **View flags reset on route navigation** — `showAspects` and `showBoundsDecans` were local component state, resetting on unmount. Moved to ChartContext so they persist across route changes.
+
+### 📁 Files Changed
+- `packages/web/src/utils/shareUrl.ts` — Added `showAspects`/`showBoundsDecans` to ShareData, encode/decode
+- `packages/web/src/services/savedCharts.ts` — Added view flags to SavedChart and saveChart()
+- `packages/web/src/contexts/ChartContext.tsx` — Added showAspects/showBoundsDecans state
+- `packages/web/src/components/ChartView.tsx` — Use context flags, clipboard fallback, pass flags to share/save
+- `packages/web/src/components/TransitView.tsx` — Use context flags, clipboard fallback, pass flags to share/save
+- `packages/web/src/components/ShareLoader.tsx` — Restore view flags from share URL
+- `packages/web/src/components/ChartWheel.tsx` — Minute label fontSize reduced to 0.7×
+- `packages/web/src/services/pdfExport.ts` — Replace ′ with ' in SVG text before svg2pdf
+- `PLAN.md` — All v0.10.0 items marked complete
+
+### 📝 Notes
+- v0.10.0 Chart Enhancements is now fully complete (all 4 items done)
+- CurrentPlanetsView keeps local showAspects/showBoundsDecans state (no ChartContext dependency)
+- Changes on `develop` branch, not yet committed
+
+---
+
+## Session 2026-04-01: v0.9.0/v0.10.0 — Current Planets Page & Bounds/Decans Rings
+
+### ✅ Features Completed
+1. **Current planets page** — New `/current` route with `CurrentPlanetsView.tsx`. Calculates chart for current date/time at Greenwich using Whole Sign houses. `fixedAnchor={0}` puts 0° Aries at 9 o'clock (natural zodiac wheel). DateTime picker + "Now" button. Chart wheel + planet legend sidebar. Lazy-loaded.
+2. **Bounds and decans rings** — Egyptian bounds (Ptolemy) and Chaldean decans as two concentric rings inside the zodiac ring. Segments filled with planet color at 25% opacity + ruler planet glyph. When enabled, zodiac ring redistributes: sign glyphs 30%, ticks 25%, bounds 22.5%, decans 22.5%. Toggle checkbox (default off) in ChartView and CurrentPlanetsView.
+3. **Show aspect lines toggle on Current Planets** — Added `showAspects` state and checkbox to CurrentPlanetsView.
+4. **ChartWheel `fixedAnchor` prop** — Overrides rotation anchor for natural zodiac wheel (0° Aries at 9 o'clock).
+5. **ChartWheel `showBoundsDecans` prop** — Conditionally renders bounds/decans rings and adjusts tick/glyph layout.
+
+### 📁 Files Created
+- `packages/web/src/components/CurrentPlanetsView.tsx` — Current planets page
+
+### 📁 Files Changed
+- `packages/web/src/components/ChartWheel.tsx` — `fixedAnchor`, `showBoundsDecans` props, Egyptian bounds + Chaldean decans data, conditional ring layout
+- `packages/web/src/components/ChartView.tsx` — `showBoundsDecans` state + checkbox
+- `packages/web/src/components/Layout.tsx` — "Current Planets" nav link
+- `packages/web/src/App.tsx` — `/current` route
+- `PLAN.md` — v0.9.0 complete, v0.10.0 items added
+
+### 📝 Notes
+- v0.9.0 Client Feedback is now fully complete (all 4 items done)
+- v0.10.0 has 3 remaining items: persist view flags in URLs/saved charts, shrink minute label font, investigate PDF degree/minute rendering
+- Changes on `develop` branch, not yet committed
+
+---
+
+## Session 2026-03-31e: v0.9.0 Client Feedback — Aspect Legend & Legend Sidebar Redesign
+
+### ✅ Features Completed
+1. **Aspect grid legend** — Added color-coded symbol legend below the aspect grid in `AspectGrid.tsx`. Shows all 9 aspect types (conjunction, opposition, trine, square, sextile, quincunx, semi-sextile, parallel, contraparallel) with glyphs, names, and angles. Wraps responsively.
+2. **Redesign legend sidebar (natal)** — Removed 12-house cusp listing from natal `PlanetLegend`. Only ASC/IC/DSC/MC angles remain under "Houses (Placidus)" header.
+3. **Transit legend: remove full houses section** — Removed 12-house cusp table from transit `PlanetLegend`. Only 4 angles remain with Birth/Transit columns.
+
+### 📁 Files Changed
+- `packages/web/src/components/AspectGrid.tsx` — Added aspect symbol legend section
+- `packages/web/src/components/PlanetLegend.tsx` — Removed 12-house cusp tables from both natal and transit modes
+- `PLAN.md` — Marked 3 v0.9.0 items complete
+
+### 📝 Notes
+- v0.9.0 Client Feedback has 1 remaining item: "Current planets page" (requires client screenshot)
+- Changes on `develop` branch, not yet committed
+
+---
+
+## Session 2026-03-31d: v0.8.0 Chart Wheel Polish — Final Items
+
+### ✅ Features Completed
+1. **Shrink Vertex (VX) label** — Reduced VX glyph to 65% of normal planet glyph size in both natal and transit bands.
+2. **Increase degree/minute text size** — Bumped degree and minute labels from 0.85× to 1.0× labelSz in both natal and transit bands.
+3. **Change Pluto glyph** — Replaced ♇ with ⯓ (Astro-Seek style) across ChartWheel, pdfExport, and chart-helpers.
+4. **Rotate Lot of Fortune glyph** — Added 45° SVG rotation transform on ⊕ glyph so it renders as "x" instead of "+". Applied to natal and transit bands.
+5. **Add option to hide aspect lines** — Added `showAspects` prop to ChartWheel (guards both natal and transit aspect lines). Added "Show aspect lines" checkbox toggle in ChartView and TransitView.
+6. **Thicker ASC/MC lines** — Increased ASC/DSC and MC/IC axis stroke width from 2 to 3.
+7. **Degree labels without planet glyph** — Verified current code already renders planet glyph separately from degree/sign/minute labels. No repeated glyph. Bug #16 resolved.
+
+### ✅ Bugs Resolved
+- **#16 Degree labels repeat planet glyph** — Verified: labels already separate, no repeated glyph in current code.
+
+### 📁 Files Changed
+- `packages/web/src/components/ChartWheel.tsx` — VX size, degree/min text size, Pluto glyph, Fortune rotation, showAspects prop, ASC/MC stroke width
+- `packages/web/src/components/ChartView.tsx` — showAspects state + checkbox
+- `packages/web/src/components/TransitView.tsx` — showAspects state + checkbox
+- `packages/web/src/services/pdfExport.ts` — Pluto glyph ⯓
+- `packages/web/src/utils/chart-helpers.ts` — Pluto glyph ⯓
+- `PLAN.md` — All v0.8.0 items marked complete, sprint updated to v0.9.0
+- `BUGS.md` — #15, #16 archived
+
+### 📝 Notes
+- v0.8.0 Chart Wheel Polish section is now **fully complete** (all 12 items done)
+- Next sprint: v0.9.0 Client Feedback (aspect grid legend, current planets page, legend sidebar redesign)
+- Changes on `develop` branch, not yet committed
+
+---
+
+## Session 2026-03-31c: Planet Glyph Sizing, Radial Layout & Collision Avoidance
+
+### ✅ Features Completed
+1. **Planet glyph sizing reduction** — Reduced natal planet glyphs from `bandH * 0.22` to `bandH * 0.11`, transit glyphs from `bandWidth * 0.25` to `bandWidth * 0.11`. Planets no longer dominate or overlap the wheel.
+2. **Radial label layout** — Planet info now stacks radially from outside in: planet glyph, degree, sign glyph, minute — matching Astro-Seek's layout. Previously degree+sign were merged on one line.
+3. **Cluster-based collision avoidance** — Replaced damped pairwise push algorithm with cluster detection + even spacing. Detects groups of overlapping labels and spreads them evenly around the cluster center. Handles wrap-around at 0°/360°. Extracted as shared `spreadLabels()` function for both natal and transit.
+4. **Removed duplicate lot markers** — Removed the separate lot rendering section (Fortune ⊕ and Spirit ☉) since Fortune is already in the planets array. Eliminates bug #61 (duplicate Fortune glyph) and the confusing Spirit ☉ that looked like a duplicate Sun.
+
+### ✅ Bugs Fixed
+1. **#15 Planet glyphs too large / overlapping** — Resolved by glyph size reduction and tighter collision avoidance (minSeparation 8° → 6°).
+2. **#61 (PLAN) Duplicate Lot of Fortune glyph** — Resolved by removing separate lot marker rendering.
+
+### 📁 Files Changed
+- `packages/web/src/components/ChartWheel.tsx` — Radial label layout, cluster-based `spreadLabels()`, removed lot rendering, removed `showLots` prop, removed `calculateLots`/`LotResult` imports
+
+---
+
+## Session 2026-03-31b: ASC Horizontal, Koch Removal & Whole Sign House Fix
+
+### ✅ Features Completed
+1. **ASC Horizontal toggle** (v0.8.0) — Added "ASC Horizontal" checkbox to house system UI (default checked). When checked, ASC at 9 o'clock; when unchecked, 1st house cusp at 9 o'clock. Matches Astro-Seek's dual Whole Sign modes.
+2. **Remove Koch house system** (v0.8.0) — Removed Koch ('K') from `HouseSystem` type, calculator map, UI radio buttons, share URL parsing, and all display strings. Whole Sign listed first, "(most common)" removed from Placidus.
+
+### ✅ Bugs Fixed
+1. **#13 Wheel rotation / ASC Horizontal** — Clarified client intent: Astro-Seek-style dual rotation. Implemented as toggle.
+2. **#17 Whole Sign house assignment always same house** — All planets showed house 4 with Whole Sign. Root cause: cusp-range algorithm didn't work with Swiss Ephemeris Whole Sign cusps. Fixed with Whole Sign-specific fast path: `house = ((planetSign - ascSign + 12) % 12) + 1`. Applied to natal, fortune, vertex, and transit calculations.
+
+### 🐛 Bugs Identified (from Astro-Seek comparison `samples/avu.png`)
+- **#14** Missing house cusp degree labels on thick lines
+- **#15** Planet glyphs too large / overlapping
+- **#16** Degree labels repeat planet glyph
+
+### 📁 Files Changed
+- `packages/core/src/types.ts` — HouseSystem: removed 'K'
+- `packages/core/src/calculator.ts` — Removed Koch map entry, Whole Sign house assignment fast path (natal + transit + findHouse)
+- `packages/web/src/components/BirthDataForm.tsx` — Removed Koch radio, added ascHorizontal checkbox, Whole Sign first, localStorage persistence
+- `packages/web/src/components/ChartWheel.tsx` — ascHorizontal prop, rotationAnchor logic
+- `packages/web/src/components/ChartView.tsx` — Pass ascHorizontal, removed Koch display string
+- `packages/web/src/components/TransitView.tsx` — Pass ascHorizontal, removed Koch display string
+- `packages/web/src/components/CompareView.tsx` — Pass ascHorizontal, removed Koch display string
+- `packages/web/src/contexts/ChartContext.tsx` — ascHorizontal on ExtendedBirthData
+- `packages/web/src/services/pdfExport.ts` — Removed Koch display string
+- `packages/web/src/utils/shareUrl.ts` — Removed 'K' from type and parser
+- `PLAN.md` — Marked ASC Horizontal and Koch removal complete
+- `BUGS.md` — Added #13-17, marked #13 and #17 fixed
+
+---
+
+## Session 2026-03-31: ZR Bug Fix, Transit Tick Marks & Client Feedback
+
+### ✅ Bugs Fixed
+1. **#12 Zodiacal Releasing period dates incorrect** — Two root causes: (a) period durations used 365.25-day tropical years instead of 360-day zodiacal years; (b) Capricorn sign period was 30 years instead of 27 (Saturn's lesser period). Total cycle corrected from 214→211 years. Verified against Astro-Seek reference — all L1 and L2 dates now match exactly.
+
+### ✅ Features Completed
+1. **Transit wheel degree markers** (v0.8.0) — Added 1° tick marks around the transit chart outer ring. 5° ticks at 20% band depth (0.6px), 1° ticks at 10% depth (0.3px). Sign boundaries (30°) skipped as they're already drawn as full lines.
+2. **Editable timezone field** — Replaced read-only timezone display with searchable dropdown (same as coordinates input mode). Removed "Timezone is automatically determined from the birth city" helper text.
+3. **Dev proxy for LAN access** — Changed `.env.development` to use Vite proxy (`/api/geocode`) instead of direct worker URL, fixing CORS issues when accessing from LAN IP.
+
+### 📋 Client Feedback Added to Plan
+Added 16 new items to PLAN.md from client feedback:
+- v0.8.0 Chart Wheel Polish: duplicate Fortune glyph, VX label size, degree text size, Pluto glyph, Fortune glyph rotation, hide aspect lines toggle, ASC/MC line thickness, degree label layout
+- v0.9.0 Client Feedback: aspect grid legend, current planets page, legend sidebar redesign, transit houses section removal
+- Updated Koch removal to include Whole Sign first + remove "(most common)"
+
+### 📁 Files Changed
+- `packages/core/src/zodiacal-releasing.ts` — 360-day years, Capricorn=27, total=211
+- `packages/core/test/zodiacal-releasing.test.ts` — Updated duration assertions
+- `packages/web/src/components/ChartWheel.tsx` — Transit ring tick marks
+- `packages/web/src/components/ReleasingTimeline.tsx` — Display divisors 360/30
+- `packages/web/src/components/BirthDataForm.tsx` — Editable timezone dropdown
+- `packages/web/src/services/pdfExport.ts` — PDF duration divisor
+- `packages/web/.env.development` — Proxy URL for LAN dev
+- `PLAN.md` — Client feedback items, transit ticks complete
+- `BUGS.md` — Added and resolved #12
+
+---
+
 ## Session 2026-03-28: Timezone Automation & UI Enhancement
 
 ### ✅ Features Completed
@@ -244,6 +424,23 @@
 - Tamagui v2.0.0-rc requires React 19; used v1.116.14 for React 18 compatibility
 - Tamagui's `useMedia()` didn't respond to viewport changes — custom hook using native `window.matchMedia` works reliably
 - Chart SVG already had viewBox + width:100%; the fix was removing flex constraints that prevented the container from shrinking below 640px
+
+## Session 2026-04-01c: v0.11.0 Release — Chart Wheel Polish, Current Planets, Bounds/Decans, PDF Glyph Fixes
+
+### ✅ Features Completed (v0.8.0 – v0.11.0)
+1. **Chart wheel polish (v0.8.0)** — Transit wheel 1°/5° tick marks, ASC Horizontal toggle, planet glyph sizing/radial layout, Koch house system removed, show/hide aspect lines toggle, Pluto glyph (⯓), Lot of Fortune rotation, thicker ASC/MC lines, Vertex label shrink, degree/minute text size increase.
+2. **Client feedback (v0.9.0)** — Aspect grid legend with color-coded symbols, Current Planets page (`/current` route) with chart wheel for current date/time at Greenwich, redesigned legend sidebar (angles only, no 12-house cusp listing), transit legend houses section removed.
+3. **Chart enhancements (v0.10.0)** — Egyptian bounds (Ptolemy) and Chaldean decans rings inside zodiac ring with toggle checkbox, persist showAspects and showBoundsDecans flags in share URLs and saved charts, shrink minute label font to 70%, fix PDF prime character (′) rendering.
+4. **PDF glyph fixes (v0.11.0)** — Fixed planet-band zodiac sign glyphs all rendering as Aries in PDF (missing `data-glyph-index` attribute on natal and transit band zodiac text elements). Fixed transit planet glyphs not converted to SVG paths (missing `data-glyph` and `data-planet` attributes). Bundled Cormorant font locally for PDF export.
+
+### 🐛 Bugs Filed
+- **Bug #18**: PDF degree/minute font mismatch — Cormorant registered with jsPDF but svg2pdf still falls back to Helvetica.
+
+### 📁 Key Files Changed
+- `packages/web/src/components/ChartWheel.tsx` — LABEL_FONT constant, explicit fontFamily on degree/minute/house text, data-glyph-index on planet-band zodiac signs, data-glyph/data-planet on transit planet glyphs
+- `packages/web/src/services/pdfExport.ts` — Refactored font loading into generic `addFontToDoc`, loads Cormorant alongside DejaVuSans, normalizes font-family on SVG clone
+- `packages/web/src/App.css` — Local @font-face for Cormorant
+- `packages/web/public/fonts/Cormorant-Regular.ttf` — New font file
 
 ---
 

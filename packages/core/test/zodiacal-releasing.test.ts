@@ -82,13 +82,13 @@ describe('calculateZodiacalReleasing', () => {
     const ariesPeriod = timeline.periods[0]!;
     expect(ariesPeriod.sign).toBe('aries');
     expect(ariesPeriod.ruler).toBe('mars');
-    expect(ariesPeriod.durationDays).toBeCloseTo(15 * 365.25, 0);
+    expect(ariesPeriod.durationDays).toBeCloseTo(15 * 360, 0);
 
     // Second period: Taurus (Venus = 8 years)
     const taurusPeriod = timeline.periods[1]!;
     expect(taurusPeriod.sign).toBe('taurus');
     expect(taurusPeriod.ruler).toBe('venus');
-    expect(taurusPeriod.durationDays).toBeCloseTo(8 * 365.25, 0);
+    expect(taurusPeriod.durationDays).toBeCloseTo(8 * 360, 0);
   });
 
   it('should mark angular signs as peak periods', () => {

@@ -1,11 +1,11 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-03-30*
+*Last Updated: 2026-04-01*
 
 ## 🚀 Deployment Status
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
 - **Cloudflare Worker**: https://natal-chart-geocoding.johnfdonaghy.workers.dev (v2 with timezone support)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.7.0
+- **Current Version**: 0.11.0
 
 ## ✅ What Works
 
@@ -36,6 +36,30 @@
 - [x] Coordinate input detection with OpenStreetMap validation link
 - [x] Chiron calculations via asteroid ephemeris files
 
+### Chart Wheel Polish (v0.8.0)
+- [x] Transit wheel 1°/5° tick marks
+- [x] ASC Horizontal toggle (Astro-Seek style)
+- [x] Planet glyph sizing and radial label layout
+- [x] Placidus and Whole Sign only (Koch removed)
+- [x] Show/hide aspect lines toggle
+- [x] Pluto glyph (⯓), Lot of Fortune rotation, thicker ASC/MC lines
+
+### Client Feedback (v0.9.0)
+- [x] Aspect grid legend with color-coded symbols
+- [x] Current Planets page (`/current`) — chart wheel for current date/time
+- [x] Redesigned legend sidebar — angles only (ASC/IC/DSC/MC), no 12-house cusp listing
+
+### Chart Enhancements (v0.10.0)
+- [x] Egyptian bounds and Chaldean decans rings (toggle)
+- [x] Persist showAspects and showBoundsDecans in share URLs and saved charts
+- [x] Shrink minute label font on chart wheel
+- [x] Fix PDF prime character rendering
+
+### PDF & Glyph Fixes (v0.11.0)
+- [x] Fix planet-band zodiac signs all rendering as Aries in PDF (missing data-glyph-index)
+- [x] Fix transit planet glyphs not converted to SVG paths in PDF (missing data attributes)
+- [x] Cormorant font bundled locally for PDF export (font mismatch still open — Bug #18)
+
 ### Mobile-Responsive Layout (v0.7.0)
 - [x] Tamagui v1.116.14 with custom responsive hook (`useResponsive`)
 - [x] Breakpoints: mobile (<=640px), tablet (641-1024px), desktop (>=1025px)
@@ -61,7 +85,8 @@
 ### Low Priority
 1. **Ephemeris file loading in tests** — "Failed to parse URL" error logs in Node.js test environment (tests still pass)
 2. **City search returns only 5 results** — OpenCage API may cap results for short/ambiguous queries
-3. ~~**Mobile responsiveness**~~ — Resolved in v0.7.0 with Tamagui responsive layout
+3. **PDF degree/minute font mismatch** — Cormorant font registered with jsPDF but svg2pdf still falls back to Helvetica (Bug #18)
+4. **Missing house cusp degree labels** — Cusp lines lack degree/minute labels at zodiac ring boundary (Bug #14)
 
 ## 📁 Key Files & Locations
 - **Web App**: `packages/web/` — Vite + React frontend

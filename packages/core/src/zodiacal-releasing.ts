@@ -42,7 +42,7 @@ const SIGN_YEARS: Record<ZodiacSign, number> = {
   libra: 8,
   scorpio: 15,
   sagittarius: 12,
-  capricorn: 30,
+  capricorn: 27,
   aquarius: 30,
   pisces: 12,
 };
@@ -60,9 +60,9 @@ const SIGN_MODALITY: Record<ZodiacSign, ZodiacModality> = {
   capricorn: 'cardinal', aquarius: 'fixed', pisces: 'mutable',
 };
 
-// Total cycle through all 12 signs = 214 years
-// (15+8+20+25+19+20+8+15+12+30+30+12)
-const TOTAL_CYCLE_YEARS = 214;
+// Total cycle through all 12 signs = 211 years
+// (15+8+20+25+19+20+8+15+12+27+30+12)
+const TOTAL_CYCLE_YEARS = 211;
 
 // Signs with periods > 17 years that trigger Loosing of the Bond
 const LB_THRESHOLD_YEARS = 17;
@@ -166,10 +166,10 @@ function generatePeriodsForLevel(
   // Each level cycles through all 12 signs starting from startSignIndex
   // Duration at each level: L1 = years, L2 = L1/12, L3 = L2/12, L4 = L3/12
   // More precisely, each level uses the same sign-year table but scaled:
-  // L1: years * 365.25 days
-  // L2: years * 365.25/12 days (months)
-  // L3: years * 365.25/144 days (weeks-ish)
-  // L4: years * 365.25/1728 days (days-ish)
+  // L1: years * 360 days (zodiacal year = 360 days)
+  // L2: years * 360/12 days (= years * 30 days)
+  // L3: years * 360/144 days (= years * 2.5 days)
+  // L4: years * 360/1728 days
   const divisor = Math.pow(12, level - 1);
 
   for (let i = 0; i < 12; i++) {
@@ -177,7 +177,7 @@ function generatePeriodsForLevel(
 
     const sign = ZODIAC_SIGNS[signIndex]!;
     const baseYears = SIGN_YEARS[sign];
-    const durationDays = (baseYears * 365.25) / divisor;
+    const durationDays = (baseYears * 360) / divisor;
     const endDate = new Date(currentDate.getTime() + durationDays * 86400000);
     const clampedEnd = endDate > windowEnd ? windowEnd : endDate;
 
@@ -213,7 +213,7 @@ function generatePeriodsForLevel(
       let subIdx = signIndex;
       for (let s = 0; s < 12; s++) {
         const subSign = ZODIAC_SIGNS[subIdx]!;
-        const subDays = (SIGN_YEARS[subSign] * 365.25) / subDivisor;
+        const subDays = (SIGN_YEARS[subSign] * 360) / subDivisor;
         if (subIdx === oppositeIndex) {
           // LB triggers at the start of this sub-period
           loosingDate = new Date(currentDate.getTime() + elapsed * 86400000);

@@ -55,6 +55,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <li><NavLink to="/" end style={navLinkStyle} onClick={() => setMenuOpen(false)}>Calculate</NavLink></li>
       <li><NavLink to="/chart" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Natal Chart</NavLink></li>
       <li><NavLink to="/transits" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Transit Chart</NavLink></li>
+      <li><NavLink to="/current" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Current Planets</NavLink></li>
       <li><NavLink to="/compare" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Compare</NavLink></li>
       <li><NavLink to="/releasing" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Releasing</NavLink></li>
     </>

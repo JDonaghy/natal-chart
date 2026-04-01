@@ -12,6 +12,7 @@ const ChartView = React.lazy(() => import('./components/ChartView').then(m => ({
 const TransitView = React.lazy(() => import('./components/TransitView').then(m => ({ default: m.TransitView })));
 const CompareView = React.lazy(() => import('./components/CompareView').then(m => ({ default: m.CompareView })));
 const ReleasingView = React.lazy(() => import('./components/ReleasingView').then(m => ({ default: m.ReleasingView })));
+const CurrentPlanetsView = React.lazy(() => import('./components/CurrentPlanetsView').then(m => ({ default: m.CurrentPlanetsView })));
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
               <Route path="/chart" element={<ChartView />} />
               <Route path="/transits" element={<TransitView />} />
               <Route path="/compare" element={<CompareView />} />
+              <Route path="/current" element={<CurrentPlanetsView />} />
               <Route path="/releasing" element={<ReleasingView />} />
             </Routes>
           </Suspense>

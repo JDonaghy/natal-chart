@@ -197,31 +197,6 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
           </tbody>
         </table>
 
-        {/* House cusps (birth only, compact) */}
-        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '0.2rem' }}>
-          <tbody>
-            {chartData.houses.map((house) => {
-              const transitHouse = transitData.houses?.find(
-                (h) => h.house === house.house,
-              );
-              return (
-                <tr key={house.house} style={{ borderBottom: '1px solid #ece5d8' }}>
-                  <td style={{ ...cellStyle, color: '#888', width: '2rem' }}>{house.house}</td>
-                  <td style={{ ...cellStyle, textAlign: 'right' }}>
-                    <SignDeg longitude={house.longitude} />
-                  </td>
-                  <td style={{ ...cellStyle, textAlign: 'right' }}>
-                    {transitHouse ? (
-                      <SignDeg longitude={transitHouse.longitude} />
-                    ) : (
-                      <span style={{ color: '#ccc' }}>—</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
       </div>
     );
   }
@@ -275,18 +250,6 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
         </tbody>
       </table>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <tbody>
-          {chartData.houses.map((house) => (
-            <tr key={house.house} style={{ borderBottom: '1px solid #ece5d8' }}>
-              <td style={{ ...cellStyle, color: '#888' }}>{house.house}:</td>
-              <td style={{ ...cellStyle, textAlign: 'right' }}>
-                <SignDeg longitude={house.longitude} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 };

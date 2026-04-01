@@ -12,12 +12,14 @@ export interface ShareData {
   longitude: number;
   timezone: string;      // IANA timezone
   city?: string;
-  houseSystem: 'P' | 'W' | 'K';
+  houseSystem: 'P' | 'W';
   transitDate?: string;  // ISO datetime string for transit overlay
   transitCity?: string;
   transitLat?: number;
   transitLng?: number;
   transitTz?: string;
+  showAspects?: boolean;
+  showBoundsDecans?: boolean;
 }
 
 /**
@@ -42,6 +44,12 @@ export function encodeShareParams(data: ShareData): string {
     if (data.transitLat !== undefined) params.set('trlat', data.transitLat.toFixed(4));
     if (data.transitLng !== undefined) params.set('trlng', data.transitLng.toFixed(4));
     if (data.transitTz) params.set('trtz', data.transitTz);
+  }
+  if (data.showAspects === false) {
+    params.set('asp', '0');
+  }
+  if (data.showBoundsDecans === true) {
+    params.set('bd', '1');
   }
   return params.toString();
 }
@@ -84,7 +92,7 @@ export function parseShareParams(): ShareData | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
 
   const hs = params.get('hs');
-  const houseSystem = (hs === 'W' || hs === 'K') ? hs : 'P';
+  const houseSystem = hs === 'W' ? hs : 'P';
   const city = params.get('city');
 
   const result: ShareData = {
@@ -110,5 +118,9 @@ export function parseShareParams(): ShareData | null {
     if (trlng) result.transitLng = parseFloat(trlng);
     if (trtz) result.transitTz = trtz;
   }
+  const asp = params.get('asp');
+  if (asp === '0') result.showAspects = false;
+  const bd = params.get('bd');
+  if (bd === '1') result.showBoundsDecans = true;
   return result;
 }

@@ -1,8 +1,8 @@
 # Natal Chart Development Plan
 
-## Current Sprint: Mobile Responsive & Polish
-**Status**: In Progress
-**Last Updated**: 2026-03-30
+## Current Sprint: v0.11.0 Release
+**Status**: Complete
+**Last Updated**: 2026-04-01
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -52,6 +52,32 @@
 - [x] **Transit legend panel redesign** - Redesign the PlanetLegend side panel on Transit Chart to match Astro-Seek style. Header section: "Birth x Transits" with birth date/time on left, transit date/time on right. Planet table: three columns — Planet (glyph + name), Birth (sign glyph + degree°minute'), Transit (sign glyph + degree°minute'). Show all planets including Node, Lilith, Chiron, Fortune, Vertex. Color planet glyphs orange for traditional style. Houses section at bottom: show ASC/IC/DSC/MC with both birth and transit cusps (sign + degree). Placidus system label.
 - [x] **Planet cluster rendering improvements** - Improve how clustered planets render when many are close together in a sign. (1) Reduce planet glyph size slightly to allow more to fit without overlap. (2) Sort displaced labels by increasing degree so the radial order matches ecliptic order. (3) Replace text abbreviations (e.g. "Ari") with zodiac sign symbols (♈) in degree labels. (4) Show degree labels as "DD° sign-glyph" like Astro-Seek (e.g. "19° ♈" instead of "19° Ari"). Reference Astro-Seek's approach: planet glyphs stacked radially outward in degree order with degree+sign-symbol labels, connector lines to true positions on ecliptic.
 - [x] **Mobile-friendly responsive layout** - Tamagui integration with custom `useResponsive` hook (`window.matchMedia`). Breakpoints: sm<=640px, md<=1024px, lg>=1025px. (1) Hamburger nav on mobile. (2) Chart+legend stacks vertically; chart SVG scales via viewBox to any width. (3) BirthDataForm single-column grid on mobile, full-width submit. (4) Aspect grids: 28px cells on mobile (34px desktop), horizontal scroll. (5) Button bars wrap with flexWrap. (6) Transit controls reflow. CompareView stacks charts vertically. Chart renders at full internal size (800px) for detail, CSS scales it down.
+
+### 🎯 Chart Wheel Polish (v0.8.0)
+- [x] **Transit wheel degree markers** - Add 1° tick marks around the transit chart wheel, one per degree (360 total). 5° ticks at 20% depth, 1° ticks at 10% depth from outer edge of transit band.
+- [x] **ASC Horizontal toggle** - Added "ASC Horizontal" checkbox (default checked) like Astro-Seek. When checked, ASC at 9 o'clock; when unchecked, 1st house cusp at 9 o'clock. Replaces original "First house at 9 o'clock" plan item.
+- [x] **Fix planet glyph positioning and sizing** - (1) Reduced glyph size (bandH*0.11). (2) Radial label layout: planet, degree, sign, minute from outside in. (3) Cluster-based collision avoidance with even spacing.
+- [x] **Remove Koch house system** - Removed Koch ('K') from UI, types, and calculator. Kept only Placidus and Whole Sign. Whole Sign first. Removed "(most common)" from Placidus.
+- [x] **Fix duplicate Lot of Fortune glyph** - Removed separate lot marker rendering; Fortune already in planets array.
+- [x] **Shrink Vertex (VX) label** - Reduced VX glyph to 65% of normal planet glyph size.
+- [x] **Increase degree/minute text size** - Bumped degree and minute labels from 0.85× to 1.0× labelSz in both natal and transit bands.
+- [x] **Change Pluto glyph** - Replaced ♇ with ⯓ (Astro-Seek style) in ChartWheel, pdfExport, and chart-helpers.
+- [x] **Rotate Lot of Fortune glyph** - Added 45° SVG rotation transform on ⊕ glyph in natal and transit bands.
+- [x] **Add option to hide aspect lines** - Added `showAspects` prop to ChartWheel and "Show aspect lines" checkbox toggle in both ChartView and TransitView.
+- [x] **Thicker ASC/MC lines** - Increased ASC/DSC and MC/IC axis stroke width from 2 to 3.
+- [x] **Degree labels without planet glyph** - Verified: degree/sign/minute labels are already separate from planet glyph. No repeated glyph in current code (Bug #16 resolved).
+
+### 🔧 Client Feedback (v0.9.0)
+- [x] **Aspect grid legend** - Added color-coded symbol legend below the aspect grid showing all 9 aspect types with glyphs, names, and angles.
+- [x] **Current planets page** - New `/current` route showing chart wheel for current planetary positions. Calculates for current date/time at Greenwich. DateTime picker + "Now" button. Chart wheel + planet legend sidebar. Lazy-loaded component.
+- [x] **Redesign legend sidebar (natal + transit)** - Removed 12-house cusp listing from both natal and transit legend panels. Only ASC/IC/DSC/MC angles remain.
+- [x] **Transit legend: remove full houses section** - Removed house cusps table from transit legend. Only 4 angles remain with birth + transit columns.
+
+### 🔮 Chart Enhancements (v0.10.0)
+- [x] **Bounds and decans rings** - Two concentric rings inside zodiac ring: Egyptian bounds (Ptolemy) outer, Chaldean decans inner. Segments colored by ruling planet (25% opacity fill + planet glyph). Toggle checkbox (default off) in ChartView and CurrentPlanetsView. Sign glyph area shrinks to 30% when enabled; ticks keep full 25% zone.
+- [x] **Persist chart view flags in share URLs and saved charts** - Store `showAspects` and `showBoundsDecans` toggle states in share URL params and saved chart data. Restore flag values when loading from either source so the chart renders identically to when it was shared/saved.
+- [x] **Shrink minute label font on chart wheel** - Reduce the font size of the minute text (MM′) in the planet radial labels to ~70% of the current size, in both natal and transit bands.
+- [x] **Fix PDF degree/minute rendering** - The minute prime character ′ (U+2032) was not in svg2pdf's default Helvetica font, causing garbled multi-character output. Fixed by replacing ′ with ASCII apostrophe ' in SVG text elements before svg2pdf processing.
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations

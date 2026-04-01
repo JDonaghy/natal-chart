@@ -1,6 +1,6 @@
 {
   "name": "@natal-chart/web",
-  "version": "0.7.0",
+  "version": "0.11.0",
   "description": "Vite + React web application for natal chart visualization",
   "type": "module",
   "private": true,

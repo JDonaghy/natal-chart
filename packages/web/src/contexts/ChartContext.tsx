@@ -4,6 +4,7 @@ import type { BirthData as CoreBirthData, ChartResult, TransitResult } from '@na
 export interface ExtendedBirthData extends CoreBirthData {
   city?: string;
   timezone?: string;
+  ascHorizontal?: boolean;
 }
 
 export interface TransitLocation {
@@ -29,6 +30,10 @@ interface ChartContextType {
   setTransitLocation: (location: TransitLocation | null) => void;
   calculateTransits: (date: Date, location?: TransitLocation | null) => Promise<void>;
   clearTransits: () => void;
+  showAspects: boolean;
+  setShowAspects: (show: boolean) => void;
+  showBoundsDecans: boolean;
+  setShowBoundsDecans: (show: boolean) => void;
 }
 
 const ChartContext = createContext<ChartContextType | undefined>(undefined);
@@ -71,6 +76,8 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
   const [transitLoading, setTransitLoading] = useState(false);
   const [transitDateStr, setTransitDateStr] = useState('');
   const [transitLocation, setTransitLocation] = useState<TransitLocation | null>(null);
+  const [showAspects, setShowAspects] = useState(true);
+  const [showBoundsDecans, setShowBoundsDecans] = useState(false);
 
   const calculate = useCallback(async (data: ExtendedBirthData) => {
     setLoading(true);
@@ -176,6 +183,10 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
     setTransitLocation,
     calculateTransits,
     clearTransits,
+    showAspects,
+    setShowAspects,
+    showBoundsDecans,
+    setShowBoundsDecans,
   };
 
   return (
