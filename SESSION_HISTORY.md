@@ -2,6 +2,78 @@
 
 *This file tracks completed work across development sessions. Items are moved here from PLAN.md and BUGS.md when marked as completed or resolved.*
 
+## Session 2026-04-05b: v0.13.0 — Multiple Glyph Sets & Preferences Tab
+
+### ✅ Features Completed
+1. **Multiple glyph sets** — Two selectable glyph sets: "Classic" (DejaVu Sans) and "Modern" (Noto Sans Symbols / Symbols 2). Extracted 24 SVG glyph paths from Noto fonts using opentype.js. Refactored `astro-glyph-paths.ts` with `GlyphSet` type, `GLYPH_SETS` registry, and `getPlanetPath()`/`getSignPathByIndex()` accepting optional set parameter. Active set stored in ChartContext, persisted in localStorage, share URLs (`gs` param), and saved charts.
+2. **Preferences tab** — New `/preferences` route with centralized settings page. Moved Glyph Style (Classic/Modern radio buttons with live preview), House System (Whole Sign/Placidus), and ASC Horizontal toggle from scattered locations into one page. All changes take effect immediately with localStorage persistence. Added "Preferences" NavLink in header navigation.
+3. **Cleaned up chart views** — Removed inline Glyphs dropdown from ChartView, TransitView, and CurrentPlanetsView. Removed House System radios and ASC Horizontal checkbox from BirthDataForm. Chart views now read `ascHorizontal` from context instead of `birthData?.ascHorizontal`.
+
+### 📁 Files Created
+- `packages/web/src/components/PreferencesView.tsx` — Preferences page component
+- `scripts/extract-noto-glyphs.mjs` — One-time script for extracting SVG paths from TTF fonts
+
+### 📁 Files Changed
+- `packages/web/src/utils/astro-glyph-paths.ts` — Added GlyphSet/GlyphPath types, GLYPH_SETS registry (classic + modern), refactored lookup functions
+- `packages/web/src/contexts/ChartContext.tsx` — Exported ChartContext, added glyphSet/houseSystem/ascHorizontal state with localStorage persistence
+- `packages/web/src/components/GlyphIcon.tsx` — Auto-reads glyphSet from ChartContext, accepts optional glyphSet prop
+- `packages/web/src/components/ChartWheel.tsx` — Added glyphSet prop, passed through to all PlanetGlyph/SignGlyph calls
+- `packages/web/src/services/pdfExport.ts` — Threaded glyphSet through generateChartPdf → addChartWheel → replaceGlyphTextWithPaths
+- `packages/web/src/components/ChartView.tsx` — Removed Glyphs dropdown, uses context ascHorizontal, passes glyphSet to share/save/PDF
+- `packages/web/src/components/TransitView.tsx` — Same cleanup as ChartView
+- `packages/web/src/components/CurrentPlanetsView.tsx` — Removed Glyphs dropdown and local glyphSet state, reads from context
+- `packages/web/src/components/BirthDataForm.tsx` — Removed house system/ASC horizontal controls, reads from context
+- `packages/web/src/utils/shareUrl.ts` — Added glyphSet to ShareData, encode/decode `gs` param
+- `packages/web/src/services/savedCharts.ts` — Added glyphSet to SavedChart interface and save logic
+- `packages/web/src/components/ShareLoader.tsx` — Restores glyphSet from share URL
+- `packages/web/src/components/Layout.tsx` — Added "Preferences" NavLink
+- `packages/web/src/App.tsx` — Added /preferences lazy route
+
+### 📝 Notes
+- PDF table glyphs still use Unicode text via DejaVuSans font (not glyph set system) — changing those would require rendering SVG paths as inline images in jsPDF cells
+- Noto Sans Symbols doesn't have all planet codepoints; sun and pluto came from Noto Sans Symbols 2
+- Changes on `develop` branch, not yet committed
+
+---
+
+## Session 2026-04-05: v0.12.0 — Inner Wheel Enlargement, Transit Animations, Lot of Spirit
+
+### ✅ Features Completed
+1. **Enlarge inner wheel diameter** — Increased `planetInner`/`houseNumOuter` from 0.38→0.54 (natal) and 0.32→0.44 (transit). Adjusted label positioning (`labelStep` 0.14→0.20, `topR` offset 0.15) with `Math.max(bandH*0.11, size*0.018)` floor for label size. Gap between minute label and house ring reduced ~60%.
+2. **Lighter bounds/decans colors** — Reduced `fillOpacity` from 0.25 to 0.10 on both bounds and decans ring segments.
+3. **House cusp degree labels** (Bug #14) — Added DD°MM' labels on cusp lines at zodiac ring boundary. Rendered last with parchment background rect. Hidden for Whole Sign houses.
+4. **Transit time-step animation** — New `TransitAnimationControls` component. Transport buttons (◀ ⏪ ⏩ ▶) + pill increment selector (1m→24h). Desktop: inline with date picker. Mobile: stacked. Uses refs to avoid stale closures. 1.2s auto-play interval. "Now" button hidden during playback.
+5. **Transit band label sizing** — Matched natal band formula: `labelStep=bandWidth*0.20`, `topR` offset 0.15, `labelSz=Math.max(bandWidth*0.11, size*0.018)`.
+6. **Transit outer ring narrowed** — `transitOuter` from 0.98→0.96.
+7. **ASC/DSC and MC/IC axis clipping** — Axes clipped via SVG `clipPath` with `clipRule="evenodd"` to exclude the inner circle (`R.houseNumInner`). Lines no longer cross through center.
+8. **Aspect line clipping** — Both natal and transit aspect lines clipped to `R.houseNumInner` circle via SVG `clipPath`.
+9. **Transit city defaults to birth city** — When no transit city selected, calculation uses birth location coordinates. Transit city input initialized with birth city name. Placeholder shows birth city.
+10. **Lot of Spirit** — Added `'spirit'` to Planet type. Calculator computes Spirit (inverse Fortune formula). Added ☩ glyph, medium slate blue color. Appears on chart wheel, legend, positions table, aspect grid.
+
+### 🐛 Bugs Fixed
+- **#14 House cusp degree labels** — Resolved (see feature #3 above)
+
+### 📁 Files Created
+- `packages/web/src/components/TransitAnimationControls.tsx` — Transit animation controls component
+
+### 📁 Files Changed
+- `packages/web/src/components/ChartWheel.tsx` — Ring radii, label sizing, bounds opacity, cusp labels, aspect/axis clipping, spirit glyph+color
+- `packages/web/src/components/TransitView.tsx` — Animation controls integration, fixed-width datetime input, transit city defaults
+- `packages/web/src/components/CitySearch.tsx` — Layout fix (`inline-block` for compact mode)
+- `packages/web/src/components/GlyphIcon.tsx` — Spirit glyph
+- `packages/web/src/utils/chart-helpers.ts` — Spirit display name
+- `packages/web/src/contexts/ChartContext.tsx` — Transit calculation defaults to birth location
+- `packages/core/src/types.ts` — Added 'spirit' to Planet type
+- `packages/core/src/calculator.ts` — Lot of Spirit calculation, skip spirit in declination aspects
+- `PLAN.md` — v0.12.0 items added and completed
+- `BUGS.md` — #14 resolved, #22 opened (transit city search)
+
+### 📝 Notes
+- Transit city search (Bug #22) still has issues — button disabled when no text typed, compact CitySearch layout needs rework
+- Changes on `develop` branch, not yet committed
+
+---
+
 ## Session 2026-04-01b: v0.10.0 Complete — View Flags, Minute Labels, PDF Fix
 
 ### ✅ Features Completed
@@ -467,6 +539,49 @@ Added 16 new items to PLAN.md from client feedback:
 - `packages/web/src/components/CurrentPlanetsView.tsx` — Move checkboxes above chart
 - `packages/web/src/services/pdfExport.ts` — Register bold font variants, add font to autoTable styles
 - `packages/web/src/components/CitySearch.tsx` — Swap setQuery/onSelect order in handleSelect
+
+---
+
+## Session 2026-04-05c: v0.14.0 — User Accounts & Cloud Sync
+
+### Features Completed
+1. **Firebase Authentication** — Google SSO via Firebase Auth SDK. Sign In button in header with provider picker dropdown. Avatar + name display when logged in with Sign Out menu. Auth is optional — app works fully without login.
+2. **Cloudflare D1 database** — Serverless SQLite database for user accounts, preferences, and saved charts. Schema: users, preferences, saved_charts tables with share_token support. Inputs-only chart storage (~200 bytes vs ~5-10KB full ChartResult).
+3. **Worker API endpoints** — JWT verification middleware (Firebase ID tokens via Google JWKS, cached 1hr). CRUD for user, preferences, charts. Chart sharing via tokens. Account deletion. Extended existing geocoding Worker.
+4. **Cloud preferences sync** — Preferences loaded from cloud on login (cloud wins). Debounced 2-second writes to cloud on every preference change. localStorage remains as offline cache.
+5. **Cloud chart saving** — Fire-and-forget save to D1 alongside localStorage on every chart save. New async functions for listing, loading, and deleting cloud charts.
+6. **localStorage migration** — Modal on first login when existing localStorage charts detected. Uploads charts one-by-one with progress indicator. Skippable, only shown once.
+7. **Account management** — Account section in Preferences page showing user info, sync status, Sign Out, and "Delete My Data" with confirmation flow that removes all D1 records.
+8. **GitHub SSO ready** — Provider support added in code, needs GitHub OAuth App registration in Firebase console.
+
+### Bug Fixes
+- Marked Bug #22 (Transit city search button disabled) as resolved from previous session
+
+### Files Created
+- `packages/web/src/services/auth.ts` — Firebase init, sign-in/out, getIdToken, auth state subscription
+- `packages/web/src/services/cloudSync.ts` — Worker API client (user, preferences, charts, sharing)
+- `packages/web/src/contexts/AuthContext.tsx` — React context for auth state, migration modal trigger
+- `packages/web/src/components/LoginButton.tsx` — Sign In / user avatar dropdown component
+- `packages/web/src/components/CloudMigrationModal.tsx` — localStorage-to-cloud import modal
+- `packages/worker/src/auth.ts` — Firebase JWT verification for Cloudflare Workers
+- `packages/worker/migrations/0001_init.sql` — D1 schema (users, preferences, saved_charts)
+
+### Files Changed
+- `packages/web/src/App.tsx` — Wrapped app in AuthProvider
+- `packages/web/src/components/Layout.tsx` — Added LoginButton to header, CloudMigrationModal overlay, updated footer
+- `packages/web/src/components/PreferencesView.tsx` — Added Account section (user info, sync status, delete data)
+- `packages/web/src/contexts/ChartContext.tsx` — Added cloud preferences sync (load on login, debounced writes)
+- `packages/web/src/services/savedCharts.ts` — Cloud-aware saving, async cloud chart functions
+- `packages/web/vite.config.ts` — Added dev proxies for /api/* and /shared/* routes
+- `packages/web/.env.example` — Added VITE_FIREBASE_* variables
+- `packages/worker/src/index.ts` — Refactored with auth middleware + CRUD endpoints + chart sharing
+- `packages/worker/wrangler.toml` — Added D1 binding
+
+### Infrastructure
+- Firebase project: natal-chart-329b3
+- D1 database: natal-chart-db (ae3aa7c7-606b-490f-a1bd-cb7a9314e45c)
+- Worker deployed with D1 + KV bindings
+- Firebase project ID stored as Cloudflare secret
 
 ---
 

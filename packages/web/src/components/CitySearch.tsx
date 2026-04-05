@@ -109,8 +109,8 @@ export const CitySearch: React.FC<CitySearchProps> = ({
     : { whiteSpace: 'nowrap', minWidth: '80px' };
 
   return (
-    <div ref={containerRef} style={{ position: 'relative', display: compact ? 'contents' : 'block' }}>
-      <div style={{ display: 'flex', gap: '0.5rem', position: 'relative' }}>
+    <div ref={containerRef} style={{ position: 'relative', display: compact ? 'inline-block' : 'block' }}>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
         <input
           type="text"
           value={query}

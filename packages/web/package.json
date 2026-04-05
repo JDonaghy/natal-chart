@@ -1,6 +1,6 @@
 {
   "name": "@natal-chart/web",
-  "version": "0.11.1",
+  "version": "0.14.0",
   "description": "Vite + React web application for natal chart visualization",
   "type": "module",
   "private": true,
@@ -19,6 +19,7 @@
     "@tamagui/vite-plugin": "1.116.14",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
+    "firebase": "^12.11.0",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "luxon": "^3.7.2",

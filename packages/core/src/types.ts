@@ -22,6 +22,7 @@ export type Planet =
   | 'chiron'
   | 'lilith'
   | 'fortune'
+  | 'spirit'
   | 'vertex';
 
 export type ZodiacSign =

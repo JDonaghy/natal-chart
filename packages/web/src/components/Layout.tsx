@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
+import { useAuth } from '../contexts/AuthContext';
+import { LoginButton } from './LoginButton';
+import { CloudMigrationModal } from './CloudMigrationModal';
 import '../App.css';
 
 // Build version injected by Vite
@@ -48,6 +51,7 @@ const HamburgerIcon: React.FC<{ open: boolean; onClick: () => void }> = ({ open,
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isMobile } = useResponsive();
+  const { showMigration, dismissMigration } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navLinks = (
@@ -58,6 +62,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <li><NavLink to="/current" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Current Planets</NavLink></li>
       <li><NavLink to="/compare" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Compare</NavLink></li>
       <li><NavLink to="/releasing" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Releasing</NavLink></li>
+      <li><NavLink to="/preferences" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Preferences</NavLink></li>
     </>
   );
 
@@ -76,13 +81,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </h1>
             </Link>
             {isMobile ? (
-              <HamburgerIcon open={menuOpen} onClick={() => setMenuOpen(!menuOpen)} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <LoginButton />
+                <HamburgerIcon open={menuOpen} onClick={() => setMenuOpen(!menuOpen)} />
+              </div>
             ) : (
-              <nav>
-                <ul style={{ display: 'flex', listStyle: 'none', gap: '1.5rem' }}>
-                  {navLinks}
-                </ul>
-              </nav>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <nav>
+                  <ul style={{ display: 'flex', listStyle: 'none', gap: '1.5rem' }}>
+                    {navLinks}
+                  </ul>
+                </nav>
+                <LoginButton />
+              </div>
             )}
           </div>
           {/* Mobile dropdown nav */}
@@ -123,13 +134,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <span className="glyph" style={{ marginLeft: '0.5rem' }}>☉ ☽ ♂ ♃ ♀ ☿ ♄</span>
           </p>
            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#666' }}>
-             Calculations performed entirely in your browser • Your birth data never leaves your device
+             Calculations performed entirely in your browser • Sign in to sync across devices
            </p>
             <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.7rem', color: '#888', fontFamily: 'monospace' }}>
               Build: {__APP_VERSION__ || 'dev'} • {__BUILD_TIME__ ? new Date(__BUILD_TIME__).toLocaleDateString() : 'development'}
             </p>
         </div>
       </footer>
+
+      {showMigration && (
+        <CloudMigrationModal onComplete={dismissMigration} />
+      )}
     </div>
   );
 };

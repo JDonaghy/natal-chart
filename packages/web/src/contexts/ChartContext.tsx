@@ -1,5 +1,8 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
 import type { BirthData as CoreBirthData, ChartResult, TransitResult } from '@natal-chart/core';
+import { DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { useAuth } from './AuthContext';
+import { getCloudPreferences, syncPreferencesDebounced } from '../services/cloudSync';
 
 export interface ExtendedBirthData extends CoreBirthData {
   city?: string;
@@ -34,9 +37,17 @@ interface ChartContextType {
   setShowAspects: (show: boolean) => void;
   showBoundsDecans: boolean;
   setShowBoundsDecans: (show: boolean) => void;
+  traditionalPlanets: boolean;
+  setTraditionalPlanets: (show: boolean) => void;
+  glyphSet: string;
+  setGlyphSet: (set: string) => void;
+  houseSystem: 'P' | 'W';
+  setHouseSystem: (hs: 'P' | 'W') => void;
+  ascHorizontal: boolean;
+  setAscHorizontal: (asc: boolean) => void;
 }
 
-const ChartContext = createContext<ChartContextType | undefined>(undefined);
+export const ChartContext = createContext<ChartContextType | undefined>(undefined);
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const useChart = () => {
@@ -78,6 +89,86 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
   const [transitLocation, setTransitLocation] = useState<TransitLocation | null>(null);
   const [showAspects, setShowAspects] = useState(true);
   const [showBoundsDecans, setShowBoundsDecans] = useState(false);
+  const [traditionalPlanets, setTraditionalPlanets] = useState(false);
+  const [glyphSet, setGlyphSetState] = useState(() => {
+    try {
+      return localStorage.getItem('natal-chart-glyph-set') || DEFAULT_GLYPH_SET;
+    } catch {
+      return DEFAULT_GLYPH_SET;
+    }
+  });
+  const setGlyphSet = useCallback((set: string) => {
+    setGlyphSetState(set);
+    try {
+      localStorage.setItem('natal-chart-glyph-set', set);
+    } catch {
+      // ignore
+    }
+  }, []);
+  const [houseSystem, setHouseSystemState] = useState<'P' | 'W'>(() => {
+    try {
+      const saved = localStorage.getItem('natal-chart-house-system');
+      return saved === 'P' ? 'P' : 'W';
+    } catch {
+      return 'W';
+    }
+  });
+  const setHouseSystem = useCallback((hs: 'P' | 'W') => {
+    setHouseSystemState(hs);
+    try { localStorage.setItem('natal-chart-house-system', hs); } catch { /* ignore */ }
+  }, []);
+  const [ascHorizontal, setAscHorizontalState] = useState(() => {
+    try {
+      const saved = localStorage.getItem('natal-chart-asc-horizontal');
+      return saved === null ? true : saved === 'true';
+    } catch {
+      return true;
+    }
+  });
+  const setAscHorizontal = useCallback((asc: boolean) => {
+    setAscHorizontalState(asc);
+    try { localStorage.setItem('natal-chart-asc-horizontal', String(asc)); } catch { /* ignore */ }
+  }, []);
+
+  // ─── Cloud Preferences Sync ─────────────────────────────────────────────
+  const { user } = useAuth();
+  const cloudLoadedRef = useRef(false);
+
+  // Load cloud preferences on login (once per session)
+  useEffect(() => {
+    if (!user || cloudLoadedRef.current) return;
+    cloudLoadedRef.current = true;
+
+    getCloudPreferences()
+      .then(({ data }) => {
+        if (!data) return;
+        // Cloud wins — apply to local state
+        if (data.houseSystem === 'P' || data.houseSystem === 'W') {
+          setHouseSystemState(data.houseSystem);
+          try { localStorage.setItem('natal-chart-house-system', data.houseSystem); } catch { /* ignore */ }
+        }
+        if (typeof data.glyphSet === 'string') {
+          setGlyphSetState(data.glyphSet);
+          try { localStorage.setItem('natal-chart-glyph-set', data.glyphSet); } catch { /* ignore */ }
+        }
+        if (typeof data.ascHorizontal === 'boolean') {
+          setAscHorizontalState(data.ascHorizontal);
+          try { localStorage.setItem('natal-chart-asc-horizontal', String(data.ascHorizontal)); } catch { /* ignore */ }
+        }
+      })
+      .catch(err => console.warn('Failed to load cloud preferences:', err));
+  }, [user]);
+
+  // Reset cloud-loaded flag on logout so next login re-fetches
+  useEffect(() => {
+    if (!user) cloudLoadedRef.current = false;
+  }, [user]);
+
+  // Sync preferences to cloud on change (debounced)
+  useEffect(() => {
+    if (!user) return;
+    syncPreferencesDebounced({ houseSystem, glyphSet, ascHorizontal });
+  }, [user, houseSystem, glyphSet, ascHorizontal]);
 
   const calculate = useCallback(async (data: ExtendedBirthData) => {
     setLoading(true);
@@ -148,10 +239,15 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
     try {
       const { calculateTransitPositions } = await import('@natal-chart/core');
       const loc = location !== undefined ? location : transitLocation;
+      // Default to birth location if no transit city specified
       const locationInput = loc ? {
         latitude: loc.latitude,
         longitude: loc.longitude,
         houseSystem: birthData?.houseSystem || 'P' as const,
+      } : birthData ? {
+        latitude: birthData.latitude,
+        longitude: birthData.longitude,
+        houseSystem: birthData.houseSystem,
       } : undefined;
       const result = await calculateTransitPositions(date, chartData.planets, locationInput);
       setTransitData(result);
@@ -187,6 +283,14 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
     setShowAspects,
     showBoundsDecans,
     setShowBoundsDecans,
+    traditionalPlanets,
+    setTraditionalPlanets,
+    glyphSet,
+    setGlyphSet,
+    houseSystem,
+    setHouseSystem,
+    ascHorizontal,
+    setAscHorizontal,
   };
 
   return (

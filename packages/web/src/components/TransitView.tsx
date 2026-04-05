@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChart, type TransitLocation } from '../contexts/ChartContext';
 import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
@@ -11,21 +11,31 @@ import { type GeocodeResult } from '../services/geocoding';
 import { CitySearch } from './CitySearch';
 import { AspectGrid } from './AspectGrid';
 import { TransitAspectGrid } from './TransitAspectGrid';
-import { formatPlanetName, formatSignName } from '../utils/chart-helpers';
+import { formatPlanetName, formatSignName, filterTraditionalPlanets, filterTraditionalTransits } from '../utils/chart-helpers';
 import { PlanetGlyphIcon, SignGlyphIcon } from './GlyphIcon';
 import { useResponsive } from '../hooks/useResponsive';
+import { TransitAnimationControls } from './TransitAnimationControls';
 import '../App.css';
 
 export const TransitView: React.FC = () => {
   const navigate = useNavigate();
-  const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation, showAspects, setShowAspects } = useChart();
+  const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation, showAspects, setShowAspects, traditionalPlanets, setTraditionalPlanets, glyphSet, setGlyphSet, ascHorizontal } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [transitCityQuery, setTransitCityQuery] = useState('');
+  const [transitCityQuery, setTransitCityQuery] = useState(transitLocation?.city || birthData?.city || '');
   const chartWheelRef = useRef<ChartWheelHandle>(null);
   const initialized = useRef(false);
+  const [animPlaying, setAnimPlaying] = useState(false);
+  const displayData = useMemo(() => {
+    if (!chartData) return null;
+    return traditionalPlanets ? filterTraditionalPlanets(chartData) : chartData;
+  }, [chartData, traditionalPlanets]);
+  const displayTransit = useMemo(() => {
+    if (!transitData) return null;
+    return traditionalPlanets ? filterTraditionalTransits(transitData) : transitData;
+  }, [transitData, traditionalPlanets]);
   const { isMobile, isTablet } = useResponsive();
 
   // Auto-initialize transits on mount if no transit date is set
@@ -64,6 +74,8 @@ export const TransitView: React.FC = () => {
     if (found) {
       loadChart(found.chartData, found.birthData);
       setShowAspects(found.showAspects ?? true);
+      setTraditionalPlanets(found.traditionalPlanets ?? false);
+      if (found.glyphSet) setGlyphSet(found.glyphSet);
       if (found.transitDateStr) {
         setTransitDateStr(found.transitDateStr);
         const loc = found.transitLocation || null;
@@ -126,7 +138,7 @@ export const TransitView: React.FC = () => {
       if (!(svgElement instanceof SVGElement)) {
         throw new Error('Retrieved element is not an SVGElement');
       }
-      const pdf = await generateChartPdf(chartData, birthData, svgElement, transitData ?? undefined, transitLocation ?? undefined);
+      const pdf = await generateChartPdf(chartData, birthData, svgElement, transitData ?? undefined, transitLocation ?? undefined, undefined, glyphSet);
 
       const fileName = `transit-chart-${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(fileName);
@@ -177,6 +189,8 @@ export const TransitView: React.FC = () => {
         }
       }
       shareData.showAspects = showAspects;
+      shareData.traditionalPlanets = traditionalPlanets;
+      shareData.glyphSet = glyphSet;
 
       const url = buildShareUrl(shareData);
       if (navigator.clipboard?.writeText) {
@@ -213,11 +227,16 @@ export const TransitView: React.FC = () => {
     calculateTransits(now);
   };
 
+  const handleAnimationStep = useCallback((newDateStr: string, newDate: Date) => {
+    setTransitDateStr(newDateStr);
+    calculateTransits(newDate);
+  }, [setTransitDateStr, calculateTransits]);
+
   const handleSave = () => {
     if (!chartData || !birthData) return;
     const name = prompt('Name for this chart:', birthData.city || 'My Chart');
     if (!name) return;
-    saveChart(name, chartData, birthData, transitDateStr || undefined, transitLocation ?? undefined, { showAspects });
+    saveChart(name, chartData, birthData, transitDateStr || undefined, transitLocation ?? undefined, { showAspects, traditionalPlanets, glyphSet });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -312,7 +331,7 @@ export const TransitView: React.FC = () => {
         </div>
       </div>
 
-      {/* Transit date/time controls */}
+      {/* Transit date/time controls + animation */}
       <div style={{
         display: 'flex',
         gap: '0.5rem',
@@ -329,26 +348,46 @@ export const TransitView: React.FC = () => {
             fontSize: '0.85rem',
             borderRadius: '4px',
             border: '1px solid #ccc',
-            flex: isMobile ? '1 1 auto' : undefined,
+            width: isMobile ? undefined : '13rem',
+            flex: isMobile ? '1 1 auto' : '0 0 auto',
           }}
         />
-        <button
-          onClick={handleTransitNow}
-          disabled={transitLoading}
-          style={{
-            padding: '0.4rem 0.6rem',
-            backgroundColor: '#4A6B8A',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: transitLoading ? 'default' : 'pointer',
-            fontSize: '0.85rem',
-            fontWeight: 'bold',
-          }}
-        >
-          {transitLoading ? '...' : 'Now'}
-        </button>
+        {!animPlaying && (
+          <button
+            onClick={handleTransitNow}
+            disabled={transitLoading}
+            style={{
+              padding: '0.4rem 0.6rem',
+              backgroundColor: '#4A6B8A',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: transitLoading ? 'default' : 'pointer',
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+            }}
+          >
+            {transitLoading ? '...' : 'Now'}
+          </button>
+        )}
+        {!isMobile && (
+          <TransitAnimationControls
+            transitDateStr={transitDateStr}
+            onStep={handleAnimationStep}
+            onPlayingChange={setAnimPlaying}
+            isMobile={false}
+            inline
+          />
+        )}
       </div>
+      {isMobile && (
+        <TransitAnimationControls
+          transitDateStr={transitDateStr}
+          onStep={handleAnimationStep}
+          onPlayingChange={setAnimPlaying}
+          isMobile
+        />
+      )}
 
       {/* Transit city search */}
       <div style={{
@@ -364,9 +403,9 @@ export const TransitView: React.FC = () => {
           value={transitCityQuery}
           onChange={setTransitCityQuery}
           onSelect={handleSelectTransitCity}
-          placeholder={transitLocation ? transitLocation.city : 'Search city...'}
+          placeholder={transitLocation ? transitLocation.city : birthData?.city || 'Search city...'}
           compact
-          inputWidth={isMobile ? '100%' : '220px'}
+          inputWidth={isMobile ? '100%' : '320px'}
         />
         {transitLocation && (
           <span style={{ fontSize: '0.8rem', color: '#888' }}>
@@ -465,16 +504,22 @@ export const TransitView: React.FC = () => {
             ? { width: '100%' }
             : { flex: '1 1 0', minWidth: 0, overflow: 'auto' }
           }>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666', marginBottom: '0.25rem' }}>
-              <input type="checkbox" checked={showAspects} onChange={(e) => setShowAspects(e.target.checked)} />
-              Show aspect lines
-            </label>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} transitData={transitData ?? undefined} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} />
+            <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.25rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666' }}>
+                <input type="checkbox" checked={showAspects} onChange={(e) => setShowAspects(e.target.checked)} />
+                Show aspect lines
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666' }}>
+                <input type="checkbox" checked={traditionalPlanets} onChange={(e) => setTraditionalPlanets(e.target.checked)} />
+                Traditional planets
+              </label>
+            </div>
+            <ChartWheel ref={chartWheelRef} chartData={displayData!} transitData={displayTransit ?? undefined} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} glyphSet={glyphSet} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend
-              chartData={chartData}
-              transitData={transitData ?? undefined}
+              chartData={displayData!}
+              transitData={displayTransit ?? undefined}
               birthDateLabel={birthData ? new Date(birthData.dateTimeUtc).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined}
               transitDateLabel={transitDateStr ? new Date(transitDateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined}
             />
@@ -497,7 +542,7 @@ export const TransitView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {chartData.planets.map((planet, index) => (
+                  {displayData!.planets.map((planet, index) => (
                     <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: '0.5rem' }}>
                         <PlanetGlyphIcon planet={planet.planet} style={{ marginRight: '0.5rem' }} />
@@ -544,18 +589,18 @@ export const TransitView: React.FC = () => {
           {/* Natal Aspect Grid */}
           <div className="card">
             <h3>Natal Aspects</h3>
-            {chartData.aspects.length > 0 ? (
-              <AspectGrid chartData={chartData} />
+            {displayData!.aspects.length > 0 ? (
+              <AspectGrid chartData={displayData!} />
             ) : (
               <p>No natal aspects found within orb limits.</p>
             )}
           </div>
 
           {/* Transit Aspect Grid */}
-          {transitData && (
+          {displayTransit && (
             <div className="card" style={{ marginTop: '1rem' }}>
               <h3>Natal-to-Transit Aspects</h3>
-              <TransitAspectGrid chartData={chartData} transitData={transitData} />
+              <TransitAspectGrid chartData={displayData!} transitData={displayTransit} />
             </div>
           )}
         </div>

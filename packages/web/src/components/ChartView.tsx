@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChart } from '../contexts/ChartContext';
 import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
@@ -8,20 +8,24 @@ import { buildShareUrl, type ShareData } from '../utils/shareUrl';
 import { convertFromUTC } from '../services/timezone';
 import { saveChart, getSavedCharts, type SavedChart } from '../services/savedCharts';
 import { AspectGrid } from './AspectGrid';
-import { formatPlanetName, formatSignName } from '../utils/chart-helpers';
+import { formatPlanetName, formatSignName, filterTraditionalPlanets } from '../utils/chart-helpers';
 import { PlanetGlyphIcon, SignGlyphIcon } from './GlyphIcon';
 import { useResponsive } from '../hooks/useResponsive';
 import '../App.css';
 
 export const ChartView: React.FC = () => {
   const navigate = useNavigate();
-  const { chartData, birthData, loading, error, loadChart, setTransitDateStr, setTransitLocation, calculateTransits, showAspects, setShowAspects, showBoundsDecans, setShowBoundsDecans } = useChart();
+  const { chartData, birthData, loading, error, loadChart, setTransitDateStr, setTransitLocation, calculateTransits, showAspects, setShowAspects, showBoundsDecans, setShowBoundsDecans, traditionalPlanets, setTraditionalPlanets, glyphSet, setGlyphSet, ascHorizontal } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
   const chartWheelRef = useRef<ChartWheelHandle>(null);
   const { isMobile, isTablet } = useResponsive();
+  const displayData = useMemo(() => {
+    if (!chartData) return null;
+    return traditionalPlanets ? filterTraditionalPlanets(chartData) : chartData;
+  }, [chartData, traditionalPlanets]);
 
   const handleLoadSaved = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
@@ -32,6 +36,8 @@ export const ChartView: React.FC = () => {
       loadChart(found.chartData, found.birthData);
       setShowAspects(found.showAspects ?? true);
       setShowBoundsDecans(found.showBoundsDecans ?? false);
+      setTraditionalPlanets(found.traditionalPlanets ?? false);
+      if (found.glyphSet) setGlyphSet(found.glyphSet);
       if (found.transitDateStr) {
         // Load natal data, set transit state, then navigate to transit view
         setTransitDateStr(found.transitDateStr);
@@ -89,7 +95,7 @@ export const ChartView: React.FC = () => {
       if (!(svgElement instanceof SVGElement)) {
         throw new Error('Retrieved element is not an SVGElement');
       }
-      const pdf = await generateChartPdf(chartData, birthData, svgElement);
+      const pdf = await generateChartPdf(chartData, birthData, svgElement, undefined, undefined, undefined, glyphSet);
 
       const fileName = `natal-chart-${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(fileName);
@@ -132,6 +138,8 @@ export const ChartView: React.FC = () => {
       }
       shareData.showAspects = showAspects;
       shareData.showBoundsDecans = showBoundsDecans;
+      shareData.traditionalPlanets = traditionalPlanets;
+      shareData.glyphSet = glyphSet;
 
       const url = buildShareUrl(shareData);
       if (navigator.clipboard?.writeText) {
@@ -157,7 +165,7 @@ export const ChartView: React.FC = () => {
     if (!chartData || !birthData) return;
     const name = prompt('Name for this chart:', birthData.city || 'My Chart');
     if (!name) return;
-    saveChart(name, chartData, birthData, undefined, undefined, { showAspects, showBoundsDecans });
+    saveChart(name, chartData, birthData, undefined, undefined, { showAspects, showBoundsDecans, traditionalPlanets, glyphSet });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -351,11 +359,15 @@ export const ChartView: React.FC = () => {
                 <input type="checkbox" checked={showBoundsDecans} onChange={(e) => setShowBoundsDecans(e.target.checked)} />
                 Bounds &amp; decans
               </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666' }}>
+                <input type="checkbox" checked={traditionalPlanets} onChange={(e) => setTraditionalPlanets(e.target.checked)} />
+                Traditional planets
+              </label>
             </div>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} showBoundsDecans={showBoundsDecans} />
+            <ChartWheel ref={chartWheelRef} chartData={displayData!} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} showBoundsDecans={showBoundsDecans} glyphSet={glyphSet} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
-            <PlanetLegend chartData={chartData} />
+            <PlanetLegend chartData={displayData!} />
           </div>
         </div>
 
@@ -375,7 +387,7 @@ export const ChartView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {chartData.planets.map((planet, index) => (
+                  {displayData!.planets.map((planet, index) => (
                     <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: '0.5rem' }}>
                         <PlanetGlyphIcon planet={planet.planet} style={{ marginRight: '0.5rem' }} />
@@ -422,7 +434,7 @@ export const ChartView: React.FC = () => {
           <div className="card">
             <h3>Aspects</h3>
             {chartData.aspects.length > 0 ? (
-              <AspectGrid chartData={chartData} />
+              <AspectGrid chartData={displayData!} />
             ) : (
               <p>No aspects found within orb limits.</p>
             )}

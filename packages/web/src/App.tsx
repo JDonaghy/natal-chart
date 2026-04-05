@@ -4,6 +4,7 @@ import { TamaguiProvider } from 'tamagui';
 import config from '../tamagui.config';
 import { ShareLoader } from './components/ShareLoader';
 import { Layout } from './components/Layout';
+import { AuthProvider } from './contexts/AuthContext';
 import { ChartProvider } from './contexts/ChartContext';
 import './App.css';
 
@@ -13,10 +14,12 @@ const TransitView = React.lazy(() => import('./components/TransitView').then(m =
 const CompareView = React.lazy(() => import('./components/CompareView').then(m => ({ default: m.CompareView })));
 const ReleasingView = React.lazy(() => import('./components/ReleasingView').then(m => ({ default: m.ReleasingView })));
 const CurrentPlanetsView = React.lazy(() => import('./components/CurrentPlanetsView').then(m => ({ default: m.CurrentPlanetsView })));
+const PreferencesView = React.lazy(() => import('./components/PreferencesView').then(m => ({ default: m.PreferencesView })));
 
 function App() {
   return (
     <TamaguiProvider config={config} disableInjectCSS>
+    <AuthProvider>
     <Router>
       <ChartProvider>
         <ShareLoader />
@@ -29,11 +32,13 @@ function App() {
               <Route path="/compare" element={<CompareView />} />
               <Route path="/current" element={<CurrentPlanetsView />} />
               <Route path="/releasing" element={<ReleasingView />} />
+              <Route path="/preferences" element={<PreferencesView />} />
             </Routes>
           </Suspense>
         </Layout>
       </ChartProvider>
     </Router>
+    </AuthProvider>
     </TamaguiProvider>
   );
 }

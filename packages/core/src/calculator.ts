@@ -433,6 +433,36 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     });
   }
 
+  // Part of Spirit: inverse of Fortune (Day = ASC + Sun - Moon, Night = ASC + Moon - Sun)
+  if (sunPos && moonPos) {
+    const isSunAboveHorizon = (() => {
+      const sunLon = ((sunPos.longitude % 360) + 360) % 360;
+      const ascLon = ((ascendant % 360) + 360) % 360;
+      const descLon = ((descendant % 360) + 360) % 360;
+      if (ascLon < descLon) {
+        return sunLon >= descLon || sunLon < ascLon;
+      }
+      return sunLon >= descLon && sunLon < ascLon;
+    })();
+    const spiritLon = isSunAboveHorizon
+      ? ((ascendant + sunPos.longitude - moonPos.longitude) % 360 + 360) % 360
+      : ((ascendant + moonPos.longitude - sunPos.longitude) % 360 + 360) % 360;
+    const spiritSignDMS = longitudeToSignAndDMS(spiritLon);
+    planets.push({
+      planet: 'spirit',
+      longitude: spiritLon,
+      latitude: 0,
+      declination: calcDeclination(spiritLon, 0),
+      distance: 0,
+      speed: 0,
+      sign: spiritSignDMS.sign,
+      degree: spiritSignDMS.degree,
+      minute: spiritSignDMS.minute,
+      house: findHouse(spiritLon, cusps, data.houseSystem, ascendant),
+      retrograde: false,
+    });
+  }
+
   // Vertex from ascmc[3]
   const vertexLon = ascmc[3] ?? 0;
   if (vertexLon !== 0) {
@@ -491,7 +521,7 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
       const p1 = planets[i]!;
       const p2 = planets[j]!;
       // Skip calculated points without meaningful declination
-      if (p1.planet === 'fortune' || p2.planet === 'fortune') continue;
+      if (p1.planet === 'fortune' || p2.planet === 'fortune' || p1.planet === 'spirit' || p2.planet === 'spirit') continue;
       if (p1.planet === 'vertex' || p2.planet === 'vertex') continue;
 
       const decDiff = Math.abs(p1.declination - p2.declination);

@@ -31,7 +31,7 @@ const timezoneList: string[] = (() => {
 
 export const BirthDataForm: React.FC = () => {
   const navigate = useNavigate();
-  const { calculateChart } = useChart();
+  const { calculateChart, houseSystem, ascHorizontal } = useChart();
   const [loading, setLoading] = useState(false);
   const [timezoneError, setTimezoneError] = useState<string | null>(null);
   const [utcDisplay, setUtcDisplay] = useState<string | null>(null);
@@ -47,8 +47,6 @@ export const BirthDataForm: React.FC = () => {
     city: '',
     latitude: 51.5074,
     longitude: -0.1278,
-    houseSystem: 'W' as 'P' | 'W',
-    ascHorizontal: true,
   });
   
   // Save form state to localStorage
@@ -180,10 +178,6 @@ export const BirthDataForm: React.FC = () => {
             }
             loadedData.latitude = data.latitude;
             loadedData.longitude = data.longitude;
-            loadedData.houseSystem = data.houseSystem;
-            if (typeof data.ascHorizontal === 'boolean') {
-              loadedData.ascHorizontal = data.ascHorizontal;
-            }
 
             // Use saved city if available, otherwise format coordinates
             if (data.city && data.city !== 'Saved location') {
@@ -208,8 +202,6 @@ export const BirthDataForm: React.FC = () => {
           birthTime: loadedData.birthTime ?? prev.birthTime,
           latitude: loadedData.latitude ?? prev.latitude,
           longitude: loadedData.longitude ?? prev.longitude,
-          houseSystem: loadedData.houseSystem ?? prev.houseSystem,
-          ascHorizontal: loadedData.ascHorizontal ?? prev.ascHorizontal,
           city: loadedData.city ?? prev.city,
           timezone: loadedData.timezone ?? prev.timezone,
         }));
@@ -333,8 +325,8 @@ export const BirthDataForm: React.FC = () => {
         dateTimeUtc: birthDateTime,
         latitude: formData.latitude,
         longitude: formData.longitude,
-        houseSystem: formData.houseSystem,
-        ascHorizontal: formData.ascHorizontal,
+        houseSystem,
+        ascHorizontal,
         city: formData.city,
         timezone: formData.timezone,
       });
@@ -679,43 +671,6 @@ export const BirthDataForm: React.FC = () => {
             )}
            </div>
            
-           {/* House System */}
-           <div style={{ gridColumn: isMobile ? undefined : 'span 2' }}>
-             <label htmlFor="houseSystem" style={{ display: 'block', marginBottom: '0.5rem' }}>
-               House System
-             </label>
-             <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                 <input
-                   type="radio"
-                   name="houseSystem"
-                   value="W"
-                   checked={formData.houseSystem === 'W'}
-                   onChange={handleInputChange}
-                 />
-                 <span>Whole Sign</span>
-               </label>
-               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                 <input
-                   type="radio"
-                   name="houseSystem"
-                   value="P"
-                   checked={formData.houseSystem === 'P'}
-                   onChange={handleInputChange}
-                 />
-                 <span>Placidus</span>
-               </label>
-               <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: '0.5rem', borderLeft: '1px solid #ccc', paddingLeft: '1rem' }}>
-                 <input
-                   type="checkbox"
-                   name="ascHorizontal"
-                   checked={formData.ascHorizontal}
-                   onChange={(e) => setFormData(prev => ({ ...prev, ascHorizontal: e.target.checked }))}
-                 />
-                 <span>ASC Horizontal</span>
-               </label>
-             </div>
-            </div>
          </div>
         
         <div style={{ marginTop: '2rem', textAlign: 'center' }}>

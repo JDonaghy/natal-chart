@@ -20,6 +20,8 @@ export interface ShareData {
   transitTz?: string;
   showAspects?: boolean;
   showBoundsDecans?: boolean;
+  traditionalPlanets?: boolean;
+  glyphSet?: string;
 }
 
 /**
@@ -50,6 +52,12 @@ export function encodeShareParams(data: ShareData): string {
   }
   if (data.showBoundsDecans === true) {
     params.set('bd', '1');
+  }
+  if (data.traditionalPlanets === true) {
+    params.set('tp', '1');
+  }
+  if (data.glyphSet && data.glyphSet !== 'classic') {
+    params.set('gs', data.glyphSet);
   }
   return params.toString();
 }
@@ -122,5 +130,9 @@ export function parseShareParams(): ShareData | null {
   if (asp === '0') result.showAspects = false;
   const bd = params.get('bd');
   if (bd === '1') result.showBoundsDecans = true;
+  const tp = params.get('tp');
+  if (tp === '1') result.traditionalPlanets = true;
+  const gs = params.get('gs');
+  if (gs) result.glyphSet = gs;
   return result;
 }

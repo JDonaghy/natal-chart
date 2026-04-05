@@ -17,10 +17,13 @@
 **Description**: The degree and minute labels on the chart wheel in the PDF export render in a default sans-serif font (Helvetica) instead of the Cormorant serif font used in the web view. Cormorant is loaded into jsPDF's VFS and text elements have explicit `font-family="Cormorant"`, but svg2pdf still doesn't pick it up. May require a different approach — e.g., converting degree/minute text to paths like glyphs, or using svg2pdf's `fontHandler` callback.
 **Affects**: PDF export only. Web view renders correctly.
 
-### 14. Missing House Cusp Degree Labels on Thick Lines
-**Status**: Open
-**Description**: On Astro-Seek, the thick house cusp lines have degree/minute labels displayed right on the line at the zodiac ring boundary (e.g. "15°42'" on the cusp line itself). Our chart wheel doesn't display cusp degrees on the house cusp lines at all. These labels should appear at the outer edge of the zodiac band where each thick cusp line meets the ring.
-**Reference**: `samples/avu.png` — note the numbers sitting on each thick black radial line at the zodiac ring edge.
+### 14. ~~Missing House Cusp Degree Labels on Thick Lines~~
+**Status**: Resolved (v0.12.0)
+**Fix**: Added degree°minute' labels on cusp lines at zodiac ring boundary. Rendered last (on top) with parchment background rect for readability. Hidden for Whole Sign houses (all cusps at 0°00').
+
+### 22. ~~Transit City Search Button Disabled~~
+**Status**: Resolved
+**Description**: The transit city search button appeared disabled when no text had been typed, even though the birth city name was shown. Fixed by initializing transitCityQuery with the birth city.
 
 ## ✅ Resolved (archived to SESSION_HISTORY.md)
 - ~~#1 Deployment discrepancy~~ — Fixed with GITHUB_SHA
@@ -39,6 +42,8 @@
 - ~~#17 Whole Sign house assignment~~ — Whole Sign-specific fast path bypasses cusp array
 - ~~#15 Planet glyphs too large~~ — Reduced sizes, radial layout, cluster-based collision avoidance
 - ~~#16 Degree labels repeat planet glyph~~ — Verified: labels already separate, no repeated glyph
+- ~~#14 Missing house cusp degree labels~~ — Added labels at zodiac ring boundary (v0.12.0)
+- ~~#22 Transit city search button disabled~~ — Fixed by initializing transitCityQuery with birth city
 
 ## 📝 Bug Reporting Template
 ```markdown
