@@ -20,7 +20,7 @@ export const LoginButton: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  if (!configured || loading) return null;
+  if (!configured) return null;
 
   const handleSignIn = async (provider: 'google' | 'github') => {
     setError(null);
@@ -121,19 +121,21 @@ export const LoginButton: React.FC = () => {
   return (
     <div ref={menuRef} style={{ position: 'relative' }}>
       <button
-        onClick={() => setSignInOpen(!signInOpen)}
+        onClick={() => !loading && setSignInOpen(!signInOpen)}
+        disabled={loading}
         style={{
           background: 'none',
           border: '1px solid #b8860b',
           borderRadius: '4px',
           padding: '0.25rem 0.75rem',
-          cursor: 'pointer',
+          cursor: loading ? 'default' : 'pointer',
           fontFamily: 'Cormorant, serif',
           fontSize: '0.95rem',
-          color: '#2c2c54',
+          color: loading ? '#999' : '#2c2c54',
+          opacity: loading ? 0.6 : 1,
         }}
       >
-        Sign In
+        {loading ? 'Loading...' : 'Sign In'}
       </button>
       {signInOpen && (
         <div style={dropdownStyle}>
