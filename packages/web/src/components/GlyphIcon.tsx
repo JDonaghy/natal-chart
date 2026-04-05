@@ -1,5 +1,6 @@
-import React from 'react';
-import { getPlanetPath, getSignPathByIndex } from '../utils/astro-glyph-paths';
+import React, { useContext } from 'react';
+import { getPlanetPath, getSignPathByIndex, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { ChartContext } from '../contexts/ChartContext';
 
 const PLANET_UNICODE: Record<string, string> = {
   sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
@@ -17,6 +18,11 @@ const SIGN_UNICODE: Record<string, string> = {
   libra: '♎', scorpio: '♏', sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
 };
 
+function useGlyphSetFromContext(): string {
+  const ctx = useContext(ChartContext);
+  return ctx?.glyphSet ?? DEFAULT_GLYPH_SET;
+}
+
 /**
  * Render a planet glyph as an inline SVG (font-independent) with text fallback
  * for planets without SVG path data (lilith, fortune, vertex).
@@ -26,8 +32,11 @@ export const PlanetGlyphIcon: React.FC<{
   size?: number | string;
   color?: string;
   style?: React.CSSProperties;
-}> = ({ planet, size = '1em', color = 'currentColor', style }) => {
-  const pathData = getPlanetPath(planet);
+  glyphSet?: string;
+}> = ({ planet, size = '1em', color = 'currentColor', style, glyphSet }) => {
+  const contextGlyphSet = useGlyphSetFromContext();
+  const activeSet = glyphSet ?? contextGlyphSet;
+  const pathData = getPlanetPath(planet, activeSet);
   if (pathData) {
     return (
       <svg
@@ -54,9 +63,12 @@ export const SignGlyphIcon: React.FC<{
   size?: number | string;
   color?: string;
   style?: React.CSSProperties;
-}> = ({ sign, size = '1em', color = 'currentColor', style }) => {
+  glyphSet?: string;
+}> = ({ sign, size = '1em', color = 'currentColor', style, glyphSet }) => {
+  const contextGlyphSet = useGlyphSetFromContext();
+  const activeSet = glyphSet ?? contextGlyphSet;
   const index = SIGN_NAMES.indexOf(sign);
-  const pathData = index >= 0 ? getSignPathByIndex(index) : undefined;
+  const pathData = index >= 0 ? getSignPathByIndex(index, activeSet) : undefined;
   if (pathData) {
     return (
       <svg

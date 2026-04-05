@@ -4,7 +4,7 @@ import { svg2pdf } from 'svg2pdf.js';
 import type { Svg2pdfOptions } from 'svg2pdf.js';
 import type { ChartResult, TransitResult, ZRTimeline, LotResult } from '@natal-chart/core';
 import type { ExtendedBirthData, TransitLocation } from '../contexts/ChartContext';
-import { getSignPathByIndex, getPlanetPath } from '../utils/astro-glyph-paths';
+import { getSignPathByIndex, getPlanetPath, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
 
 type JsPDFWithAutoTable = jsPDF & { lastAutoTable: { finalY: number } };
 
@@ -116,6 +116,7 @@ export async function generateChartPdf(
   transitData?: TransitResult | undefined,
   transitLocation?: TransitLocation | undefined,
   releasingData?: { lots: LotResult; timeline: ZRTimeline } | undefined,
+  glyphSet?: string | undefined,
 ): Promise<jsPDF> {
   // Create PDF document in portrait orientation (A4)
   const doc = new jsPDF({
@@ -156,7 +157,7 @@ export async function generateChartPdf(
   
   // Add chart wheel if SVG element is provided
   if (chartSvgElement) {
-    currentY = await addChartWheel(doc, chartSvgElement, currentY);
+    currentY = await addChartWheel(doc, chartSvgElement, currentY, glyphSet);
   }
   
   // Add planet positions table
@@ -275,7 +276,8 @@ function addHeader(doc: jsPDF, birthData: ExtendedBirthData, transitData?: Trans
 async function addChartWheel(
   doc: jsPDF,
   svgElement: SVGElement,
-  startY: number
+  startY: number,
+  glyphSet?: string | undefined,
 ): Promise<number> {
   const pageWidth = doc.internal.pageSize.width;
   const margin = 15;
@@ -300,7 +302,7 @@ async function addChartWheel(
     
     // Replace Unicode glyph <text> elements with SVG <path> elements
     // so svg2pdf renders them as native vectors (no font dependency).
-    replaceGlyphTextWithPaths(svgClone);
+    replaceGlyphTextWithPaths(svgClone, glyphSet);
 
     // Normalize font-family on remaining text elements so svg2pdf can
     // match them to jsPDF-registered fonts (strip CSS quotes and fallbacks).
@@ -873,7 +875,7 @@ function addTransitAspectGrid(
  * Replace glyph <text> elements (marked with data-glyph attributes) with
  * SVG <path> elements so svg2pdf renders them as vectors without needing fonts.
  */
-function replaceGlyphTextWithPaths(svg: SVGElement): void {
+function replaceGlyphTextWithPaths(svg: SVGElement, glyphSet: string = DEFAULT_GLYPH_SET): void {
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   // Helper: compute transform from font-coordinate viewBox to target size
@@ -899,7 +901,7 @@ function replaceGlyphTextWithPaths(svg: SVGElement): void {
   // Replace zodiac sign glyphs
   svg.querySelectorAll('[data-glyph="zodiac"]').forEach((el) => {
     const index = parseInt(el.getAttribute('data-glyph-index') || '0', 10);
-    const pathData = getSignPathByIndex(index);
+    const pathData = getSignPathByIndex(index, glyphSet);
     if (!pathData) return;
 
     const x = parseFloat(el.getAttribute('x') || '0');
@@ -918,7 +920,7 @@ function replaceGlyphTextWithPaths(svg: SVGElement): void {
   // Replace planet glyphs
   svg.querySelectorAll('[data-glyph="planet"]').forEach((el) => {
     const planet = el.getAttribute('data-planet') || '';
-    const pathData = getPlanetPath(planet);
+    const pathData = getPlanetPath(planet, glyphSet);
     if (!pathData) return;
 
     const x = parseFloat(el.getAttribute('x') || '0');

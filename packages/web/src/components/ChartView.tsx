@@ -15,7 +15,7 @@ import '../App.css';
 
 export const ChartView: React.FC = () => {
   const navigate = useNavigate();
-  const { chartData, birthData, loading, error, loadChart, setTransitDateStr, setTransitLocation, calculateTransits, showAspects, setShowAspects, showBoundsDecans, setShowBoundsDecans, traditionalPlanets, setTraditionalPlanets } = useChart();
+  const { chartData, birthData, loading, error, loadChart, setTransitDateStr, setTransitLocation, calculateTransits, showAspects, setShowAspects, showBoundsDecans, setShowBoundsDecans, traditionalPlanets, setTraditionalPlanets, glyphSet, setGlyphSet, ascHorizontal } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -37,6 +37,7 @@ export const ChartView: React.FC = () => {
       setShowAspects(found.showAspects ?? true);
       setShowBoundsDecans(found.showBoundsDecans ?? false);
       setTraditionalPlanets(found.traditionalPlanets ?? false);
+      if (found.glyphSet) setGlyphSet(found.glyphSet);
       if (found.transitDateStr) {
         // Load natal data, set transit state, then navigate to transit view
         setTransitDateStr(found.transitDateStr);
@@ -94,7 +95,7 @@ export const ChartView: React.FC = () => {
       if (!(svgElement instanceof SVGElement)) {
         throw new Error('Retrieved element is not an SVGElement');
       }
-      const pdf = await generateChartPdf(chartData, birthData, svgElement);
+      const pdf = await generateChartPdf(chartData, birthData, svgElement, undefined, undefined, undefined, glyphSet);
 
       const fileName = `natal-chart-${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(fileName);
@@ -138,6 +139,7 @@ export const ChartView: React.FC = () => {
       shareData.showAspects = showAspects;
       shareData.showBoundsDecans = showBoundsDecans;
       shareData.traditionalPlanets = traditionalPlanets;
+      shareData.glyphSet = glyphSet;
 
       const url = buildShareUrl(shareData);
       if (navigator.clipboard?.writeText) {
@@ -163,7 +165,7 @@ export const ChartView: React.FC = () => {
     if (!chartData || !birthData) return;
     const name = prompt('Name for this chart:', birthData.city || 'My Chart');
     if (!name) return;
-    saveChart(name, chartData, birthData, undefined, undefined, { showAspects, showBoundsDecans, traditionalPlanets });
+    saveChart(name, chartData, birthData, undefined, undefined, { showAspects, showBoundsDecans, traditionalPlanets, glyphSet });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -362,7 +364,7 @@ export const ChartView: React.FC = () => {
                 Traditional planets
               </label>
             </div>
-            <ChartWheel ref={chartWheelRef} chartData={displayData!} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} showBoundsDecans={showBoundsDecans} />
+            <ChartWheel ref={chartWheelRef} chartData={displayData!} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} showBoundsDecans={showBoundsDecans} glyphSet={glyphSet} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend chartData={displayData!} />

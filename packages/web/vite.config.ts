@@ -82,6 +82,30 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/geocode/, '/geocode'),
         secure: true,
       },
+      // Auth & data API routes — proxy to Worker
+      '/api/user': {
+        target: 'https://natal-chart-geocoding.johnfdonaghy.workers.dev',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        secure: true,
+      },
+      '/api/preferences': {
+        target: 'https://natal-chart-geocoding.johnfdonaghy.workers.dev',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        secure: true,
+      },
+      '/api/charts': {
+        target: 'https://natal-chart-geocoding.johnfdonaghy.workers.dev',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        secure: true,
+      },
+      '/shared': {
+        target: 'https://natal-chart-geocoding.johnfdonaghy.workers.dev',
+        changeOrigin: true,
+        secure: true,
+      },
     },
   },
   optimizeDeps: {

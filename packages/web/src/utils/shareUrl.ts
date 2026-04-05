@@ -21,6 +21,7 @@ export interface ShareData {
   showAspects?: boolean;
   showBoundsDecans?: boolean;
   traditionalPlanets?: boolean;
+  glyphSet?: string;
 }
 
 /**
@@ -54,6 +55,9 @@ export function encodeShareParams(data: ShareData): string {
   }
   if (data.traditionalPlanets === true) {
     params.set('tp', '1');
+  }
+  if (data.glyphSet && data.glyphSet !== 'classic') {
+    params.set('gs', data.glyphSet);
   }
   return params.toString();
 }
@@ -128,5 +132,7 @@ export function parseShareParams(): ShareData | null {
   if (bd === '1') result.showBoundsDecans = true;
   const tp = params.get('tp');
   if (tp === '1') result.traditionalPlanets = true;
+  const gs = params.get('gs');
+  if (gs) result.glyphSet = gs;
   return result;
 }

@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { ChartResult, TransitResult } from '@natal-chart/core';
-import { getPlanetPath, getSignPathByIndex, glyphTransform } from '../utils/astro-glyph-paths';
+import { getPlanetPath, getSignPathByIndex, glyphTransform, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
 import '../App.css';
 
 // Unicode astrological glyphs — fallback for glyphs without SVG path data
@@ -14,11 +14,12 @@ const GLYPH_FONT = "'DejaVuSans', sans-serif";
 const LABEL_FONT = "'Cormorant', serif";
 
 /** Render a planet glyph as an SVG <path> (font-independent), falling back to <text> */
-function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity }: {
+function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAULT_GLYPH_SET }: {
   planet: string; x: number; y: number; sz: number; fill: string;
   rotate?: number | undefined; opacity?: number | undefined;
+  glyphSet?: string;
 }): React.ReactElement {
-  const pathData = getPlanetPath(planet);
+  const pathData = getPlanetPath(planet, glyphSet);
   if (pathData) {
     const t = glyphTransform(pathData.viewBox, x, y, sz);
     const fullT = rotate ? `rotate(${rotate} ${x} ${y}) ${t}` : t;
@@ -35,10 +36,11 @@ function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity }: {
 }
 
 /** Render a zodiac sign glyph as an SVG <path>, falling back to <text> */
-function SignGlyph({ index, x, y, sz, fill }: {
+function SignGlyph({ index, x, y, sz, fill, glyphSet = DEFAULT_GLYPH_SET }: {
   index: number; x: number; y: number; sz: number; fill: string;
+  glyphSet?: string;
 }): React.ReactElement {
-  const pathData = getSignPathByIndex(index);
+  const pathData = getSignPathByIndex(index, glyphSet);
   if (pathData) {
     return <path d={pathData.d} fill={fill} transform={glyphTransform(pathData.viewBox, x, y, sz)} />;
   }
@@ -215,6 +217,7 @@ interface ChartWheelProps {
   showAspects?: boolean | undefined;
   showBoundsDecans?: boolean | undefined;
   fixedAnchor?: number | undefined;
+  glyphSet?: string | undefined;
 }
 
 export interface ChartWheelHandle {
@@ -222,7 +225,7 @@ export interface ChartWheelHandle {
 }
 
 export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
-  ({ chartData, transitData, size = 800, ascHorizontal = true, showAspects = true, showBoundsDecans = false, fixedAnchor }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
+  ({ chartData, transitData, size = 800, ascHorizontal = true, showAspects = true, showBoundsDecans = false, fixedAnchor, glyphSet = DEFAULT_GLYPH_SET }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
     const center = size / 2;
     // fixedAnchor overrides rotation (e.g. 0 = Aries at 9 o'clock for natural chart)
     // ASC Horizontal: Ascendant at 9 o'clock. Otherwise: 1st house cusp at 9 o'clock.
@@ -448,6 +451,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 key={`sign-glyph-${i}`}
                 index={i} x={pos.x} y={pos.y}
                 sz={glyphSize} fill={SIGN_ELEMENT_COLORS[i]!}
+                glyphSet={glyphSet}
               />
             );
           })}
@@ -539,6 +543,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                         key={`bound-glyph-${signIdx}-${bIdx}`}
                         planet={ruler} x={pos.x} y={pos.y}
                         sz={ringH * 0.55} fill={color} opacity={0.7}
+                        glyphSet={glyphSet}
                       />
                     );
                   });
@@ -557,6 +562,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                         key={`decan-glyph-${signIdx}-${dIdx}`}
                         planet={ruler} x={pos.x} y={pos.y}
                         sz={ringH * 0.55} fill={color} opacity={0.7}
+                        glyphSet={glyphSet}
                       />
                     );
                   }),
@@ -735,6 +741,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   sz={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
                   fill={color}
                   rotate={planet.planet === 'fortune' ? 45 : undefined}
+                  glyphSet={glyphSet}
                 />
 
                 {/* Retrograde indicator */}
@@ -764,6 +771,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 <SignGlyph
                   index={signIndex} x={signPos.x} y={signPos.y}
                   sz={labelSz} fill={signColor!}
+                  glyphSet={glyphSet}
                 />
 
                 {/* Minute */}
@@ -862,6 +870,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                       sz={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
                       fill={color}
                       rotate={planet.planet === 'fortune' ? 45 : undefined}
+                      glyphSet={glyphSet}
                     />
 
                     {/* Retrograde indicator */}
@@ -891,6 +900,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     <SignGlyph
                       index={signIndex} x={signPos.x} y={signPos.y}
                       sz={labelSz} fill={signColor!}
+                      glyphSet={glyphSet}
                     />
 
                     {/* Minute */}

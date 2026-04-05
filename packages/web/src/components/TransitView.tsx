@@ -19,7 +19,7 @@ import '../App.css';
 
 export const TransitView: React.FC = () => {
   const navigate = useNavigate();
-  const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation, showAspects, setShowAspects, traditionalPlanets, setTraditionalPlanets } = useChart();
+  const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation, showAspects, setShowAspects, traditionalPlanets, setTraditionalPlanets, glyphSet, setGlyphSet, ascHorizontal } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -75,6 +75,7 @@ export const TransitView: React.FC = () => {
       loadChart(found.chartData, found.birthData);
       setShowAspects(found.showAspects ?? true);
       setTraditionalPlanets(found.traditionalPlanets ?? false);
+      if (found.glyphSet) setGlyphSet(found.glyphSet);
       if (found.transitDateStr) {
         setTransitDateStr(found.transitDateStr);
         const loc = found.transitLocation || null;
@@ -137,7 +138,7 @@ export const TransitView: React.FC = () => {
       if (!(svgElement instanceof SVGElement)) {
         throw new Error('Retrieved element is not an SVGElement');
       }
-      const pdf = await generateChartPdf(chartData, birthData, svgElement, transitData ?? undefined, transitLocation ?? undefined);
+      const pdf = await generateChartPdf(chartData, birthData, svgElement, transitData ?? undefined, transitLocation ?? undefined, undefined, glyphSet);
 
       const fileName = `transit-chart-${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(fileName);
@@ -189,6 +190,7 @@ export const TransitView: React.FC = () => {
       }
       shareData.showAspects = showAspects;
       shareData.traditionalPlanets = traditionalPlanets;
+      shareData.glyphSet = glyphSet;
 
       const url = buildShareUrl(shareData);
       if (navigator.clipboard?.writeText) {
@@ -234,7 +236,7 @@ export const TransitView: React.FC = () => {
     if (!chartData || !birthData) return;
     const name = prompt('Name for this chart:', birthData.city || 'My Chart');
     if (!name) return;
-    saveChart(name, chartData, birthData, transitDateStr || undefined, transitLocation ?? undefined, { showAspects, traditionalPlanets });
+    saveChart(name, chartData, birthData, transitDateStr || undefined, transitLocation ?? undefined, { showAspects, traditionalPlanets, glyphSet });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -512,7 +514,7 @@ export const TransitView: React.FC = () => {
                 Traditional planets
               </label>
             </div>
-            <ChartWheel ref={chartWheelRef} chartData={displayData!} transitData={displayTransit ?? undefined} size={chartSize} ascHorizontal={birthData?.ascHorizontal} showAspects={showAspects} />
+            <ChartWheel ref={chartWheelRef} chartData={displayData!} transitData={displayTransit ?? undefined} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} glyphSet={glyphSet} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend

@@ -16,5 +16,14 @@ binding = "GEOCODING_CACHE"
 id = "cda819617c704f4da6e6dad5cf2f6ebf"
 preview_id = "e563322cb3444710966cd296c28a829c"
 
+# D1 database for user accounts, preferences, saved charts
+# Create with: wrangler d1 create natal-chart-db
+# Then replace the database_id below with the actual ID
+[[d1_databases]]
+binding = "DB"
+database_name = "natal-chart-db"
+database_id = "ae3aa7c7-606b-490f-a1bd-cb7a9314e45c"
+migrations_dir = "migrations"
+
 [placement]
 mode = "smart"

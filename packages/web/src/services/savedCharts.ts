@@ -1,5 +1,14 @@
 import type { ChartResult } from '@natal-chart/core';
 import { ExtendedBirthData, TransitLocation } from '../contexts/ChartContext';
+import {
+  listCloudCharts,
+  getCloudChart,
+  createCloudChart,
+  deleteCloudChart as deleteCloudChartApi,
+  type CloudChartSummary,
+  type CloudChartData,
+} from './cloudSync';
+import { getIdToken } from './auth';
 
 export interface SavedChart {
   id: string;
@@ -12,9 +21,21 @@ export interface SavedChart {
   showAspects?: boolean;
   showBoundsDecans?: boolean;
   traditionalPlanets?: boolean;
+  glyphSet?: string;
+}
+
+/** Summary for chart list UI (works for both local and cloud) */
+export interface SavedChartSummary {
+  id: string;
+  name: string;
+  savedAt: string;
+  source: 'local' | 'cloud';
+  shareToken?: string | null;
 }
 
 const STORAGE_KEY = 'natal-chart-saved-charts';
+
+// ─── Local Storage (existing, synchronous) ──────────────────────────────────
 
 export function getSavedCharts(): SavedChart[] {
   try {
@@ -31,7 +52,7 @@ export function saveChart(
   birthData: ExtendedBirthData,
   transitDateStr?: string | undefined,
   transitLoc?: TransitLocation | undefined,
-  viewFlags?: { showAspects?: boolean; showBoundsDecans?: boolean; traditionalPlanets?: boolean },
+  viewFlags?: { showAspects?: boolean; showBoundsDecans?: boolean; traditionalPlanets?: boolean; glyphSet?: string },
 ): SavedChart {
   const charts = getSavedCharts();
   const entry: SavedChart = {
@@ -56,12 +77,109 @@ export function saveChart(
   if (viewFlags?.traditionalPlanets === true) {
     entry.traditionalPlanets = true;
   }
+  if (viewFlags?.glyphSet && viewFlags.glyphSet !== 'classic') {
+    entry.glyphSet = viewFlags.glyphSet;
+  }
   charts.push(entry);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
+
+  // Also save to cloud if logged in (fire and forget)
+  saveChartToCloud(name, birthData, transitDateStr, transitLoc, viewFlags)
+    .catch(err => console.warn('Failed to save chart to cloud:', err));
+
   return entry;
 }
 
 export function deleteSavedChart(id: string): void {
   const charts = getSavedCharts().filter(c => c.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
+}
+
+// ─── Cloud-Aware Functions ──────────────────────────────────────────────────
+
+async function isLoggedIn(): Promise<boolean> {
+  const token = await getIdToken();
+  return Boolean(token);
+}
+
+/** Save chart inputs to cloud D1 */
+async function saveChartToCloud(
+  name: string,
+  birthData: ExtendedBirthData,
+  transitDateStr?: string,
+  transitLoc?: TransitLocation,
+  viewFlags?: { showAspects?: boolean; showBoundsDecans?: boolean; traditionalPlanets?: boolean; glyphSet?: string },
+): Promise<void> {
+  if (!(await isLoggedIn())) return;
+
+  const chartInput: Parameters<typeof createCloudChart>[0] = {
+    name,
+    birthData: {
+      dateTimeUtc: birthData.dateTimeUtc instanceof Date
+        ? birthData.dateTimeUtc.toISOString()
+        : String(birthData.dateTimeUtc),
+      latitude: birthData.latitude,
+      longitude: birthData.longitude,
+      houseSystem: birthData.houseSystem,
+      city: birthData.city,
+      timezone: birthData.timezone,
+      ascHorizontal: birthData.ascHorizontal,
+    },
+  };
+  if (viewFlags) {
+    chartInput.viewFlags = {
+      showAspects: viewFlags.showAspects,
+      showBoundsDecans: viewFlags.showBoundsDecans,
+      traditionalPlanets: viewFlags.traditionalPlanets,
+      glyphSet: viewFlags.glyphSet,
+    };
+  }
+  if (transitDateStr) {
+    chartInput.transitData = {
+      transitDateStr,
+      transitLocation: transitLoc ?? null,
+    };
+  }
+  await createCloudChart(chartInput);
+}
+
+/** List charts from cloud. Returns summaries (no full chart data). */
+export async function listCloudSavedCharts(): Promise<SavedChartSummary[]> {
+  if (!(await isLoggedIn())) return [];
+
+  const charts = await listCloudCharts();
+  return charts.map((c: CloudChartSummary) => ({
+    id: c.id,
+    name: c.name,
+    savedAt: c.created_at,
+    source: 'cloud' as const,
+    shareToken: c.share_token,
+  }));
+}
+
+/** Load a single cloud chart by ID. Returns the full data needed to recalculate. */
+export async function loadCloudChart(id: string): Promise<CloudChartData> {
+  return getCloudChart(id);
+}
+
+/** Delete a cloud chart by ID. */
+export async function deleteCloudSavedChart(id: string): Promise<void> {
+  await deleteCloudChartApi(id);
+}
+
+/** Get combined list from both local and cloud. */
+export async function getAllSavedChartSummaries(): Promise<SavedChartSummary[]> {
+  const local: SavedChartSummary[] = getSavedCharts().map(c => ({
+    id: c.id,
+    name: c.name,
+    savedAt: c.savedAt,
+    source: 'local' as const,
+  }));
+
+  try {
+    const cloud = await listCloudSavedCharts();
+    return [...cloud, ...local];
+  } catch {
+    return local;
+  }
 }

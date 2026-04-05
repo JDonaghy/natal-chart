@@ -21,10 +21,9 @@
 **Status**: Resolved (v0.12.0)
 **Fix**: Added degree°minute' labels on cusp lines at zodiac ring boundary. Rendered last (on top) with parchment background rect for readability. Hidden for Whole Sign houses (all cusps at 0°00').
 
-### 22. Transit City Search Button Disabled
-**Status**: Open
-**Description**: The transit city search button appears disabled when no text has been typed, even though the birth city name is shown. Initializing `transitCityQuery` with the birth city partially fixes this, but the CitySearch compact mode (`display: 'contents'` → `inline-block`) may cause dropdown positioning issues. Needs further investigation of CitySearch compact layout.
-**Affects**: Transit city search only.
+### 22. ~~Transit City Search Button Disabled~~
+**Status**: Resolved
+**Description**: The transit city search button appeared disabled when no text had been typed, even though the birth city name was shown. Fixed by initializing transitCityQuery with the birth city.
 
 ## ✅ Resolved (archived to SESSION_HISTORY.md)
 - ~~#1 Deployment discrepancy~~ — Fixed with GITHUB_SHA
@@ -44,6 +43,7 @@
 - ~~#15 Planet glyphs too large~~ — Reduced sizes, radial layout, cluster-based collision avoidance
 - ~~#16 Degree labels repeat planet glyph~~ — Verified: labels already separate, no repeated glyph
 - ~~#14 Missing house cusp degree labels~~ — Added labels at zodiac ring boundary (v0.12.0)
+- ~~#22 Transit city search button disabled~~ — Fixed by initializing transitCityQuery with birth city
 
 ## 📝 Bug Reporting Template
 ```markdown
