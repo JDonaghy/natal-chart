@@ -11,6 +11,7 @@ export interface SavedChart {
   transitLocation?: TransitLocation;
   showAspects?: boolean;
   showBoundsDecans?: boolean;
+  traditionalPlanets?: boolean;
 }
 
 const STORAGE_KEY = 'natal-chart-saved-charts';
@@ -30,7 +31,7 @@ export function saveChart(
   birthData: ExtendedBirthData,
   transitDateStr?: string | undefined,
   transitLoc?: TransitLocation | undefined,
-  viewFlags?: { showAspects?: boolean; showBoundsDecans?: boolean },
+  viewFlags?: { showAspects?: boolean; showBoundsDecans?: boolean; traditionalPlanets?: boolean },
 ): SavedChart {
   const charts = getSavedCharts();
   const entry: SavedChart = {
@@ -51,6 +52,9 @@ export function saveChart(
   }
   if (viewFlags?.showBoundsDecans === true) {
     entry.showBoundsDecans = true;
+  }
+  if (viewFlags?.traditionalPlanets === true) {
+    entry.traditionalPlanets = true;
   }
   charts.push(entry);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));

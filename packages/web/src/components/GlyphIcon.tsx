@@ -4,7 +4,7 @@ import { getPlanetPath, getSignPathByIndex } from '../utils/astro-glyph-paths';
 const PLANET_UNICODE: Record<string, string> = {
   sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
   jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '⯓',
-  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊕', vertex: 'Vx',
+  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊕', spirit: '☩', vertex: 'Vx',
 };
 
 const SIGN_NAMES = [

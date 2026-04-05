@@ -12,7 +12,7 @@ import { convertToUTC } from '../services/timezone';
 export const ShareLoader: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { chartData, loading, calculateChart, setTransitDateStr, setTransitLocation, calculateTransits, setShowAspects, setShowBoundsDecans } = useChart();
+  const { chartData, loading, calculateChart, setTransitDateStr, setTransitLocation, calculateTransits, setShowAspects, setShowBoundsDecans, setTraditionalPlanets } = useChart();
   const attempted = useRef(false);
   // Store pending transit info to apply after chartData is available
   const pendingTransit = useRef<{ date: string; location: TransitLocation | null } | null>(null);
@@ -51,6 +51,7 @@ export const ShareLoader: React.FC = () => {
         // Restore view flags from share URL
         if (shareData.showAspects !== undefined) setShowAspects(shareData.showAspects);
         if (shareData.showBoundsDecans !== undefined) setShowBoundsDecans(shareData.showBoundsDecans);
+        if (shareData.traditionalPlanets !== undefined) setTraditionalPlanets(shareData.traditionalPlanets);
 
         // If share URL includes transit date, set up state and navigate to transits
         if (shareData.transitDate) {

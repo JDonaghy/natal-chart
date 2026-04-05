@@ -8,7 +8,7 @@ const ZODIAC_UNICODE = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', 
 const PLANET_UNICODE: Record<string, string> = {
   sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
   jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '⯓',
-  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊕', vertex: 'Vx',
+  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊕', spirit: '☩', vertex: 'Vx',
 };
 const GLYPH_FONT = "'DejaVuSans', sans-serif";
 const LABEL_FONT = "'Cormorant', serif";
@@ -136,6 +136,7 @@ const PLANET_COLORS: Record<string, string> = {
   chiron: '#C08030',  // bright bronze
   lilith: '#4A3728',  // dark brown
   fortune: '#B8860B', // goldenrod
+  spirit: '#7B68EE',  // medium slate blue
   vertex: '#4A6B8A',  // slate blue
 };
 
@@ -231,14 +232,14 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
     // Ring radii (as fractions of size/2)
     // When transits active, shrink the inner chart to make room for an outer transit band
     const R = hasTransits ? {
-      transitOuter: center * 0.98,     // outermost transit planet labels
+      transitOuter: center * 0.96,     // outermost transit planet labels
       transitInner: center * 0.78,     // inner edge of transit band (tick base)
       outer: center * 0.76,            // outer edge of zodiac ring
       zodiacInner: center * 0.62,      // inner edge of zodiac ring
       planetOuter: center * 0.62,      // natal planet band outer
-      planetInner: center * 0.32,      // natal planet band inner
-      houseNumOuter: center * 0.32,
-      houseNumInner: center * 0.26,
+      planetInner: center * 0.44,      // natal planet band inner
+      houseNumOuter: center * 0.44,
+      houseNumInner: center * 0.36,
       houseInner: center * 0.0,
     } : {
       transitOuter: center * 0.95,
@@ -246,9 +247,9 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       outer: center * 0.95,
       zodiacInner: center * 0.76,
       planetOuter: center * 0.76,
-      planetInner: center * 0.38,
-      houseNumOuter: center * 0.38,
-      houseNumInner: center * 0.30,
+      planetInner: center * 0.54,
+      houseNumOuter: center * 0.54,
+      houseNumInner: center * 0.44,
       houseInner: center * 0.0,
     };
     // Derived: tick zone on inner edge of merged ring, glyphs in outer portion
@@ -371,6 +372,12 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
               <feOffset in="blur" dx="1" dy="1" result="offsetBlur" />
               <feComposite in="SourceGraphic" in2="offsetBlur" operator="over" />
             </filter>
+            <clipPath id="aspectClip">
+              <circle cx={center} cy={center} r={R.houseNumInner} />
+            </clipPath>
+            <clipPath id="axesClip">
+              <path d={`M 0 0 H ${size} V ${size} H 0 Z M ${center + R.houseNumInner} ${center} A ${R.houseNumInner} ${R.houseNumInner} 0 1 1 ${center - R.houseNumInner} ${center} A ${R.houseNumInner} ${R.houseNumInner} 0 1 1 ${center + R.houseNumInner} ${center} Z`} clipRule="evenodd" />
+            </clipPath>
           </defs>
 
           {/* === BACKGROUND === */}
@@ -472,7 +479,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                         key={`bound-${signIdx}-${bIdx}`}
                         d={arcPath(startLon, endLon, boundsOuter, boundsMid)}
                         fill={color}
-                        fillOpacity={0.25}
+                        fillOpacity={0.10}
                         stroke="#c4a96a"
                         strokeWidth={0.3}
                       />
@@ -491,7 +498,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                         key={`decan-${signIdx}-${dIdx}`}
                         d={arcPath(startLon, endLon, boundsMid, decansInner)}
                         fill={color}
-                        fillOpacity={0.25}
+                        fillOpacity={0.10}
                         stroke="#c4a96a"
                         strokeWidth={0.3}
                       />
@@ -593,30 +600,34 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             );
           })}
 
-          {/* === ASPECT LINES (inside the house wheel) === */}
-          {showAspects && chartData.aspects.map((aspect, index) => {
-            const p1 = chartData.planets.find(p => p.planet === aspect.planet1);
-            const p2 = chartData.planets.find(p => p.planet === aspect.planet2);
-            if (!p1 || !p2) return null;
+          {/* === ASPECT LINES (clipped to inner circle, inside the house wheel) === */}
+          {showAspects && (
+            <g clipPath="url(#aspectClip)">
+              {chartData.aspects.map((aspect, index) => {
+                const p1 = chartData.planets.find(p => p.planet === aspect.planet1);
+                const p2 = chartData.planets.find(p => p.planet === aspect.planet2);
+                if (!p1 || !p2) return null;
 
-            const pos1 = toPoint(p1.longitude, R.houseNumInner * 0.92);
-            const pos2 = toPoint(p2.longitude, R.houseNumInner * 0.92);
-            const color = ASPECT_COLORS[aspect.type] || '#a09080';
-            const isHard = ['opposition', 'square'].includes(aspect.type);
+                const pos1 = toPoint(p1.longitude, R.houseNumInner * 0.92);
+                const pos2 = toPoint(p2.longitude, R.houseNumInner * 0.92);
+                const color = ASPECT_COLORS[aspect.type] || '#a09080';
+                const isHard = ['opposition', 'square'].includes(aspect.type);
 
-            return (
-              <line
-                key={`aspect-${index}`}
-                x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
-                stroke={color}
-                strokeWidth={aspect.exact ? 1.5 : 0.8}
-                strokeOpacity={aspect.exact ? 0.85 : 0.5}
-                strokeDasharray={isHard ? 'none' : '4,3'}
-              />
-            );
-          })}
+                return (
+                  <line
+                    key={`aspect-${index}`}
+                    x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
+                    stroke={color}
+                    strokeWidth={aspect.exact ? 1.5 : 0.8}
+                    strokeOpacity={aspect.exact ? 0.85 : 0.5}
+                    strokeDasharray={isHard ? 'none' : '4,3'}
+                  />
+                );
+              })}
+            </g>
+          )}
 
-          {/* === ANGULAR AXES (ASC-DSC, MC-IC as full-diameter lines) === */}
+          {/* === ANGULAR AXES (ASC-DSC, MC-IC — clipped to exclude inner circle) === */}
           {/* ASC — DSC axis */}
           {(() => {
             const ascOuter = toPoint(chartData.angles.ascendant, R.planetOuter);
@@ -624,7 +635,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const ascLabel = toPoint(chartData.angles.ascendant, R.planetOuter + size * 0.02);
             const dscLabel = toPoint(chartData.angles.descendant, R.planetOuter + size * 0.02);
             return (
-              <g>
+              <g clipPath="url(#axesClip)">
                 <line
                   x1={ascOuter.x} y1={ascOuter.y}
                   x2={dscOuter.x} y2={dscOuter.y}
@@ -655,7 +666,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const mcLabel = toPoint(chartData.angles.midheaven, R.planetOuter + size * 0.02);
             const icLabel = toPoint(chartData.angles.imumCoeli, R.planetOuter + size * 0.02);
             return (
-              <g>
+              <g clipPath="url(#axesClip)">
                 <line
                   x1={mcOuter.x} y1={mcOuter.y}
                   x2={icOuter.x} y2={icOuter.y}
@@ -692,14 +703,14 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const connectorEnd = toPoint(labelLongitude, R.planetOuter - bandH * 0.08);
 
             // Radial label positions from outside in: planet glyph, degree, sign, minute
-            const labelStep = bandH * 0.14;
+            const labelStep = bandH * 0.20;
             const topR = R.planetOuter - bandH * 0.15;
             const glyphPos = toPoint(labelLongitude, topR);
             const degPos = toPoint(labelLongitude, topR - labelStep);
             const signPos = toPoint(labelLongitude, topR - labelStep * 2);
             const minPos = toPoint(labelLongitude, topR - labelStep * 3);
 
-            const labelSz = bandH * 0.11;
+            const labelSz = Math.max(bandH * 0.11, size * 0.018);
             const signIndex = Math.floor(planet.longitude / 30) % 12;
             const signColor = SIGN_ELEMENT_COLORS[signIndex];
 
@@ -819,14 +830,14 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 const connectorEnd = toPoint(labelLongitude, R.outer + bandWidth * 0.08);
 
                 // Radial labels from outside in: planet, degree, sign, minute
-                const labelStep = bandWidth * 0.14;
-                const topR = R.transitOuter - bandWidth * 0.12;
+                const labelStep = bandWidth * 0.20;
+                const topR = R.transitOuter - bandWidth * 0.15;
                 const glyphPos = toPoint(labelLongitude, topR);
                 const degPos = toPoint(labelLongitude, topR - labelStep);
                 const signPos = toPoint(labelLongitude, topR - labelStep * 2);
                 const minPos = toPoint(labelLongitude, topR - labelStep * 3);
 
-                const labelSz = bandWidth * 0.11;
+                const labelSz = Math.max(bandWidth * 0.11, size * 0.018);
                 const signIndex = Math.floor(planet.longitude / 30) % 12;
                 const signColor = SIGN_ELEMENT_COLORS[signIndex];
 
@@ -896,28 +907,72 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
               })}
 
               {/* Transit aspect lines (natal-to-transit, dashed) */}
-              {showAspects && transitData.aspects.map((aspect, index) => {
-                const natalP = chartData.planets.find(p => p.planet === aspect.natalPlanet);
-                const transitP = transitData.planets.find(p => p.planet === aspect.transitPlanet);
-                if (!natalP || !transitP) return null;
+              {showAspects && (
+                <g clipPath="url(#aspectClip)">
+                  {transitData.aspects.map((aspect, index) => {
+                    const natalP = chartData.planets.find(p => p.planet === aspect.natalPlanet);
+                    const transitP = transitData.planets.find(p => p.planet === aspect.transitPlanet);
+                    if (!natalP || !transitP) return null;
 
-                const pos1 = toPoint(natalP.longitude, R.houseNumInner * 0.92);
-                const pos2 = toPoint(transitP.longitude, R.houseNumInner * 0.92);
-                const color = ASPECT_COLORS[aspect.type] || '#a09080';
+                    const pos1 = toPoint(natalP.longitude, R.houseNumInner * 0.92);
+                    const pos2 = toPoint(transitP.longitude, R.houseNumInner * 0.92);
+                    const color = ASPECT_COLORS[aspect.type] || '#a09080';
 
-                return (
-                  <line
-                    key={`transit-aspect-${index}`}
-                    x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
-                    stroke={color}
-                    strokeWidth={aspect.exact ? 1.2 : 0.6}
-                    strokeOpacity={aspect.exact ? 0.6 : 0.3}
-                    strokeDasharray="2,4"
-                  />
-                );
-              })}
+                    return (
+                      <line
+                        key={`transit-aspect-${index}`}
+                        x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
+                        stroke={color}
+                        strokeWidth={aspect.exact ? 1.2 : 0.6}
+                        strokeOpacity={aspect.exact ? 0.6 : 0.3}
+                        strokeDasharray="2,4"
+                      />
+                    );
+                  })}
+                </g>
+              )}
             </>
           )}
+
+          {/* === HOUSE CUSP DEGREE LABELS (on cusp lines at zodiac ring boundary) === */}
+          {/* Skip for Whole Sign where all cusps fall at exactly 0° */}
+          {(() => {
+            const isWholeSigns = chartData.houses.every(h => h.degree === 0 && h.minute === 0);
+            if (isWholeSigns) return null;
+            const fontSize = size * 0.014;
+            const labelR = R.zodiacInner + (R.outer - R.zodiacInner) * 0.05;
+            return chartData.houses.map((house) => {
+              const labelPos = toPoint(house.longitude, labelR);
+              const angle = toAngle(house.longitude);
+              const textAngle = angle > 90 && angle < 270 ? angle + 180 : angle;
+              const labelText = `${house.degree}°${house.minute.toString().padStart(2, '0')}'`;
+              // Background rect dimensions (approximate text bounds)
+              const bgW = fontSize * 3.2;
+              const bgH = fontSize * 1.3;
+              return (
+                <g key={`cusp-deg-${house.house}`}
+                  transform={`rotate(${textAngle}, ${labelPos.x}, ${labelPos.y})`}
+                >
+                  <rect
+                    x={labelPos.x - bgW / 2} y={labelPos.y - bgH / 2}
+                    width={bgW} height={bgH}
+                    fill="#F5F0E8" fillOpacity={0.85} rx={2}
+                  />
+                  <text
+                    x={labelPos.x} y={labelPos.y}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={fontSize}
+                    fill="#8B7355"
+                    fontFamily={LABEL_FONT}
+                    fontWeight="500"
+                  >
+                    {labelText}
+                  </text>
+                </g>
+              );
+            });
+          })()}
 
           {/* Center dot */}
           <circle cx={center} cy={center} r={size * 0.006} fill="#b8860b" />

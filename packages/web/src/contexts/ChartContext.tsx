@@ -34,6 +34,8 @@ interface ChartContextType {
   setShowAspects: (show: boolean) => void;
   showBoundsDecans: boolean;
   setShowBoundsDecans: (show: boolean) => void;
+  traditionalPlanets: boolean;
+  setTraditionalPlanets: (show: boolean) => void;
 }
 
 const ChartContext = createContext<ChartContextType | undefined>(undefined);
@@ -78,6 +80,7 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
   const [transitLocation, setTransitLocation] = useState<TransitLocation | null>(null);
   const [showAspects, setShowAspects] = useState(true);
   const [showBoundsDecans, setShowBoundsDecans] = useState(false);
+  const [traditionalPlanets, setTraditionalPlanets] = useState(false);
 
   const calculate = useCallback(async (data: ExtendedBirthData) => {
     setLoading(true);
@@ -148,10 +151,15 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
     try {
       const { calculateTransitPositions } = await import('@natal-chart/core');
       const loc = location !== undefined ? location : transitLocation;
+      // Default to birth location if no transit city specified
       const locationInput = loc ? {
         latitude: loc.latitude,
         longitude: loc.longitude,
         houseSystem: birthData?.houseSystem || 'P' as const,
+      } : birthData ? {
+        latitude: birthData.latitude,
+        longitude: birthData.longitude,
+        houseSystem: birthData.houseSystem,
       } : undefined;
       const result = await calculateTransitPositions(date, chartData.planets, locationInput);
       setTransitData(result);
@@ -187,6 +195,8 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
     setShowAspects,
     showBoundsDecans,
     setShowBoundsDecans,
+    traditionalPlanets,
+    setTraditionalPlanets,
   };
 
   return (

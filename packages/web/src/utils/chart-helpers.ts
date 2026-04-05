@@ -1,3 +1,24 @@
+import type { ChartResult, TransitResult } from '@natal-chart/core';
+
+const MODERN_PLANETS = new Set(['uranus', 'neptune', 'pluto', 'chiron', 'lilith', 'vertex', 'spirit']);
+
+export function filterTraditionalPlanets(chartData: ChartResult): ChartResult {
+  const planets = chartData.planets.filter(p => !MODERN_PLANETS.has(p.planet));
+  const planetNames = new Set(planets.map(p => p.planet));
+  const aspects = chartData.aspects.filter(
+    a => planetNames.has(a.planet1) && planetNames.has(a.planet2),
+  );
+  return { ...chartData, planets, aspects };
+}
+
+export function filterTraditionalTransits(transitData: TransitResult): TransitResult {
+  const planets = transitData.planets.filter(p => !MODERN_PLANETS.has(p.planet));
+  const aspects = transitData.aspects.filter(
+    a => !MODERN_PLANETS.has(a.natalPlanet) && !MODERN_PLANETS.has(a.transitPlanet),
+  );
+  return { ...transitData, planets, aspects };
+}
+
 export function getPlanetGlyph(planet: string): string {
   const glyphs: Record<string, string> = {
     sun: '☉',
@@ -42,6 +63,7 @@ export function formatPlanetName(planet: string): string {
     northNode: 'North Node',
     lilith: 'Lilith',
     fortune: 'Fortune',
+    spirit: 'Spirit',
     vertex: 'Vertex',
   };
   if (names[planet]) return names[planet];

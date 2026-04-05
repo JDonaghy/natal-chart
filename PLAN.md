@@ -1,8 +1,8 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.11.1 Patch Release
-**Status**: Complete
-**Last Updated**: 2026-04-01
+## Current Sprint: v0.12.0 Chart Wheel & Transit Animations
+**Status**: In Progress
+**Last Updated**: 2026-04-05
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -84,6 +84,18 @@
 - [x] **Font-independent glyph rendering** - Replaced Unicode `<text>` elements in ChartWheel with SVG `<path>` elements for all planet and zodiac glyphs (using existing path data from astro-glyph-paths.ts). Created `GlyphIcon.tsx` with `PlanetGlyphIcon`/`SignGlyphIcon` components for HTML contexts. Fixes Pluto ⯓ (U+2BD3) rendering as rectangle on systems without DejaVuSans.
 - [x] **Fix timezone detection on city selection** - `CitySearch.handleSelect()` called `onSelect` (setting timezone) then `setQuery` (triggering onChange which cleared timezone). Fixed by swapping call order so onChange fires before onSelect.
 - [x] **Move chart toggle checkboxes above chart** - Moved "Show aspect lines" and "Bounds & decans" checkboxes from below to above the chart wheel in ChartView, TransitView, and CurrentPlanetsView.
+
+### 🎯 Chart Wheel Layout (v0.12.0)
+- [x] **Enlarge inner wheel diameter** - Increase the diameter of the inner wheel (aspect lines area + house numbers circle) without changing overall chart size. The outer edge of the house numbers ring should sit much closer to the minute labels in the planet radial band, reducing the gap between the planet info and the inner wheel.
+
+### 🎬 Transit Animations (v0.12.0)
+- [x] **Transit time-step animation** - Transport bar with ◀ step-back, ⏪ play-backward, ⏩ play-forward, ▶ step-forward buttons. Pill-shaped increment selector: 1m, 5m, 10m, 15m, 30m, 1h, 12h, 24h. Auto-play at 1.2s interval. Desktop: inline on same row as date picker. Mobile: stacked below. "Now" button hidden during playback. Uses refs to avoid stale closures during rapid updates.
+
+### 🪐 Traditional Planets Toggle (v0.12.0)
+- [x] **Traditional planets only mode** - Add a "Traditional planets" toggle checkbox to chart views. When enabled, hide modern/outer planets (Uranus, Neptune, Pluto) and minor points (Chiron, Lilith, Vertex, Lot of Spirit) from the chart wheel, planet positions table, legend panel, and aspect grid. Only show the 7 classical planets (Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn), North Node, and Lot of Fortune. Persist toggle state in share URLs and saved charts. Apply to natal, transit, and current planets views.
+
+### 🔤 Glyph Set Selection (v0.13.0)
+- [ ] **Multiple glyph sets** - Offer selectable glyph sets to address inconsistent sizing/boldness in the current DejaVu Sans paths. Extract a second set from Noto Sans Symbols 2 (consistent weight, freely licensed). Add a glyph set picker in settings or chart view (e.g. "Classic" vs "Modern"). Store active set in context and persist in localStorage. The `getPlanetPath()`/`getSignPathByIndex()` functions select from the active set. Consider a hand-drawn SVG set for maximum consistency if font-extracted sets still look uneven.
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations

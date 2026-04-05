@@ -3,6 +3,7 @@ import type { ChartResult, BirthData } from '@natal-chart/core';
 import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
 import { useResponsive } from '../hooks/useResponsive';
+import { filterTraditionalPlanets } from '../utils/chart-helpers';
 import '../App.css';
 
 // Default location: Greenwich, London
@@ -21,6 +22,7 @@ export const CurrentPlanetsView: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showAspects, setShowAspects] = useState(true);
   const [showBoundsDecans, setShowBoundsDecans] = useState(false);
+  const [traditionalPlanets, setTraditionalPlanets] = useState(false);
   const chartWheelRef = useRef<ChartWheelHandle>(null);
   const { isMobile, isTablet } = useResponsive();
 
@@ -153,11 +155,15 @@ export const CurrentPlanetsView: React.FC = () => {
                 <input type="checkbox" checked={showBoundsDecans} onChange={(e) => setShowBoundsDecans(e.target.checked)} />
                 Bounds &amp; decans
               </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666' }}>
+                <input type="checkbox" checked={traditionalPlanets} onChange={(e) => setTraditionalPlanets(e.target.checked)} />
+                Traditional planets
+              </label>
             </div>
-            <ChartWheel ref={chartWheelRef} chartData={chartData} size={chartSize} fixedAnchor={0} showAspects={showAspects} showBoundsDecans={showBoundsDecans} />
+            <ChartWheel ref={chartWheelRef} chartData={traditionalPlanets ? filterTraditionalPlanets(chartData) : chartData} size={chartSize} fixedAnchor={0} showAspects={showAspects} showBoundsDecans={showBoundsDecans} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
-            <PlanetLegend chartData={chartData} />
+            <PlanetLegend chartData={traditionalPlanets ? filterTraditionalPlanets(chartData) : chartData} />
           </div>
         </div>
       )}

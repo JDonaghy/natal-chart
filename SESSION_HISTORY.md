@@ -2,6 +2,44 @@
 
 *This file tracks completed work across development sessions. Items are moved here from PLAN.md and BUGS.md when marked as completed or resolved.*
 
+## Session 2026-04-05: v0.12.0 — Inner Wheel Enlargement, Transit Animations, Lot of Spirit
+
+### ✅ Features Completed
+1. **Enlarge inner wheel diameter** — Increased `planetInner`/`houseNumOuter` from 0.38→0.54 (natal) and 0.32→0.44 (transit). Adjusted label positioning (`labelStep` 0.14→0.20, `topR` offset 0.15) with `Math.max(bandH*0.11, size*0.018)` floor for label size. Gap between minute label and house ring reduced ~60%.
+2. **Lighter bounds/decans colors** — Reduced `fillOpacity` from 0.25 to 0.10 on both bounds and decans ring segments.
+3. **House cusp degree labels** (Bug #14) — Added DD°MM' labels on cusp lines at zodiac ring boundary. Rendered last with parchment background rect. Hidden for Whole Sign houses.
+4. **Transit time-step animation** — New `TransitAnimationControls` component. Transport buttons (◀ ⏪ ⏩ ▶) + pill increment selector (1m→24h). Desktop: inline with date picker. Mobile: stacked. Uses refs to avoid stale closures. 1.2s auto-play interval. "Now" button hidden during playback.
+5. **Transit band label sizing** — Matched natal band formula: `labelStep=bandWidth*0.20`, `topR` offset 0.15, `labelSz=Math.max(bandWidth*0.11, size*0.018)`.
+6. **Transit outer ring narrowed** — `transitOuter` from 0.98→0.96.
+7. **ASC/DSC and MC/IC axis clipping** — Axes clipped via SVG `clipPath` with `clipRule="evenodd"` to exclude the inner circle (`R.houseNumInner`). Lines no longer cross through center.
+8. **Aspect line clipping** — Both natal and transit aspect lines clipped to `R.houseNumInner` circle via SVG `clipPath`.
+9. **Transit city defaults to birth city** — When no transit city selected, calculation uses birth location coordinates. Transit city input initialized with birth city name. Placeholder shows birth city.
+10. **Lot of Spirit** — Added `'spirit'` to Planet type. Calculator computes Spirit (inverse Fortune formula). Added ☩ glyph, medium slate blue color. Appears on chart wheel, legend, positions table, aspect grid.
+
+### 🐛 Bugs Fixed
+- **#14 House cusp degree labels** — Resolved (see feature #3 above)
+
+### 📁 Files Created
+- `packages/web/src/components/TransitAnimationControls.tsx` — Transit animation controls component
+
+### 📁 Files Changed
+- `packages/web/src/components/ChartWheel.tsx` — Ring radii, label sizing, bounds opacity, cusp labels, aspect/axis clipping, spirit glyph+color
+- `packages/web/src/components/TransitView.tsx` — Animation controls integration, fixed-width datetime input, transit city defaults
+- `packages/web/src/components/CitySearch.tsx` — Layout fix (`inline-block` for compact mode)
+- `packages/web/src/components/GlyphIcon.tsx` — Spirit glyph
+- `packages/web/src/utils/chart-helpers.ts` — Spirit display name
+- `packages/web/src/contexts/ChartContext.tsx` — Transit calculation defaults to birth location
+- `packages/core/src/types.ts` — Added 'spirit' to Planet type
+- `packages/core/src/calculator.ts` — Lot of Spirit calculation, skip spirit in declination aspects
+- `PLAN.md` — v0.12.0 items added and completed
+- `BUGS.md` — #14 resolved, #22 opened (transit city search)
+
+### 📝 Notes
+- Transit city search (Bug #22) still has issues — button disabled when no text typed, compact CitySearch layout needs rework
+- Changes on `develop` branch, not yet committed
+
+---
+
 ## Session 2026-04-01b: v0.10.0 Complete — View Flags, Minute Labels, PDF Fix
 
 ### ✅ Features Completed
