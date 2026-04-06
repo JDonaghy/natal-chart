@@ -107,6 +107,38 @@ export function deleteSavedChart(id: string): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
 }
 
+/** Save a chart to localStorage only, with a pre-existing cloudId (no cloud upload). */
+export function saveLocalFromCloud(
+  cloudId: string,
+  name: string,
+  chartData: ChartResult,
+  birthData: ExtendedBirthData,
+  transitDateStr?: string,
+  transitLoc?: TransitLocation,
+  viewFlags?: { showAspects?: boolean; showBoundsDecans?: boolean; traditionalPlanets?: boolean; glyphSet?: string },
+): void {
+  const charts = getSavedCharts();
+  // Don't duplicate if already linked
+  if (charts.some(c => c.cloudId === cloudId)) return;
+
+  const entry: SavedChart = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    cloudId,
+    name,
+    chartData,
+    birthData,
+    savedAt: new Date().toISOString(),
+  };
+  if (transitDateStr) entry.transitDateStr = transitDateStr;
+  if (transitLoc) entry.transitLocation = transitLoc;
+  if (viewFlags?.showAspects === false) entry.showAspects = false;
+  if (viewFlags?.showBoundsDecans === true) entry.showBoundsDecans = true;
+  if (viewFlags?.traditionalPlanets === true) entry.traditionalPlanets = true;
+  if (viewFlags?.glyphSet && viewFlags.glyphSet !== 'classic') entry.glyphSet = viewFlags.glyphSet;
+  charts.push(entry);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
+}
+
 /** Set the cloudId on a local chart after successful cloud upload. */
 export function setCloudId(localId: string, cloudId: string): void {
   const charts = getSavedCharts();

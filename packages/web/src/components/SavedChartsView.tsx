@@ -10,6 +10,7 @@ import {
   shareChart,
   unshareChart,
   loadCloudChart,
+  saveLocalFromCloud,
   type SavedChartSummary,
   type SavedChart,
 } from '../services/savedCharts';
@@ -115,16 +116,38 @@ export const SavedChartsView: React.FC = () => {
         if (typeof bd.ascHorizontal === 'boolean') birthData.ascHorizontal = bd.ascHorizontal;
         await calculateChart(birthData);
 
-        if (cloudChart.viewFlags) {
-          const vf = cloudChart.viewFlags;
+        const vf = cloudChart.viewFlags as Record<string, unknown> | null;
+        const viewFlags: { showAspects?: boolean; showBoundsDecans?: boolean; traditionalPlanets?: boolean; glyphSet?: string } = {};
+        if (vf) {
+          if (typeof vf.showAspects === 'boolean') viewFlags.showAspects = vf.showAspects;
+          if (typeof vf.showBoundsDecans === 'boolean') viewFlags.showBoundsDecans = vf.showBoundsDecans;
+          if (typeof vf.traditionalPlanets === 'boolean') viewFlags.traditionalPlanets = vf.traditionalPlanets;
+          if (typeof vf.glyphSet === 'string') viewFlags.glyphSet = vf.glyphSet;
+        }
+
+        if (vf) {
           if (typeof vf.showAspects === 'boolean') setShowAspects(vf.showAspects);
           if (typeof vf.showBoundsDecans === 'boolean') setShowBoundsDecans(vf.showBoundsDecans);
           if (typeof vf.traditionalPlanets === 'boolean') setTraditionalPlanets(vf.traditionalPlanets);
           if (typeof vf.glyphSet === 'string') setGlyphSet(vf.glyphSet);
         }
 
-        if (cloudChart.transitData) {
-          const td = cloudChart.transitData as Record<string, unknown>;
+        // Cache cloud chart locally so it becomes "Synced" and works offline
+        const { calculateChart: calc } = await import('@natal-chart/core');
+        const { city: _c, timezone: _t, ...coreData } = birthData;
+        const chartResult = await calc(coreData);
+        const td = cloudChart.transitData as Record<string, unknown> | null;
+        saveLocalFromCloud(
+          chart.id,
+          chart.name,
+          chartResult,
+          birthData,
+          td?.transitDateStr as string | undefined,
+          td?.transitLocation as { city: string; latitude: number; longitude: number; timezone: string } | undefined,
+          viewFlags,
+        );
+
+        if (td) {
           const transitDateStr = td.transitDateStr as string;
           setTransitDateStr(transitDateStr);
           const loc = td.transitLocation as { city: string; latitude: number; longitude: number; timezone: string } | null;
