@@ -1,5 +1,5 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-04-05*
+*Last Updated: 2026-04-06*
 
 ## Deployment Status
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
@@ -7,7 +7,7 @@
 - **Cloudflare D1**: natal-chart-db (user accounts, preferences, saved charts)
 - **Firebase Auth**: natal-chart-329b3 (Google SSO)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.14.0
+- **Current Version**: 0.15.0
 
 ## What Works
 
@@ -72,6 +72,19 @@
 - [x] Chart wheel scales to any width via SVG viewBox
 - [x] Chart + legend stacks vertically on mobile
 - [x] Aspect grids: 28px cells on mobile, 34px on desktop, horizontal scroll
+
+### Saved Charts Management (v0.15.0)
+- [x] Dedicated "My Charts" page (`/charts`) with unified local + cloud chart list
+- [x] Inline chart rename (click to edit, Enter to save)
+- [x] Delete with confirmation (removes from both localStorage and cloud)
+- [x] Three-state sync badges: Local (grey), Synced (green), Cloud (blue)
+- [x] Cloud charts auto-sync to localStorage on open (becomes "Synced", works offline)
+- [x] Share link management (generate/revoke share token, copy URL)
+- [x] Chart deduplication via cloudId tracking
+- [x] Refactored CompareView to pure comparison (no chart management)
+- [x] Security hardening: payload size limits, chart count cap, error detail removal, share token validation
+- [x] Nightly D1 database backups via cron to dellserver
+- [x] Comprehensive ARCHITECTURE.md and disaster recovery script
 
 ### Infrastructure
 - [x] Monorepo with pnpm workspaces

@@ -585,4 +585,51 @@ Added 16 new items to PLAN.md from client feedback:
 
 ---
 
+## Session 2026-04-06: v0.15.0 — Saved Charts Management, Security, Docs
+
+### Features Completed
+1. **My Charts tab** (`/charts`) — Dedicated saved charts management page with unified local + cloud list. Inline rename, delete with confirmation, Open button (loads/recalculates), share link toggle.
+2. **Three-state sync badges** — Local (grey, not synced), Synced (green, in both localStorage and cloud), Cloud (blue, cloud-only from another device).
+3. **Chart deduplication** — `cloudId` field on local charts links them to their cloud copy. `getAllSavedChartSummaries()` deduplicates so synced charts appear once. Charts remain in localStorage after sync for offline access.
+4. **Auto-sync on open** — Opening a cloud-only chart recalculates from inputs and saves to localStorage, becoming "Synced".
+5. **CompareView refactored** — Removed chart list/delete UI. Now purely two dropdowns + side-by-side chart rendering.
+6. **Security hardening** — Removed error details from 500 responses. Added 10KB/50KB payload limits. 500 chart cap per user. Share token format validation.
+7. **D1 database backups** — `scripts/backup-d1.sh` exports D1 as compressed SQL dumps. Cron job runs nightly at 3am on dellserver, 30-day retention.
+8. **ARCHITECTURE.md rewrite** — Full system overview with diagrams, all endpoints, D1 schema, auth flow, CI/CD, env vars, external accounts, backup/restore procedures, disaster recovery, secrets inventory.
+9. **Infrastructure setup script** — `scripts/setup-infrastructure.sh` recreates all Cloudflare resources from scratch.
+10. **Secrets audit** — Scanned all tracked files and git history. Clean. Removed Firebase config literals from ARCHITECTURE.md.
+
+### Bug Fixes
+- Fixed Worker 500 errors on authenticated routes (missing try/catch with CORS headers)
+- Fixed Firebase env vars not passed to GitHub Pages build (added to deploy.yml)
+- Fixed Worker API URL pointing to GitHub Pages instead of Cloudflare Worker (added VITE_WORKER_API_URL)
+- Fixed D1 migration not applied to remote (was local-only)
+
+### Files Created
+- `packages/web/src/components/SavedChartsView.tsx` — My Charts management page
+- `packages/worker/src/auth.ts` — Firebase JWT verification for Workers
+- `packages/worker/migrations/0001_init.sql` — D1 schema
+- `scripts/backup-d1.sh` — Nightly D1 backup script
+- `scripts/setup-infrastructure.sh` — Disaster recovery / infrastructure setup
+
+### Files Changed
+- `packages/web/src/services/savedCharts.ts` — cloudId tracking, deduplication, rename, cloud-aware CRUD
+- `packages/web/src/components/CompareView.tsx` — Simplified to comparison-only
+- `packages/web/src/components/CloudMigrationModal.tsx` — Stores cloudId after migration
+- `packages/web/src/components/Layout.tsx` — Added "My Charts" NavLink
+- `packages/web/src/App.tsx` — Added /charts route
+- `packages/worker/src/index.ts` — Security hardening, error handling, account deletion
+- `.github/workflows/deploy.yml` — Firebase + Worker API URL env vars
+- `ARCHITECTURE.md` — Complete rewrite
+- `.gitignore` — Added backups/
+
+### Infrastructure Changes
+- D1 migration applied to remote
+- Firebase env vars added as GitHub repository secrets
+- VITE_WORKER_API_URL secret added
+- Worker redeployed with security hardening
+- Nightly backup cron installed on dellserver
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*
