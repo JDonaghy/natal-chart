@@ -4,7 +4,10 @@ import {
   listCloudCharts,
   getCloudChart,
   createCloudChart,
+  updateCloudChart,
   deleteCloudChart as deleteCloudChartApi,
+  createShareToken as createShareTokenApi,
+  revokeShareToken as revokeShareTokenApi,
   type CloudChartSummary,
   type CloudChartData,
 } from './cloudSync';
@@ -30,7 +33,9 @@ export interface SavedChartSummary {
   name: string;
   savedAt: string;
   source: 'local' | 'cloud';
-  shareToken?: string | null;
+  shareToken?: string | null | undefined;
+  city?: string | undefined;
+  isTransit?: boolean | undefined;
 }
 
 const STORAGE_KEY = 'natal-chart-saved-charts';
@@ -93,6 +98,15 @@ export function saveChart(
 export function deleteSavedChart(id: string): void {
   const charts = getSavedCharts().filter(c => c.id !== id);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
+}
+
+export function renameSavedChart(id: string, newName: string): void {
+  const charts = getSavedCharts();
+  const chart = charts.find(c => c.id === id);
+  if (chart) {
+    chart.name = newName;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
+  }
 }
 
 // ─── Cloud-Aware Functions ──────────────────────────────────────────────────
@@ -174,6 +188,8 @@ export async function getAllSavedChartSummaries(): Promise<SavedChartSummary[]> 
     name: c.name,
     savedAt: c.savedAt,
     source: 'local' as const,
+    city: c.birthData?.city,
+    isTransit: Boolean(c.transitDateStr),
   }));
 
   try {
@@ -182,4 +198,33 @@ export async function getAllSavedChartSummaries(): Promise<SavedChartSummary[]> 
   } catch {
     return local;
   }
+}
+
+/** Rename a chart (local + cloud). */
+export async function renameChart(id: string, newName: string, source: 'local' | 'cloud'): Promise<void> {
+  if (source === 'local') {
+    renameSavedChart(id, newName);
+    // No cloud equivalent for local-only charts
+  } else {
+    await updateCloudChart(id, { name: newName });
+  }
+}
+
+/** Delete a chart (local + cloud). */
+export async function deleteChart(id: string, source: 'local' | 'cloud'): Promise<void> {
+  if (source === 'local') {
+    deleteSavedChart(id);
+  } else {
+    await deleteCloudSavedChart(id);
+  }
+}
+
+/** Generate a share link for a cloud chart. */
+export async function shareChart(chartId: string): Promise<string> {
+  return createShareTokenApi(chartId);
+}
+
+/** Revoke a share link for a cloud chart. */
+export async function unshareChart(chartId: string): Promise<void> {
+  await revokeShareTokenApi(chartId);
 }
