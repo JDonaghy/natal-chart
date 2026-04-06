@@ -239,12 +239,12 @@ Browser                    Firebase              Worker               D1
 **Required GitHub Secrets:**
 | Secret | Value | Purpose |
 |--------|-------|---------|
-| `VITE_GEOCODING_API_URL` | `https://natal-chart-geocoding.johnfdonaghy.workers.dev/geocode` | Geocoding API |
-| `VITE_FIREBASE_API_KEY` | `AIzaSyA0N0-Rf_5Z-56ZO_KFnnZ1If8mWOjUHlM` | Firebase config |
-| `VITE_FIREBASE_AUTH_DOMAIN` | `natal-chart-329b3.firebaseapp.com` | Firebase config |
-| `VITE_FIREBASE_PROJECT_ID` | `natal-chart-329b3` | Firebase config |
-| `VITE_FIREBASE_APP_ID` | `1:684749947061:web:aa16aa701228f325a27efc` | Firebase config |
-| `VITE_WORKER_API_URL` | `https://natal-chart-geocoding.johnfdonaghy.workers.dev/api` | Cloud sync API |
+| `VITE_GEOCODING_API_URL` | Worker URL + `/geocode` | Geocoding API |
+| `VITE_FIREBASE_API_KEY` | From Firebase Console > Project Settings | Firebase config |
+| `VITE_FIREBASE_AUTH_DOMAIN` | From Firebase Console > Project Settings | Firebase config |
+| `VITE_FIREBASE_PROJECT_ID` | From Firebase Console > Project Settings | Firebase config |
+| `VITE_FIREBASE_APP_ID` | From Firebase Console > Project Settings | Firebase config |
+| `VITE_WORKER_API_URL` | Worker URL + `/api` | Cloud sync API |
 
 ### GitHub Actions: Release (`.github/workflows/release.yml`)
 
@@ -266,10 +266,11 @@ npx wrangler deploy
 ```env
 VITE_GEOCODING_API_URL=/api/geocode
 
-VITE_FIREBASE_API_KEY=AIzaSyA0N0-Rf_5Z-56ZO_KFnnZ1If8mWOjUHlM
-VITE_FIREBASE_AUTH_DOMAIN=natal-chart-329b3.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=natal-chart-329b3
-VITE_FIREBASE_APP_ID=1:684749947061:web:aa16aa701228f325a27efc
+# Copy these from Firebase Console > Project Settings > Your apps
+VITE_FIREBASE_API_KEY=your-api-key
+VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_APP_ID=your-app-id
 ```
 
 In dev, Vite proxies `/api/*` to the Cloudflare Worker (configured in `vite.config.ts`).
