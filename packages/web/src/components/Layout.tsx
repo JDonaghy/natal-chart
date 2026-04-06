@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useResponsive } from '../hooks/useResponsive';
-import { useAuth } from '../contexts/AuthContext';
 import { LoginButton } from './LoginButton';
-import { CloudMigrationModal } from './CloudMigrationModal';
 import '../App.css';
 
 // Build version injected by Vite
 declare const __APP_VERSION__: string;
+declare const __APP_SEMVER__: string;
 declare const __BUILD_TIME__: string;
 
 interface LayoutProps {
@@ -51,7 +50,6 @@ const HamburgerIcon: React.FC<{ open: boolean; onClick: () => void }> = ({ open,
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { isMobile } = useResponsive();
-  const { showMigration, dismissMigration } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navLinks = (
@@ -138,14 +136,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
              Calculations performed entirely in your browser • Sign in to sync across devices
            </p>
             <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.7rem', color: '#888', fontFamily: 'monospace' }}>
-              Build: {__APP_VERSION__ || 'dev'} • {__BUILD_TIME__ ? new Date(__BUILD_TIME__).toLocaleDateString() : 'development'}
+              v{__APP_SEMVER__ || '0.0.0'} • Build: {__APP_VERSION__ || 'dev'} • {__BUILD_TIME__ ? new Date(__BUILD_TIME__).toLocaleDateString() : 'development'}
             </p>
         </div>
       </footer>
 
-      {showMigration && (
-        <CloudMigrationModal onComplete={dismissMigration} />
-      )}
     </div>
   );
 };

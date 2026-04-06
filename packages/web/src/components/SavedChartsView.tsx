@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChart, type ExtendedBirthData } from '../contexts/ChartContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useSync } from '../contexts/SyncContext';
 import {
   getSavedCharts,
   getAllSavedChartSummaries,
@@ -21,6 +22,7 @@ const WORKER_URL = import.meta.env.VITE_WORKER_API_URL || '';
 export const SavedChartsView: React.FC = () => {
   const { loadChart, calculateChart, setTransitDateStr, setTransitLocation, calculateTransits, setShowAspects, setShowBoundsDecans, setTraditionalPlanets, setGlyphSet } = useChart();
   const { user } = useAuth();
+  const { triggerSync } = useSync();
   const navigate = useNavigate();
 
   const [charts, setCharts] = useState<SavedChartSummary[]>([]);
@@ -220,6 +222,7 @@ export const SavedChartsView: React.FC = () => {
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    await triggerSync();
     await refreshCharts();
     setRefreshing(false);
   };

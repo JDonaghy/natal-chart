@@ -35,6 +35,10 @@ function getBuildInfo() {
 
 const buildInfo = getBuildInfo();
 
+// Read version from package.json
+import { readFileSync } from 'fs';
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
+
 export default defineConfig({
   plugins: [
     react(),
@@ -46,6 +50,7 @@ export default defineConfig({
   base: '/natal-chart/',
   define: {
     '__APP_VERSION__': JSON.stringify(buildInfo.commitHash),
+    '__APP_SEMVER__': JSON.stringify(pkg.version),
     '__BUILD_TIME__': JSON.stringify(buildInfo.buildTimestamp),
     '__BUILD_CONTEXT__': JSON.stringify(buildInfo.buildContext),
   },

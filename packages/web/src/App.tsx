@@ -5,6 +5,7 @@ import config from '../tamagui.config';
 import { ShareLoader } from './components/ShareLoader';
 import { Layout } from './components/Layout';
 import { AuthProvider } from './contexts/AuthContext';
+import { SyncProvider } from './contexts/SyncContext';
 import { ChartProvider } from './contexts/ChartContext';
 import './App.css';
 
@@ -21,6 +22,7 @@ function App() {
   return (
     <TamaguiProvider config={config} disableInjectCSS>
     <AuthProvider>
+    <SyncProvider>
     <Router>
       <ChartProvider>
         <ShareLoader />
@@ -40,6 +42,7 @@ function App() {
         </Layout>
       </ChartProvider>
     </Router>
+    </SyncProvider>
     </AuthProvider>
     </TamaguiProvider>
   );

@@ -1,6 +1,6 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.15.1 Cloud Sync Fix
+## Current Sprint: v0.16.0 Seamless Cloud Sync
 **Status**: Complete
 **Last Updated**: 2026-04-06
 
@@ -236,6 +236,13 @@
 
 ### 🔄 My Charts Refresh Button (v0.15.1)
 - [x] **Cloud sync refresh button** - Add a refresh button to the My Charts page header that re-fetches cloud chart data and merges it with localStorage. Allows users to pick up renames, deletions, and new charts from other devices without a full page reload. Only shown when logged in.
+
+### 🔄 Seamless Cloud Sync (v0.16.0)
+- [x] **Automatic bidirectional sync on login** - `fullSync()` runs silently when user logs in. Pushes local charts to cloud, pulls cloud charts to localStorage (with WASM recalculation), and syncs names. SyncContext watches auth state and triggers automatically.
+- [x] **Unified chart dropdowns** - "Load saved..." dropdowns in Natal Chart, Transit Chart, and Compare views now show all charts (local + synced + cloud-pulled) via `useSyncedCharts()` hook keyed to sync revision counter.
+- [x] **Save chart dialog with local-only option** - Replaced browser `prompt()` with `SaveChartDialog` modal: name input + "Keep local only" checkbox (shown when logged in). `localOnly` flag on `SavedChart` interface skips cloud upload.
+- [x] **Bidirectional Sync button** - My Charts Sync button now calls `fullSync()` (push + pull + name sync) instead of just re-fetching cloud list.
+- [x] **Removed CloudMigrationModal** - Automatic sync replaces the one-time migration modal. No manual import step needed on login.
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations
