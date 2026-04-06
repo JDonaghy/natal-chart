@@ -7,7 +7,7 @@
 - **Cloudflare D1**: natal-chart-db (user accounts, preferences, saved charts)
 - **Firebase Auth**: natal-chart-329b3 (Google SSO)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.15.0
+- **Current Version**: 0.15.1
 
 ## What Works
 
@@ -81,6 +81,7 @@
 - [x] Cloud charts auto-sync to localStorage on open (becomes "Synced", works offline)
 - [x] Share link management (generate/revoke share token, copy URL)
 - [x] Chart deduplication via cloudId tracking
+- [x] Cloud sync merge on refresh — renamed charts from other devices update via Sync button
 - [x] Refactored CompareView to pure comparison (no chart management)
 - [x] Security hardening: payload size limits, chart count cap, error detail removal, share token validation
 - [x] Nightly D1 database backups via cron to dellserver

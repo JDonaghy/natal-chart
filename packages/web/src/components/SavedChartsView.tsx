@@ -30,6 +30,7 @@ export const SavedChartsView: React.FC = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const editRef = useRef<HTMLInputElement>(null);
 
   const refreshCharts = async () => {
@@ -217,6 +218,12 @@ export const SavedChartsView: React.FC = () => {
     );
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await refreshCharts();
+    setRefreshing(false);
+  };
+
   if (charts.length === 0) {
     return (
       <div style={{ maxWidth: '600px' }}>
@@ -228,7 +235,28 @@ export const SavedChartsView: React.FC = () => {
 
   return (
     <div style={{ maxWidth: '700px' }}>
-      <h2 style={{ fontFamily: "'Cormorant', serif", color: '#2c2c54', marginBottom: '1rem' }}>My Charts</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <h2 style={{ fontFamily: "'Cormorant', serif", color: '#2c2c54', margin: 0 }}>My Charts</h2>
+        {user && (
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            style={{
+              padding: '0.3rem 0.7rem',
+              border: '1px solid #b8860b',
+              borderRadius: '3px',
+              background: 'none',
+              cursor: refreshing ? 'default' : 'pointer',
+              fontFamily: "'Cormorant', serif",
+              fontSize: '0.85rem',
+              color: '#2c2c54',
+              opacity: refreshing ? 0.6 : 1,
+            }}
+          >
+            {refreshing ? 'Syncing...' : 'Sync'}
+          </button>
+        )}
+      </div>
       <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
         {charts.length} chart{charts.length !== 1 ? 's' : ''} saved
         {user ? ' (syncing to cloud)' : ' (local only — sign in to sync)'}

@@ -630,6 +630,18 @@ Added 16 new items to PLAN.md from client feedback:
 - Worker redeployed with security hardening
 - Nightly backup cron installed on dellserver
 
+## Session 2026-04-06: v0.15.1 — Cloud Sync Fix & Refresh Button
+
+### Bug Fixes
+1. **Renamed charts not syncing across devices (Bug #23)** — `getAllSavedChartSummaries()` always used the localStorage name for synced charts, ignoring the cloud version. Fixed by merging cloud names back into synced chart summaries and persisting updated names to localStorage.
+
+### Features
+1. **Sync button on My Charts** — Added a "Sync" button (visible when logged in) to the My Charts page header. Re-fetches cloud chart data and merges renames, deletions, and new charts from other devices without a full page reload.
+
+### Files Changed
+- `packages/web/src/services/savedCharts.ts` — `getAllSavedChartSummaries()` now merges cloud data for synced charts
+- `packages/web/src/components/SavedChartsView.tsx` — Added Sync button with loading state
+
 ---
 
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*
