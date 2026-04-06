@@ -642,6 +642,33 @@ Added 16 new items to PLAN.md from client feedback:
 - `packages/web/src/services/savedCharts.ts` — `getAllSavedChartSummaries()` now merges cloud data for synced charts
 - `packages/web/src/components/SavedChartsView.tsx` — Added Sync button with loading state
 
+## Session 2026-04-06b: v0.16.0 — Seamless Cloud Sync
+
+### Features
+1. **Automatic bidirectional sync on login** — New `fullSync()` in `savedCharts.ts` runs silently when user logs in via `SyncContext`. Pushes local charts (without `cloudId` and not `localOnly`) to cloud, pulls cloud-only charts to localStorage (with WASM recalculation), and syncs names for already-linked charts.
+2. **Unified chart dropdowns** — ChartView, TransitView, and CompareView "Load saved..." dropdowns now show all charts via `useSyncedCharts()` hook, which re-reads localStorage when `chartRevision` counter changes after sync.
+3. **Save chart dialog** — Replaced browser `prompt()` with `SaveChartDialog` modal component: name input + "Keep local only" checkbox (only shown when logged in). `localOnly` flag on `SavedChart` interface prevents cloud upload.
+4. **Bidirectional Sync button** — My Charts Sync button now calls `triggerSync()` → `fullSync()` (push + pull + name sync) instead of just re-fetching cloud list.
+5. **Removed CloudMigrationModal** — Automatic sync on login replaces the one-time migration modal. Deleted `CloudMigrationModal.tsx`, removed migration state from `AuthContext`.
+
+### Files Created
+- `packages/web/src/contexts/SyncContext.tsx` — Watches auth state, auto-syncs on login, exposes `triggerSync()` and `chartRevision`
+- `packages/web/src/hooks/useSyncedCharts.ts` — Hook returning `getSavedCharts()` keyed to `chartRevision`
+- `packages/web/src/components/SaveChartDialog.tsx` — Save chart modal with name input and local-only checkbox
+
+### Files Deleted
+- `packages/web/src/components/CloudMigrationModal.tsx` — Replaced by automatic `fullSync()`
+
+### Files Modified
+- `packages/web/src/services/savedCharts.ts` — Added `localOnly` flag, `fullSync()`, updated `saveChart()` to accept `localOnly`
+- `packages/web/src/contexts/AuthContext.tsx` — Removed migration modal state/logic
+- `packages/web/src/App.tsx` — Added `SyncProvider` wrapper
+- `packages/web/src/components/Layout.tsx` — Removed migration modal rendering
+- `packages/web/src/components/ChartView.tsx` — `useSyncedCharts()`, `SaveChartDialog`
+- `packages/web/src/components/TransitView.tsx` — `useSyncedCharts()`, `SaveChartDialog`
+- `packages/web/src/components/CompareView.tsx` — `useSyncedCharts()`
+- `packages/web/src/components/SavedChartsView.tsx` — Sync button calls `triggerSync()`
+
 ---
 
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

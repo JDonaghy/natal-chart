@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getSavedCharts, type SavedChart } from '../services/savedCharts';
+import { useSyncedCharts } from '../hooks/useSyncedCharts';
 import { ChartWheel } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
 import type { ExtendedBirthData } from '../contexts/ChartContext';
@@ -29,7 +29,7 @@ const BirthDataSummary: React.FC<{ birthData: ExtendedBirthData }> = ({ birthDat
 );
 
 export const CompareView: React.FC = () => {
-  const [savedCharts] = useState<SavedChart[]>(() => getSavedCharts());
+  const savedCharts = useSyncedCharts();
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState('');
   const { isMobile, isTablet } = useResponsive();

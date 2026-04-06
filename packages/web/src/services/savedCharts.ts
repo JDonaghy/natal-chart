@@ -26,6 +26,7 @@ export interface SavedChart {
   showBoundsDecans?: boolean;
   traditionalPlanets?: boolean;
   glyphSet?: string;
+  localOnly?: boolean;  // If true, skip cloud sync
 }
 
 /** Summary for chart list UI (works for both local and cloud) */
@@ -60,6 +61,7 @@ export function saveChart(
   transitDateStr?: string | undefined,
   transitLoc?: TransitLocation | undefined,
   viewFlags?: { showAspects?: boolean; showBoundsDecans?: boolean; traditionalPlanets?: boolean; glyphSet?: string },
+  localOnly?: boolean,
 ): SavedChart {
   const charts = getSavedCharts();
   const entry: SavedChart = {
@@ -87,17 +89,22 @@ export function saveChart(
   if (viewFlags?.glyphSet && viewFlags.glyphSet !== 'classic') {
     entry.glyphSet = viewFlags.glyphSet;
   }
+  if (localOnly) {
+    entry.localOnly = true;
+  }
   charts.push(entry);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(charts));
 
-  // Also save to cloud if logged in (fire and forget, then store cloudId)
-  saveChartToCloud(name, birthData, transitDateStr, transitLoc, viewFlags)
-    .then(cloudId => {
-      if (cloudId) {
-        setCloudId(entry.id, cloudId);
-      }
-    })
-    .catch(err => console.warn('Failed to save chart to cloud:', err));
+  // Also save to cloud if logged in and not local-only (fire and forget, then store cloudId)
+  if (!localOnly) {
+    saveChartToCloud(name, birthData, transitDateStr, transitLoc, viewFlags)
+      .then(cloudId => {
+        if (cloudId) {
+          setCloudId(entry.id, cloudId);
+        }
+      })
+      .catch(err => console.warn('Failed to save chart to cloud:', err));
+  }
 
   return entry;
 }
@@ -315,4 +322,109 @@ export async function shareChart(chartId: string): Promise<string> {
 /** Revoke a share link for a cloud chart. */
 export async function unshareChart(chartId: string): Promise<void> {
   await revokeShareTokenApi(chartId);
+}
+
+// ─── Full Bidirectional Sync ────────────────────────────────────────────────
+
+/**
+ * Bidirectional sync: push unsynced local charts to cloud, pull cloud-only
+ * charts to localStorage, and sync names for already-linked charts.
+ * Calls onProgress after each chart is synced so UI can update progressively.
+ */
+export async function fullSync(
+  onProgress?: () => void,
+): Promise<void> {
+  if (!(await isLoggedIn())) return;
+
+  // --- Push: upload local charts that have no cloudId and are not localOnly ---
+  const localCharts = getSavedCharts();
+  for (const chart of localCharts) {
+    if (chart.cloudId || chart.localOnly) continue;
+    try {
+      const vFlags: { showAspects?: boolean; showBoundsDecans?: boolean; traditionalPlanets?: boolean; glyphSet?: string } = {};
+      if (chart.showAspects !== undefined) vFlags.showAspects = chart.showAspects;
+      if (chart.showBoundsDecans !== undefined) vFlags.showBoundsDecans = chart.showBoundsDecans;
+      if (chart.traditionalPlanets !== undefined) vFlags.traditionalPlanets = chart.traditionalPlanets;
+      if (chart.glyphSet !== undefined) vFlags.glyphSet = chart.glyphSet;
+      const cloudId = await saveChartToCloud(
+        chart.name,
+        chart.birthData,
+        chart.transitDateStr,
+        chart.transitLocation,
+        vFlags,
+      );
+      if (cloudId) {
+        setCloudId(chart.id, cloudId);
+        onProgress?.();
+      }
+    } catch (err) {
+      console.warn(`Failed to push chart "${chart.name}" to cloud:`, err);
+    }
+  }
+
+  // --- Pull: fetch cloud charts and download any that aren't cached locally ---
+  try {
+    const cloudCharts = await listCloudCharts();
+    // Refresh local charts after push phase may have updated cloudIds
+    const currentLocal = getSavedCharts();
+    const localCloudIds = new Set(currentLocal.filter(c => c.cloudId).map(c => c.cloudId));
+
+    // Name sync for already-linked charts
+    for (const cloud of cloudCharts) {
+      if (localCloudIds.has(cloud.id)) {
+        const local = currentLocal.find(c => c.cloudId === cloud.id);
+        if (local && local.name !== cloud.name) {
+          renameSavedChart(local.id, cloud.name);
+          onProgress?.();
+        }
+      }
+    }
+
+    // Pull cloud-only charts
+    const cloudOnly = cloudCharts.filter(c => !localCloudIds.has(c.id));
+    for (const cloud of cloudOnly) {
+      try {
+        const fullData = await getCloudChart(cloud.id);
+        const bd = fullData.birthData as Record<string, unknown>;
+        const birthData: ExtendedBirthData = {
+          dateTimeUtc: new Date(bd.dateTimeUtc as string),
+          latitude: bd.latitude as number,
+          longitude: bd.longitude as number,
+          houseSystem: (bd.houseSystem as 'P' | 'W') || 'W',
+        };
+        if (bd.city) birthData.city = bd.city as string;
+        if (bd.timezone) birthData.timezone = bd.timezone as string;
+        if (typeof bd.ascHorizontal === 'boolean') birthData.ascHorizontal = bd.ascHorizontal;
+
+        // Recalculate chart from inputs
+        const { calculateChart } = await import('@natal-chart/core');
+        const { city: _c, timezone: _t, ...coreData } = birthData;
+        const chartResult = await calculateChart(coreData);
+
+        const vf = fullData.viewFlags as Record<string, unknown> | null;
+        const td = fullData.transitData as Record<string, unknown> | null;
+        const viewFlags: { showAspects?: boolean; showBoundsDecans?: boolean; traditionalPlanets?: boolean; glyphSet?: string } = {};
+        if (vf) {
+          if (typeof vf.showAspects === 'boolean') viewFlags.showAspects = vf.showAspects;
+          if (typeof vf.showBoundsDecans === 'boolean') viewFlags.showBoundsDecans = vf.showBoundsDecans;
+          if (typeof vf.traditionalPlanets === 'boolean') viewFlags.traditionalPlanets = vf.traditionalPlanets;
+          if (typeof vf.glyphSet === 'string') viewFlags.glyphSet = vf.glyphSet;
+        }
+        saveLocalFromCloud(
+          cloud.id,
+          cloud.name,
+          chartResult,
+          birthData,
+          td?.transitDateStr as string | undefined,
+          td?.transitLocation as TransitLocation | undefined,
+          Object.keys(viewFlags).length > 0 ? viewFlags : undefined,
+        );
+        onProgress?.();
+      } catch (err) {
+        console.warn(`Failed to pull cloud chart "${cloud.name}":`, err);
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch cloud charts during sync:', err);
+  }
 }

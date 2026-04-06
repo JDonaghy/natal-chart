@@ -6,7 +6,9 @@ import { PlanetLegend } from './PlanetLegend';
 import { generateChartPdf } from '../services/pdfExport';
 import { buildShareUrl, type ShareData } from '../utils/shareUrl';
 import { convertFromUTC } from '../services/timezone';
-import { saveChart, getSavedCharts, type SavedChart } from '../services/savedCharts';
+import { saveChart } from '../services/savedCharts';
+import { useSyncedCharts } from '../hooks/useSyncedCharts';
+import { SaveChartDialog } from './SaveChartDialog';
 import { type GeocodeResult } from '../services/geocoding';
 import { CitySearch } from './CitySearch';
 import { AspectGrid } from './AspectGrid';
@@ -24,6 +26,7 @@ export const TransitView: React.FC = () => {
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [transitCityQuery, setTransitCityQuery] = useState(transitLocation?.city || birthData?.city || '');
   const chartWheelRef = useRef<ChartWheelHandle>(null);
   const initialized = useRef(false);
@@ -37,6 +40,7 @@ export const TransitView: React.FC = () => {
     return traditionalPlanets ? filterTraditionalTransits(transitData) : transitData;
   }, [transitData, traditionalPlanets]);
   const { isMobile, isTablet } = useResponsive();
+  const savedCharts = useSyncedCharts();
 
   // Auto-initialize transits on mount if no transit date is set
   useEffect(() => {
@@ -69,8 +73,7 @@ export const TransitView: React.FC = () => {
   const handleLoadSaved = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
     if (!id) return;
-    const charts = getSavedCharts();
-    const found = charts.find((c: SavedChart) => c.id === id);
+    const found = savedCharts.find(c => c.id === id);
     if (found) {
       loadChart(found.chartData, found.birthData);
       setShowAspects(found.showAspects ?? true);
@@ -234,9 +237,13 @@ export const TransitView: React.FC = () => {
 
   const handleSave = () => {
     if (!chartData || !birthData) return;
-    const name = prompt('Name for this chart:', birthData.city || 'My Chart');
-    if (!name) return;
-    saveChart(name, chartData, birthData, transitDateStr || undefined, transitLocation ?? undefined, { showAspects, traditionalPlanets, glyphSet });
+    setShowSaveDialog(true);
+  };
+
+  const handleSaveConfirm = (name: string, localOnly: boolean) => {
+    if (!chartData || !birthData) return;
+    saveChart(name, chartData, birthData, transitDateStr || undefined, transitLocation ?? undefined, { showAspects, traditionalPlanets, glyphSet }, localOnly);
+    setShowSaveDialog(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -273,7 +280,7 @@ export const TransitView: React.FC = () => {
             style={{ padding: '0.4rem', fontSize: '0.85rem', borderRadius: '4px' }}
           >
             <option value="">Load saved...</option>
-            {getSavedCharts().map((c: SavedChart) => (
+            {savedCharts.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
@@ -606,6 +613,13 @@ export const TransitView: React.FC = () => {
         </div>
       </div>
 
+      {showSaveDialog && (
+        <SaveChartDialog
+          defaultName={birthData?.city || 'My Chart'}
+          onSave={handleSaveConfirm}
+          onCancel={() => setShowSaveDialog(false)}
+        />
+      )}
     </div>
   );
 };
