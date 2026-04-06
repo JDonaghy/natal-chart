@@ -57,7 +57,7 @@ export const SavedChartsView: React.FC = () => {
     }
     setActionLoading(chart.id);
     try {
-      await renameChart(chart.id, trimmed, chart.source);
+      await renameChart(chart.id, trimmed, chart.source, chart.cloudId);
       await refreshCharts();
     } catch (err) {
       console.warn('Rename failed:', err);
@@ -69,7 +69,7 @@ export const SavedChartsView: React.FC = () => {
   const handleDelete = async (chart: SavedChartSummary) => {
     setActionLoading(chart.id);
     try {
-      await deleteChart(chart.id, chart.source);
+      await deleteChart(chart.id, chart.source, chart.cloudId);
       setConfirmDeleteId(null);
       await refreshCharts();
     } catch (err) {
@@ -255,8 +255,10 @@ export const SavedChartsView: React.FC = () => {
                   {chart.name}
                 </span>
               )}
-              <span style={badgeStyle(chart.source === 'cloud' ? '#3498db' : '#95a5a6')}>
-                {chart.source === 'cloud' ? 'Cloud' : 'Local'}
+              <span style={badgeStyle(
+                chart.source === 'synced' ? '#27ae60' : chart.source === 'cloud' ? '#3498db' : '#95a5a6'
+              )}>
+                {chart.source === 'synced' ? 'Synced' : chart.source === 'cloud' ? 'Cloud' : 'Local'}
               </span>
               {chart.isTransit && (
                 <span style={badgeStyle('#8e44ad')}>Transit</span>
@@ -300,9 +302,9 @@ export const SavedChartsView: React.FC = () => {
                 Rename
               </button>
 
-              {chart.source === 'cloud' && (
+              {(chart.source === 'cloud' || chart.source === 'synced') && (
                 <button
-                  onClick={() => handleShare(chart)}
+                  onClick={() => handleShare({ ...chart, id: chart.cloudId || chart.id })}
                   disabled={actionLoading === chart.id}
                   style={buttonStyle}
                 >
