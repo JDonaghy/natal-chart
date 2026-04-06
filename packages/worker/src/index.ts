@@ -54,7 +54,14 @@ export default {
 
     // All other API routes require authentication
     if (url.pathname.startsWith('/api/')) {
-      return handleAuthenticatedRoute(request, url, env);
+      try {
+        return await handleAuthenticatedRoute(request, url, env);
+      } catch (error) {
+        console.error('API error:', error);
+        return jsonResponse({
+          error: 'Internal server error',
+        }, 500, env.ALLOWED_ORIGIN, request);
+      }
     }
 
     return jsonResponse({ error: 'Not Found' }, 404, env.ALLOWED_ORIGIN, request);
@@ -188,6 +195,11 @@ async function handlePutPreferences(
   request: Request,
   env: Env,
 ): Promise<Response> {
+  const contentLength = parseInt(request.headers.get('Content-Length') || '0');
+  if (contentLength > 10_000) { // 10KB max for preferences
+    return jsonResponse({ error: 'Payload too large' }, 413, env.ALLOWED_ORIGIN, request);
+  }
+
   const body = await request.json<{ data: Record<string, unknown> }>();
   if (!body.data || typeof body.data !== 'object') {
     return jsonResponse({ error: 'Invalid preferences data' }, 400, env.ALLOWED_ORIGIN, request);
@@ -231,8 +243,21 @@ async function handleCreateChart(
     transitData?: Record<string, unknown>;
   }>();
 
+  const contentLength = parseInt(request.headers.get('Content-Length') || '0');
+  if (contentLength > 50_000) { // 50KB max for chart data
+    return jsonResponse({ error: 'Payload too large' }, 413, env.ALLOWED_ORIGIN, request);
+  }
+
   if (!body.name || !body.birthData) {
     return jsonResponse({ error: 'name and birthData are required' }, 400, env.ALLOWED_ORIGIN, request);
+  }
+
+  // Limit charts per user
+  const countRow = await env.DB.prepare('SELECT COUNT(*) as cnt FROM saved_charts WHERE user_id = ?')
+    .bind(user.uid)
+    .first<{ cnt: number }>();
+  if (countRow && countRow.cnt >= 500) {
+    return jsonResponse({ error: 'Chart limit reached (500)' }, 400, env.ALLOWED_ORIGIN, request);
   }
 
   const id = crypto.randomUUID();
@@ -415,8 +440,8 @@ async function handleSharedChart(
   env: Env,
 ): Promise<Response> {
   const token = url.pathname.replace('/shared/', '');
-  if (!token) {
-    return jsonResponse({ error: 'Missing share token' }, 400, env.ALLOWED_ORIGIN);
+  if (!token || token.length > 20 || !/^[A-Za-z0-9_-]+$/.test(token)) {
+    return jsonResponse({ error: 'Invalid share token' }, 400, env.ALLOWED_ORIGIN);
   }
 
   const row = await env.DB.prepare(

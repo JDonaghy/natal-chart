@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getSavedCharts } from '../services/savedCharts';
+import { getSavedCharts, setCloudId } from '../services/savedCharts';
 import { createCloudChart } from '../services/cloudSync';
 
 interface CloudMigrationModalProps {
@@ -29,7 +29,7 @@ export const CloudMigrationModal: React.FC<CloudMigrationModalProps> = ({ onComp
           ? chart.birthData.dateTimeUtc.toISOString()
           : String(chart.birthData.dateTimeUtc);
 
-        await createCloudChart({
+        const result = await createCloudChart({
           name: chart.name,
           birthData: {
             dateTimeUtc,
@@ -51,6 +51,8 @@ export const CloudMigrationModal: React.FC<CloudMigrationModalProps> = ({ onComp
             transitLocation: chart.transitLocation ?? null,
           } : undefined,
         });
+        // Link local chart to its cloud copy
+        setCloudId(chart.id, result.id);
         uploaded++;
         setProgress(uploaded);
       } catch (err) {

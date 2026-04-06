@@ -1,8 +1,8 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.14.0 User Accounts & Cloud Sync
+## Current Sprint: v0.15.0 Saved Charts Management
 **Status**: Complete
-**Last Updated**: 2026-04-05
+**Last Updated**: 2026-04-06
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -105,66 +105,35 @@
 **Goal**: Allow users to log in and sync preferences + saved charts across browsers/devices. No custom server infrastructure — Firebase Auth for identity, Cloudflare D1 for storage, existing Worker for API.
 
 #### Phase 1: Firebase Auth Integration
-- [ ] **Firebase project setup** - Create Firebase project, enable Google sign-in provider. Configure OAuth consent screen. Add Firebase config to web app environment variables.
-- [ ] **Firebase Auth SDK in SPA** - Add `firebase/auth` package. Initialize Firebase app in a new `services/auth.ts` module. Create `AuthContext` provider wrapping the app with `onAuthStateChanged` listener. Expose `user`, `loading`, `signIn()`, `signOut()` via context.
-- [ ] **Login UI** - Add "Sign In" button to header (when logged out) and user avatar/menu (when logged in) with "Sign Out" option. Use Firebase's `signInWithPopup()` for Google. Keep the app fully functional without login — auth is optional.
-- [ ] **Additional SSO providers** - Add GitHub, Facebook, and/or Apple sign-in buttons. Firebase SDK handles all OAuth flows. Each provider needs enabling in Firebase console + provider-specific app registration (GitHub OAuth App, Facebook App, Apple Developer config).
+- [x] **Firebase project setup** - Created Firebase project natal-chart-329b3, enabled Google sign-in.
+- [x] **Firebase Auth SDK in SPA** - `firebase/auth` package, `services/auth.ts`, `AuthContext` with `onAuthStateChanged`.
+- [x] **Login UI** - Sign In button in header with provider picker, avatar dropdown when logged in.
+- [ ] **Additional SSO providers** - GitHub code ready, needs OAuth App registration. Facebook/Apple not yet added.
 
 #### Phase 2: Cloudflare D1 Database
-- [ ] **D1 database creation** - Create D1 database via `wrangler d1 create natal-chart-db`. Add D1 binding to `wrangler.toml` in `packages/worker`.
-- [ ] **Schema design** - Create migration with tables:
-  ```sql
-  -- User record (created on first login)
-  CREATE TABLE users (
-    id TEXT PRIMARY KEY,           -- Firebase UID
-    email TEXT,
-    display_name TEXT,
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
-  );
-
-  -- User preferences (one row per user)
-  CREATE TABLE preferences (
-    user_id TEXT PRIMARY KEY REFERENCES users(id),
-    data TEXT NOT NULL,            -- JSON blob: { houseSystem, glyphSet, ascHorizontal, ... }
-    updated_at TEXT DEFAULT (datetime('now'))
-  );
-
-  -- Saved charts (inputs only — recalculate on load, cache in localStorage)
-  CREATE TABLE saved_charts (
-    id TEXT PRIMARY KEY,           -- UUID
-    user_id TEXT NOT NULL REFERENCES users(id),
-    name TEXT NOT NULL,
-    birth_data TEXT NOT NULL,      -- JSON: { dateTimeLocal, latitude, longitude, locationName, timezone }
-    view_flags TEXT,               -- JSON: { houseSystem, showAspects, showBoundsDecans, traditionalPlanets, glyphSet, ascHorizontal }
-    transit_data TEXT,             -- JSON: { transitDateStr, transitLocation } (null for natal-only)
-    share_token TEXT UNIQUE,       -- Short random token for public sharing (null = private)
-    created_at TEXT DEFAULT (datetime('now')),
-    updated_at TEXT DEFAULT (datetime('now'))
-  );
-  CREATE INDEX idx_charts_user ON saved_charts(user_id);
-  CREATE INDEX idx_charts_share ON saved_charts(share_token) WHERE share_token IS NOT NULL;
-  ```
-- [ ] **Run migration** - `wrangler d1 migrations apply natal-chart-db`
+- [x] **D1 database creation** - Created natal-chart-db (ae3aa7c7-606b-490f-a1bd-cb7a9314e45c), region ENAM.
+- [x] **Schema design** - Migration `0001_init.sql` with users, preferences, saved_charts tables. Inputs-only chart storage with share_token support.
+- [x] **Run migration** - Applied to remote via `wrangler d1 migrations apply --remote`.
 
 #### Phase 3: Worker API Endpoints
-- [ ] **JWT verification middleware** - Worker verifies Firebase ID token on protected routes. Fetch Google's JWKS (`googleapis.com/.../jwk/securetoken@...`), cache in KV (1hr TTL). Verify RS256 signature + claims (`exp`, `iss`, `aud`). Extract `user_id` from token `sub` claim. Return 401 if invalid.
-- [ ] **User endpoints** - `POST /auth/user` — Upsert user record on first login (Firebase UID, email, display name).
-- [ ] **Preferences endpoints** - `GET /preferences` — Return user preferences JSON. `PUT /preferences` — Save preferences JSON. Both authenticated via JWT.
-- [ ] **Saved charts endpoints** - `GET /charts` — List user's saved charts (id, name, created_at). `GET /charts/:id` — Load single chart (authenticated owner). `POST /charts` — Save new chart (inputs + view flags only, generate UUID server-side). `PUT /charts/:id` — Update existing chart. `DELETE /charts/:id` — Delete chart. All authenticated, all scoped to the authenticated user_id.
-- [ ] **Chart sharing endpoints** - `POST /charts/:id/share` — Generate a `share_token` for a chart (owner only). Returns short URL-safe token. `DELETE /charts/:id/share` — Revoke sharing. `GET /shared/:token` — Load chart by share token (no auth required, read-only). Returns birth_data + view_flags + transit_data so the viewer's browser can recalculate and render the chart.
-- [ ] **CORS configuration** - Extend existing CORS headers for new endpoints.
+- [x] **JWT verification middleware** - Firebase JWT verification via Google JWKS (cached in-memory 1hr). RS256 signature + claims validation.
+- [x] **User endpoints** - `POST /api/user` upsert, `DELETE /api/user` account deletion.
+- [x] **Preferences endpoints** - `GET/PUT /api/preferences` with 10KB payload limit.
+- [x] **Saved charts endpoints** - Full CRUD on `/api/charts` with 50KB limit and 500 chart cap per user.
+- [x] **Chart sharing endpoints** - `POST/DELETE /api/charts/:id/share` + `GET /shared/:token` (public, no auth).
+- [x] **CORS configuration** - Extended for GET/POST/PUT/DELETE + Authorization header.
+- [x] **Security hardening** - Error details removed from 500 responses, payload size limits, share token validation.
 
 #### Phase 4: SPA Cloud Sync
-- [ ] **Preferences sync service** - New `services/cloudSync.ts` module. On login: fetch cloud preferences, merge with localStorage (cloud wins if newer, prompt if conflict). On preference change: write to localStorage immediately + debounced PUT to cloud. On logout: continue using localStorage only.
-- [ ] **Saved charts sync** - Replace current localStorage-only `savedCharts.ts` with a cloud-aware version. When logged in: CRUD goes through Worker API. When logged out: falls back to localStorage (current behavior). On first login with existing localStorage charts: offer to upload them to cloud.
-- [ ] **Saved charts UI updates** - Update saved charts list to show cloud sync status. Add "Save to Cloud" prompt for localStorage-only charts when user logs in.
-- [ ] **Offline / error handling** - If Worker is unreachable, queue writes and retry. Always keep localStorage as cache so the app works offline. Show subtle sync status indicator (synced / syncing / offline).
+- [x] **Preferences sync service** - `cloudSync.ts` with debounced 2s writes. Cloud wins on login.
+- [x] **Saved charts sync** - Fire-and-forget cloud save alongside localStorage. `cloudId` tracking for deduplication.
+- [x] **Saved charts UI updates** - Three-state badges (Local/Synced/Cloud) in My Charts tab.
+- [x] **Offline handling** - localStorage as primary, cloud sync is additive. All operations work offline.
 
 #### Phase 5: Migration & Polish
-- [ ] **localStorage migration flow** - First-login experience: detect existing localStorage data, show modal offering to import to cloud. Transfer preferences + saved charts. Keep localStorage as read-through cache.
-- [ ] **Loading states** - Skeleton/spinner while fetching cloud data on login.
-- [ ] **Account deletion** - "Delete my data" option in preferences that removes all D1 records for the user.
+- [x] **localStorage migration flow** - Modal on first login imports existing charts to cloud. Stores cloudId for deduplication.
+- [x] **Loading states** - Login button shows "Loading..." while Firebase initializes. Chart list shows loading state.
+- [x] **Account deletion** - "Delete My Data" in Preferences with confirmation, removes all D1 records.
 
 #### Architecture Diagram
 ```
@@ -225,6 +194,45 @@
 | `packages/worker/src/index.ts` | Modify | Add auth middleware + new API routes |
 | `packages/worker/wrangler.toml` | Modify | Add D1 binding |
 | `packages/worker/migrations/0001_init.sql` | Create | D1 schema |
+
+### 📂 Saved Charts Management (v0.15.0)
+
+**Goal**: Dedicated tab for managing saved charts — rename, delete, view source (local vs cloud), and sync. Move chart management out of Compare tab. Compare becomes purely for side-by-side viewing.
+
+#### Current State
+- Charts are saved from ChartView and TransitView (localStorage + fire-and-forget cloud)
+- CompareView has the only chart list UI (select, delete, compare)
+- Cloud chart functions exist (`listCloudSavedCharts`, `loadCloudChart`, `deleteCloudSavedChart`, `updateCloudChart`) but no UI calls them
+- No rename capability anywhere
+- No way to see or load cloud-only charts (saved from another device)
+
+#### Sync Behaviour
+- **No manual sync button needed** — sync is automatic:
+  - Save: writes to localStorage immediately + fire-and-forget POST to cloud
+  - Rename: updates localStorage immediately + PUT to cloud
+  - Delete: removes from localStorage immediately + DELETE from cloud
+  - Load on login: fetch cloud chart list, merge with localStorage (cloud wins for duplicates)
+- **Sync indicator**: subtle icon per chart showing sync state (synced / local-only / cloud-only)
+- **Offline-safe**: all operations work without login, cloud sync is additive
+
+#### Plan
+- [x] **New `/charts` route and SavedChartsView component** - Dedicated page with "My Charts" NavLink in header.
+- [x] **Unified chart list** - Merges local + cloud charts via `getAllSavedChartSummaries()` with deduplication by `cloudId`.
+- [x] **Rename chart** - Inline edit (click name, Enter/Escape). Updates localStorage + cloud for synced charts.
+- [x] **Delete chart** - Delete with confirmation. Removes from localStorage + cloud for synced charts.
+- [x] **Load cloud chart** - Cloud-only charts recalculate from inputs, auto-save to localStorage becoming "Synced".
+- [x] **Sync status indicators** - Three-state badges: Local (grey), Synced (green), Cloud (blue).
+- [x] **Refactor CompareView** - Removed chart list/delete. Now purely comparison dropdowns + side-by-side rendering.
+- [x] **Share link management** - Per-chart Share/Unshare toggle + Copy Link button for cloud/synced charts.
+
+#### Files to Create/Modify
+| File | Action | Purpose |
+|------|--------|---------|
+| `packages/web/src/components/SavedChartsView.tsx` | Create | Chart management page |
+| `packages/web/src/components/CompareView.tsx` | Modify | Remove chart list/delete, simplify to comparison only |
+| `packages/web/src/components/Layout.tsx` | Modify | Add "My Charts" NavLink |
+| `packages/web/src/App.tsx` | Modify | Add `/charts` route |
+| `packages/web/src/services/savedCharts.ts` | Modify | Add `renameSavedChart()`, wire up cloud rename |
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getSavedCharts, deleteSavedChart, type SavedChart } from '../services/savedCharts';
+import { getSavedCharts, type SavedChart } from '../services/savedCharts';
 import { ChartWheel } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
 import type { ExtendedBirthData } from '../contexts/ChartContext';
@@ -17,7 +17,7 @@ const BirthDataSummary: React.FC<{ birthData: ExtendedBirthData }> = ({ birthDat
   }}>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem 0.8rem' }}>
       {birthData.city && <span>{birthData.city}</span>}
-      <span>{birthData.latitude.toFixed(2)}°, {birthData.longitude.toFixed(2)}°</span>
+      <span>{birthData.latitude.toFixed(2)}, {birthData.longitude.toFixed(2)}</span>
       {birthData.timezone && <span>{birthData.timezone}</span>}
     </div>
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem 0.8rem' }}>
@@ -29,17 +29,10 @@ const BirthDataSummary: React.FC<{ birthData: ExtendedBirthData }> = ({ birthDat
 );
 
 export const CompareView: React.FC = () => {
-  const [savedCharts, setSavedCharts] = useState<SavedChart[]>(() => getSavedCharts());
+  const [savedCharts] = useState<SavedChart[]>(() => getSavedCharts());
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState('');
   const { isMobile, isTablet } = useResponsive();
-
-  const handleDelete = (id: string) => {
-    deleteSavedChart(id);
-    setSavedCharts(getSavedCharts());
-    if (leftId === id) setLeftId('');
-    if (rightId === id) setRightId('');
-  };
 
   const leftChart = savedCharts.find(c => c.id === leftId);
   const rightChart = savedCharts.find(c => c.id === rightId);
@@ -53,8 +46,6 @@ export const CompareView: React.FC = () => {
     );
   }
 
-  // Responsive chart size — on mobile, render at full 600 internal size
-  // for maximum detail; the SVG viewBox + width:100% scales it to fit.
   const chartSize = isTablet ? 450 : 600;
 
   return (
@@ -133,50 +124,6 @@ export const CompareView: React.FC = () => {
               Select a chart
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Saved charts list */}
-      <div style={{ marginTop: '1.5rem', borderTop: '1px solid #b8860b', paddingTop: '1rem' }}>
-        <h3 style={{ margin: '0 0 0.5rem 0' }}>Saved Charts</h3>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #b8860b' }}>
-                <th style={{ textAlign: 'left', padding: '0.4rem' }}>Name</th>
-                <th style={{ textAlign: 'left', padding: '0.4rem' }}>City</th>
-                <th style={{ textAlign: 'left', padding: '0.4rem' }}>Date</th>
-                <th style={{ textAlign: 'right', padding: '0.4rem' }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {savedCharts.map(c => (
-                <tr key={c.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '0.4rem' }}>{c.name}</td>
-                  <td style={{ padding: '0.4rem', color: '#666' }}>{c.birthData.city || '—'}</td>
-                  <td style={{ padding: '0.4rem', color: '#666' }}>
-                    {new Date(c.savedAt).toLocaleDateString()}
-                  </td>
-                  <td style={{ padding: '0.4rem', textAlign: 'right' }}>
-                    <button
-                      onClick={() => handleDelete(c.id)}
-                      style={{
-                        padding: '0.2rem 0.5rem',
-                        fontSize: '0.8rem',
-                        backgroundColor: '#cc4422',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '3px',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
