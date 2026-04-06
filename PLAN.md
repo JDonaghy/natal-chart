@@ -226,6 +226,45 @@
 | `packages/worker/wrangler.toml` | Modify | Add D1 binding |
 | `packages/worker/migrations/0001_init.sql` | Create | D1 schema |
 
+### 📂 Saved Charts Management (v0.15.0)
+
+**Goal**: Dedicated tab for managing saved charts — rename, delete, view source (local vs cloud), and sync. Move chart management out of Compare tab. Compare becomes purely for side-by-side viewing.
+
+#### Current State
+- Charts are saved from ChartView and TransitView (localStorage + fire-and-forget cloud)
+- CompareView has the only chart list UI (select, delete, compare)
+- Cloud chart functions exist (`listCloudSavedCharts`, `loadCloudChart`, `deleteCloudSavedChart`, `updateCloudChart`) but no UI calls them
+- No rename capability anywhere
+- No way to see or load cloud-only charts (saved from another device)
+
+#### Sync Behaviour
+- **No manual sync button needed** — sync is automatic:
+  - Save: writes to localStorage immediately + fire-and-forget POST to cloud
+  - Rename: updates localStorage immediately + PUT to cloud
+  - Delete: removes from localStorage immediately + DELETE from cloud
+  - Load on login: fetch cloud chart list, merge with localStorage (cloud wins for duplicates)
+- **Sync indicator**: subtle icon per chart showing sync state (synced / local-only / cloud-only)
+- **Offline-safe**: all operations work without login, cloud sync is additive
+
+#### Plan
+- [ ] **New `/charts` route and SavedChartsView component** - Dedicated page for chart management. NavLink "My Charts" in header. Replaces the chart list currently in CompareView.
+- [ ] **Unified chart list** - On page load, call `getAllSavedChartSummaries()` to merge local + cloud charts. Show: name, date saved, birth city, source badge (local / cloud / both). Sort by date descending.
+- [ ] **Rename chart** - Inline edit (click name to edit, Enter to save, Escape to cancel). Updates localStorage entry + `updateCloudChart()` if logged in. Worker already has `PUT /api/charts/:id` with `name` field.
+- [ ] **Delete chart** - Delete button per chart with confirmation. Removes from localStorage + `deleteCloudSavedChart()` if logged in. Already implemented in both layers.
+- [ ] **Load cloud chart** - For cloud-only charts (not in localStorage): click to load, recalculate via WASM from stored inputs, navigate to `/chart` or `/transits` depending on whether `transit_data` exists.
+- [ ] **Sync status indicators** - Per-chart badge: "Local" (not logged in or not yet synced), "Cloud" (cloud-only, from another device), "Synced" (in both). Subtle, non-intrusive.
+- [ ] **Refactor CompareView** - Remove chart list/delete UI from CompareView. Instead, CompareView reads from the saved charts list and only shows the comparison dropdowns + side-by-side rendering. Users manage charts on the My Charts tab.
+- [ ] **Share link management** - Per-chart toggle to generate/revoke share link. Show copyable share URL. Uses existing `POST/DELETE /api/charts/:id/share` endpoints.
+
+#### Files to Create/Modify
+| File | Action | Purpose |
+|------|--------|---------|
+| `packages/web/src/components/SavedChartsView.tsx` | Create | Chart management page |
+| `packages/web/src/components/CompareView.tsx` | Modify | Remove chart list/delete, simplify to comparison only |
+| `packages/web/src/components/Layout.tsx` | Modify | Add "My Charts" NavLink |
+| `packages/web/src/App.tsx` | Modify | Add `/charts` route |
+| `packages/web/src/services/savedCharts.ts` | Modify | Add `renameSavedChart()`, wire up cloud rename |
+
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations
 - [x] **Error handling** - More graceful error handling for failed geocoding
