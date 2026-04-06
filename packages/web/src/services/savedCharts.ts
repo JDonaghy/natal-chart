@@ -247,13 +247,27 @@ export async function getAllSavedChartSummaries(): Promise<SavedChartSummary[]> 
   try {
     const cloud = await listCloudSavedCharts();
 
-    // Collect cloud IDs that are already represented by local synced charts
-    const syncedCloudIds = new Set(
-      localSummaries.filter(s => s.cloudId).map(s => s.cloudId!),
-    );
+    // Build lookup of cloud charts by ID for merging
+    const cloudById = new Map(cloud.map(c => [c.id, c]));
 
-    // Cloud-only charts: those not already linked to a local chart
-    const cloudOnly = cloud.filter(c => !syncedCloudIds.has(c.id));
+    // For synced charts, merge cloud name and shareToken (handles remote renames)
+    for (const summary of localSummaries) {
+      if (summary.cloudId) {
+        const cloudVersion = cloudById.get(summary.cloudId);
+        if (cloudVersion) {
+          if (cloudVersion.name !== summary.name) {
+            summary.name = cloudVersion.name;
+            // Persist the updated name to localStorage so it stays in sync
+            renameSavedChart(summary.id, cloudVersion.name);
+          }
+          summary.shareToken = cloudVersion.shareToken;
+          cloudById.delete(summary.cloudId);
+        }
+      }
+    }
+
+    // Remaining cloud charts are cloud-only (not linked to any local chart)
+    const cloudOnly: SavedChartSummary[] = [...cloudById.values()];
 
     return [...localSummaries, ...cloudOnly];
   } catch {

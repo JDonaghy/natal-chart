@@ -1,6 +1,6 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.15.0 Saved Charts Management
+## Current Sprint: v0.15.1 Cloud Sync Fix
 **Status**: Complete
 **Last Updated**: 2026-04-06
 
@@ -233,6 +233,9 @@
 | `packages/web/src/components/Layout.tsx` | Modify | Add "My Charts" NavLink |
 | `packages/web/src/App.tsx` | Modify | Add `/charts` route |
 | `packages/web/src/services/savedCharts.ts` | Modify | Add `renameSavedChart()`, wire up cloud rename |
+
+### 🔄 My Charts Refresh Button (v0.15.1)
+- [x] **Cloud sync refresh button** - Add a refresh button to the My Charts page header that re-fetches cloud chart data and merges it with localStorage. Allows users to pick up renames, deletions, and new charts from other devices without a full page reload. Only shown when logged in.
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations
