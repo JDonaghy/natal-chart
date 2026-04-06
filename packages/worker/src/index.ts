@@ -54,7 +54,15 @@ export default {
 
     // All other API routes require authentication
     if (url.pathname.startsWith('/api/')) {
-      return handleAuthenticatedRoute(request, url, env);
+      try {
+        return await handleAuthenticatedRoute(request, url, env);
+      } catch (error) {
+        console.error('API error:', error);
+        return jsonResponse({
+          error: 'Internal server error',
+          details: (error as Error).message,
+        }, 500, env.ALLOWED_ORIGIN, request);
+      }
     }
 
     return jsonResponse({ error: 'Not Found' }, 404, env.ALLOWED_ORIGIN, request);
