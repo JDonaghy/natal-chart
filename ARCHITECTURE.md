@@ -290,26 +290,127 @@ Required for Worker deployment and D1 management. Create at https://dash.cloudfl
 | Firebase | natal-chart-329b3 | https://console.firebase.google.com |
 | OpenCage | (API key in Worker secrets) | https://opencagedata.com/dashboard |
 
+## Backups
+
+### D1 Database Backups
+
+Nightly automated backups run via cron on `dellserver.lan` at 3am.
+
+**Backup location**: `/home/john/src/natal-chart/backups/d1/`
+**Format**: Compressed SQL dumps (`natal-chart-db-YYYY-MM-DD-HHMMSS.sql.gz`)
+**Retention**: 30 days (older backups auto-pruned)
+**Log**: `backups/d1/backup.log` and `backups/d1/cron.log`
+
+**Cron entry** (installed in john's crontab):
+```
+0 3 * * * CLOUDFLARE_API_TOKEN="your-token" /home/john/src/natal-chart/scripts/backup-d1.sh >> /home/john/src/natal-chart/backups/d1/cron.log 2>&1
+```
+
+**Manual backup**:
+```bash
+CLOUDFLARE_API_TOKEN="your-token" bash scripts/backup-d1.sh
+```
+
+**Verify backups are running**:
+```bash
+# Check cron is scheduled
+crontab -l | grep backup-d1
+
+# Check latest backup
+ls -lt backups/d1/*.sql.gz | head -5
+
+# Check logs
+tail -20 backups/d1/backup.log
+```
+
+### Restoring D1 from Backup
+
+To restore the database from a backup SQL dump:
+
+```bash
+# 1. Decompress the backup
+gunzip -k backups/d1/natal-chart-db-2026-04-06-015841.sql.gz
+
+# 2. Restore to the remote D1 database
+#    WARNING: This overwrites all existing data in D1.
+export CLOUDFLARE_API_TOKEN="your-token"
+cd packages/worker
+npx wrangler d1 execute natal-chart-db --remote --file ../../backups/d1/natal-chart-db-2026-04-06-015841.sql
+
+# 3. Verify the restore
+npx wrangler d1 execute natal-chart-db --remote --command "SELECT COUNT(*) FROM users;"
+npx wrangler d1 execute natal-chart-db --remote --command "SELECT COUNT(*) FROM saved_charts;"
+```
+
+To restore to a **new** D1 database (disaster recovery):
+
+```bash
+# 1. Create new database
+npx wrangler d1 create natal-chart-db
+
+# 2. Update wrangler.toml with new database_id
+
+# 3. Apply schema migration first (creates tables)
+npx wrangler d1 migrations apply natal-chart-db --remote
+
+# 4. Decompress and restore data
+gunzip -k backups/d1/natal-chart-db-YYYY-MM-DD-HHMMSS.sql.gz
+npx wrangler d1 execute natal-chart-db --remote --file backups/d1/natal-chart-db-YYYY-MM-DD-HHMMSS.sql
+
+# 5. Redeploy Worker with new database_id
+npx wrangler deploy
+```
+
+### What is backed up
+
+| Data | Backed up? | How |
+|------|-----------|-----|
+| D1 database (users, prefs, charts) | Yes | Nightly SQL dump to dellserver |
+| KV cache (geocoding results) | No | Not critical — repopulates on use |
+| Source code | Yes | GitHub (multiple remotes) |
+| Firebase user accounts | N/A | Managed by Google, not in our infra |
+| User localStorage | N/A | On user devices, not server-side |
+| Cloudflare secrets | No | Must be re-entered manually |
+| GitHub secrets | No | Must be re-entered manually |
+
 ## Disaster Recovery
 
-See `scripts/setup-infrastructure.sh` for a complete script to recreate all infrastructure from scratch. The general process:
+### Full Infrastructure Recreation
 
-1. **GitHub Pages**: Automatic — push to `main` triggers deploy
-2. **Cloudflare Worker**: `npx wrangler deploy` from `packages/worker/`
-3. **Cloudflare D1**: Create database + apply migrations
-4. **Cloudflare KV**: Will be recreated by wrangler (update ID in wrangler.toml)
-5. **Firebase**: Requires manual project creation in Firebase Console
-6. **Secrets**: Must be re-entered manually (GitHub secrets + Cloudflare secrets)
+Run `scripts/setup-infrastructure.sh` to recreate all Cloudflare infrastructure from scratch:
 
-### Data that would be lost
-- D1 database contents (user accounts, preferences, saved charts) — no automated backup
-- KV cache contents (geocoding results) — not critical, will repopulate on use
-- User localStorage data is on their devices (not affected by infrastructure loss)
+```bash
+export CLOUDFLARE_API_TOKEN="your-token"
+export OPENCAGE_API_KEY="your-key"
+export FIREBASE_PROJECT_ID="natal-chart-329b3"
+bash scripts/setup-infrastructure.sh
+```
 
-### Data that is safe
-- All source code is in GitHub
-- Firebase user accounts are managed by Google (not in our infrastructure)
-- Ephemeris data files are checked into the repo
+This creates KV namespace, D1 database, applies migrations, sets secrets, and deploys the Worker. See the script output for remaining manual steps.
+
+### Step-by-step recovery
+
+1. **Cloudflare Worker + KV + D1**: Run `scripts/setup-infrastructure.sh`
+2. **Restore D1 data**: Follow "Restoring D1 from Backup" above
+3. **GitHub secrets**: Re-enter all 6 secrets (see CI/CD section above)
+4. **Firebase** (if project lost): Recreate in Firebase Console:
+   - Create project, add web app, copy config
+   - Enable Google sign-in provider
+   - Add `jdonaghy.github.io` to authorized domains
+5. **GitHub Pages**: Push to `main` or `gh workflow run deploy.yml --ref main`
+6. **Verify**: Sign in, check preferences sync, save/load a chart
+7. **Re-enable cron backup**: `crontab -e`, add the backup cron entry
+
+### Secrets inventory
+
+These values must be kept safe — they cannot be recovered from the codebase:
+
+| Secret | Where it's used | Where to get a new one |
+|--------|----------------|----------------------|
+| `CLOUDFLARE_API_TOKEN` | Worker deploy, D1 mgmt, backups | https://dash.cloudflare.com/profile/api-tokens |
+| `OPENCAGE_API_KEY` | Worker secret (geocoding) | https://opencagedata.com/dashboard |
+| Firebase config (4 values) | GitHub secrets + `.env` | Firebase Console > Project Settings |
+| `FIREBASE_PROJECT_ID` | Worker secret (JWT verify) | Firebase Console > Project Settings |
 
 ---
 
