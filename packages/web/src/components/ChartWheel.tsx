@@ -1,6 +1,7 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { ChartResult, TransitResult } from '@natal-chart/core';
 import { getPlanetPath, getSignPathByIndex, glyphTransform, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { type ThemeColors, resolveTheme, signElementColors, DEFAULT_THEME_PREFERENCE } from '../utils/themes';
 import '../App.css';
 
 // Unicode astrological glyphs — fallback for glyphs without SVG path data
@@ -14,12 +15,12 @@ const GLYPH_FONT = "'DejaVuSans', sans-serif";
 const LABEL_FONT = "'Cormorant', serif";
 
 /** Render a planet glyph as an SVG <path> (font-independent), falling back to <text> */
-function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAULT_GLYPH_SET }: {
+function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAULT_GLYPH_SET, overrides }: {
   planet: string; x: number; y: number; sz: number; fill: string;
   rotate?: number | undefined; opacity?: number | undefined;
-  glyphSet?: string;
+  glyphSet?: string; overrides?: Record<string, string> | undefined;
 }): React.ReactElement {
-  const pathData = getPlanetPath(planet, glyphSet);
+  const pathData = getPlanetPath(planet, glyphSet, overrides);
   if (pathData) {
     const t = glyphTransform(pathData.viewBox, x, y, sz);
     const fullT = rotate ? `rotate(${rotate} ${x} ${y}) ${t}` : t;
@@ -36,11 +37,11 @@ function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAU
 }
 
 /** Render a zodiac sign glyph as an SVG <path>, falling back to <text> */
-function SignGlyph({ index, x, y, sz, fill, glyphSet = DEFAULT_GLYPH_SET }: {
+function SignGlyph({ index, x, y, sz, fill, glyphSet = DEFAULT_GLYPH_SET, overrides }: {
   index: number; x: number; y: number; sz: number; fill: string;
-  glyphSet?: string;
+  glyphSet?: string; overrides?: Record<string, string> | undefined;
 }): React.ReactElement {
-  const pathData = getSignPathByIndex(index, glyphSet);
+  const pathData = getSignPathByIndex(index, glyphSet, overrides);
   if (pathData) {
     return <path d={pathData.d} fill={fill} transform={glyphTransform(pathData.viewBox, x, y, sz)} />;
   }
@@ -153,26 +154,11 @@ const ASPECT_COLORS: Record<string, string> = {
   semiSextile: '#8868B8',
 };
 
-// Alternating zodiac sign segment fills
-const SIGN_FILLS = [
-  '#faf7f0', '#f3ece0', // fire/earth alternation
-];
+// Only Ptolemaic aspects shown on the chart wheel
+const PTOLEMAIC = new Set(['conjunction', 'opposition', 'trine', 'square', 'sextile']);
 
-// Zodiac sign glyph colors by element
-const SIGN_ELEMENT_COLORS = [
-  '#CC3333', // 0 Aries - fire
-  '#338833', // 1 Taurus - earth
-  '#CCAA00', // 2 Gemini - air
-  '#3366CC', // 3 Cancer - water
-  '#CC3333', // 4 Leo - fire
-  '#338833', // 5 Virgo - earth
-  '#CCAA00', // 6 Libra - air
-  '#3366CC', // 7 Scorpio - water
-  '#CC3333', // 8 Sagittarius - fire
-  '#338833', // 9 Capricorn - earth
-  '#CCAA00', // 10 Aquarius - air
-  '#3366CC', // 11 Pisces - water
-];
+// Default theme colors (used when no theme prop is provided)
+const DEFAULT_THEME = resolveTheme(DEFAULT_THEME_PREFERENCE);
 
 // Egyptian bounds (Ptolemy) — each sign has 5 unequal terms ruled by traditional planets
 // Format: [endDegreeInSign, rulingPlanet][]  (start is previous end or 0)
@@ -218,6 +204,8 @@ interface ChartWheelProps {
   showBoundsDecans?: boolean | undefined;
   fixedAnchor?: number | undefined;
   glyphSet?: string | undefined;
+  glyphOverrides?: Record<string, string> | undefined;
+  theme?: ThemeColors | undefined;
 }
 
 export interface ChartWheelHandle {
@@ -225,7 +213,11 @@ export interface ChartWheelHandle {
 }
 
 export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
-  ({ chartData, transitData, size = 800, ascHorizontal = true, showAspects = true, showBoundsDecans = false, fixedAnchor, glyphSet = DEFAULT_GLYPH_SET }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
+  ({ chartData, transitData, size = 800, ascHorizontal = true, showAspects = true, showBoundsDecans = false, fixedAnchor, glyphSet = DEFAULT_GLYPH_SET, glyphOverrides, theme: themeProp }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
+    const t = themeProp || DEFAULT_THEME;
+    const elementColors = React.useMemo(() => signElementColors(t), [t]);
+    // Scale glyph/label sizes by font size preference (1.3rem = 1.0x baseline)
+    const fontScale = parseFloat(t.fontSize) / 1.3 || 1;
     const center = size / 2;
     // fixedAnchor overrides rotation (e.g. 0 = Aries at 9 o'clock for natural chart)
     // ASC Horizontal: Ascendant at 9 o'clock. Otherwise: 1st house cusp at 9 o'clock.
@@ -367,8 +359,8 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
         >
           <defs>
             <radialGradient id="parchmentGradient" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#faf7f0" />
-              <stop offset="100%" stopColor="#f0ead6" />
+              <stop offset="0%" stopColor={t.backgroundAlt} />
+              <stop offset="100%" stopColor={t.background} />
             </radialGradient>
             <filter id="subtleShadow" x="-5%" y="-5%" width="110%" height="110%">
               <feGaussianBlur in="SourceAlpha" stdDeviation="1.5" result="blur" />
@@ -384,7 +376,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           </defs>
 
           {/* === BACKGROUND === */}
-          <circle cx={center} cy={center} r={(hasTransits ? R.transitOuter : R.outer) + 4} fill="#f5f0e8" />
+          <circle cx={center} cy={center} r={(hasTransits ? R.transitOuter : R.outer) + 4} fill={t.background} />
 
           {/* === ZODIAC SIGN SEGMENTS (alternating fills, merged ring) === */}
           {Array.from({ length: 12 }).map((_, i) => {
@@ -394,9 +386,10 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
               <path
                 key={`sign-seg-${i}`}
                 d={arcPath(startLon, endLon, R.outer, R.zodiacInner)}
-                fill={SIGN_FILLS[i % 2]}
-                stroke="#c4a96a"
+                fill={i % 2 === 0 ? t.segmentFillA : t.segmentFillB}
+                stroke={t.wheelLines}
                 strokeWidth={0.5}
+                strokeOpacity={0.6}
               />
             );
           })}
@@ -411,7 +404,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 <line
                   key={`bound-${deg}`}
                   x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                  stroke="#b8860b" strokeWidth={1.5}
+                  stroke={t.wheelLines} strokeWidth={1.5}
                 />
               );
             }
@@ -423,7 +416,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 <line
                   key={`tick5-${deg}`}
                   x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                  stroke="#c4a96a" strokeWidth={0.8}
+                  stroke={t.wheelLines} strokeWidth={0.8} strokeOpacity={0.6}
                 />
               );
             }
@@ -434,7 +427,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
               <line
                 key={`tick1-${deg}`}
                 x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                stroke="#d4c5a0" strokeWidth={0.4}
+                stroke={t.wheelLines} strokeWidth={0.4} strokeOpacity={0.35}
               />
             );
           })}
@@ -444,23 +437,23 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const midLon = i * 30 + 15;
             const midR = (tickEdge + R.outer) / 2;
             const pos = toPoint(midLon, midR);
-            const glyphSize = (R.outer - tickEdge) * 0.6;
+            const glyphSize = (R.outer - tickEdge) * 0.6 * fontScale;
 
             return (
               <SignGlyph
                 key={`sign-glyph-${i}`}
                 index={i} x={pos.x} y={pos.y}
-                sz={glyphSize} fill={SIGN_ELEMENT_COLORS[i]!}
-                glyphSet={glyphSet}
+                sz={glyphSize} fill={elementColors[i]!}
+                glyphSet={glyphSet} overrides={glyphOverrides}
               />
             );
           })}
 
           {/* === STRUCTURAL CIRCLES === */}
-          <circle cx={center} cy={center} r={R.outer} fill="none" stroke="#b8860b" strokeWidth={1.5} />
-          <circle cx={center} cy={center} r={R.zodiacInner} fill="none" stroke="#b8860b" strokeWidth={1} />
-          <circle cx={center} cy={center} r={R.houseNumOuter} fill="none" stroke="#b8860b" strokeWidth={1} />
-          <circle cx={center} cy={center} r={R.houseNumInner} fill="url(#parchmentGradient)" stroke="#b8860b" strokeWidth={1} />
+          <circle cx={center} cy={center} r={R.outer} fill="none" stroke={t.wheelLines} strokeWidth={1.5} />
+          <circle cx={center} cy={center} r={R.zodiacInner} fill="none" stroke={t.wheelLines} strokeWidth={1} />
+          <circle cx={center} cy={center} r={R.houseNumOuter} fill="none" stroke={t.wheelLines} strokeWidth={1} />
+          <circle cx={center} cy={center} r={R.houseNumInner} fill="url(#parchmentGradient)" stroke={t.wheelLines} strokeWidth={1} />
 
           {/* === BOUNDS & DECANS RINGS (inside zodiac ring, below ticks) === */}
           {showBoundsDecans && (() => {
@@ -483,9 +476,10 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                         key={`bound-${signIdx}-${bIdx}`}
                         d={arcPath(startLon, endLon, boundsOuter, boundsMid)}
                         fill={color}
-                        fillOpacity={0.10}
-                        stroke="#c4a96a"
+                        fillOpacity={parseFloat(t.boundsDecansOpacity) || 0.25}
+                        stroke={t.wheelLines}
                         strokeWidth={0.3}
+                        strokeOpacity={0.6}
                       />
                     );
                   });
@@ -502,17 +496,18 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                         key={`decan-${signIdx}-${dIdx}`}
                         d={arcPath(startLon, endLon, boundsMid, decansInner)}
                         fill={color}
-                        fillOpacity={0.10}
-                        stroke="#c4a96a"
+                        fillOpacity={parseFloat(t.boundsDecansOpacity) || 0.25}
+                        stroke={t.wheelLines}
                         strokeWidth={0.3}
+                        strokeOpacity={0.6}
                       />
                     );
                   }),
                 )}
 
                 {/* Structural circle between bounds and decans */}
-                <circle cx={center} cy={center} r={boundsMid} fill="none" stroke="#b8860b" strokeWidth={0.5} />
-                <circle cx={center} cy={center} r={boundsOuter} fill="none" stroke="#b8860b" strokeWidth={0.5} />
+                <circle cx={center} cy={center} r={boundsMid} fill="none" stroke={t.wheelLines} strokeWidth={0.5} />
+                <circle cx={center} cy={center} r={boundsOuter} fill="none" stroke={t.wheelLines} strokeWidth={0.5} />
 
                 {/* Sign boundary lines through bounds/decans */}
                 {Array.from({ length: 12 }).map((_, i) => {
@@ -523,7 +518,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     <line
                       key={`bd-sign-${i}`}
                       x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                      stroke="#b8860b" strokeWidth={0.8}
+                      stroke={t.wheelLines} strokeWidth={0.8}
                     />
                   );
                 })}
@@ -543,7 +538,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                         key={`bound-glyph-${signIdx}-${bIdx}`}
                         planet={ruler} x={pos.x} y={pos.y}
                         sz={ringH * 0.55} fill={color} opacity={0.7}
-                        glyphSet={glyphSet}
+                        glyphSet={glyphSet} overrides={glyphOverrides}
                       />
                     );
                   });
@@ -562,7 +557,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                         key={`decan-glyph-${signIdx}-${dIdx}`}
                         planet={ruler} x={pos.x} y={pos.y}
                         sz={ringH * 0.55} fill={color} opacity={0.7}
-                        glyphSet={glyphSet}
+                        glyphSet={glyphSet} overrides={glyphOverrides}
                       />
                     );
                   }),
@@ -580,9 +575,9 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
               <line
                 key={`house-line-${house.house}`}
                 x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                stroke={isAngular ? '#8B7355' : '#c4a96a'}
+                stroke={t.wheelLines}
                 strokeWidth={isAngular ? 1.5 : 0.7}
-                strokeOpacity={isAngular ? 1 : 0.7}
+                strokeOpacity={isAngular ? 1 : 0.6}
               />
             );
           })}
@@ -596,7 +591,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 x={pos.x} y={pos.y}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize={size * 0.022}
+                fontSize={size * 0.022 * fontScale}
                 fill="#a09080"
                 fontWeight="500"
                 fontFamily={LABEL_FONT}
@@ -606,28 +601,45 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             );
           })}
 
-          {/* === ASPECT LINES (clipped to inner circle, inside the house wheel) === */}
+          {/* === ASPECT LINES (clipped to inner circle, Ptolemaic only, orb-weighted) === */}
           {showAspects && (
             <g clipPath="url(#aspectClip)">
-              {chartData.aspects.map((aspect, index) => {
+              {chartData.aspects.filter(a => PTOLEMAIC.has(a.type)).map((aspect, index) => {
                 const p1 = chartData.planets.find(p => p.planet === aspect.planet1);
                 const p2 = chartData.planets.find(p => p.planet === aspect.planet2);
                 if (!p1 || !p2) return null;
 
-                const pos1 = toPoint(p1.longitude, R.houseNumInner * 0.92);
-                const pos2 = toPoint(p2.longitude, R.houseNumInner * 0.92);
+                const lineR = R.houseNumInner * 0.92;
+                const pos1 = toPoint(p1.longitude, lineR);
+                const pos2 = toPoint(p2.longitude, lineR);
                 const color = ASPECT_COLORS[aspect.type] || '#a09080';
-                const isHard = ['opposition', 'square'].includes(aspect.type);
+                const isHard = ['opposition', 'square', 'conjunction'].includes(aspect.type);
+                const orbFraction = Math.min(aspect.orb / 10, 1);
+                const strokeWidth = 2.5 - orbFraction * 2.0;
+                const strokeOpacity = 0.9 - orbFraction * 0.5;
+
+                // Tick marks at inner circle where lines touch
+                const tickOuter = R.houseNumInner;
+                const tickInner = R.houseNumInner * 0.92;
+                const t1i = toPoint(p1.longitude, tickInner);
+                const t1o = toPoint(p1.longitude, tickOuter);
+                const t2i = toPoint(p2.longitude, tickInner);
+                const t2o = toPoint(p2.longitude, tickOuter);
 
                 return (
-                  <line
-                    key={`aspect-${index}`}
-                    x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
-                    stroke={color}
-                    strokeWidth={aspect.exact ? 1.5 : 0.8}
-                    strokeOpacity={aspect.exact ? 0.85 : 0.5}
-                    strokeDasharray={isHard ? 'none' : '4,3'}
-                  />
+                  <g key={`aspect-${index}`}>
+                    <line
+                      x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
+                      stroke={color}
+                      strokeWidth={strokeWidth}
+                      strokeOpacity={strokeOpacity}
+                      strokeDasharray={isHard ? 'none' : '4,3'}
+                    />
+                    <line x1={t1i.x} y1={t1i.y} x2={t1o.x} y2={t1o.y}
+                      stroke={color} strokeWidth={strokeWidth} strokeOpacity={strokeOpacity} />
+                    <line x1={t2i.x} y1={t2i.y} x2={t2o.x} y2={t2o.y}
+                      stroke={color} strokeWidth={strokeWidth} strokeOpacity={strokeOpacity} />
+                  </g>
                 );
               })}
             </g>
@@ -716,9 +728,9 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const signPos = toPoint(labelLongitude, topR - labelStep * 2);
             const minPos = toPoint(labelLongitude, topR - labelStep * 3);
 
-            const labelSz = Math.max(bandH * 0.11, size * 0.018);
+            const labelSz = Math.max(bandH * 0.11, size * 0.018) * fontScale;
             const signIndex = Math.floor(planet.longitude / 30) % 12;
-            const signColor = SIGN_ELEMENT_COLORS[signIndex];
+            const signColor = elementColors[signIndex];
 
             return (
               <g key={planet.planet}>
@@ -741,7 +753,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   sz={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
                   fill={color}
                   rotate={planet.planet === 'fortune' ? 45 : undefined}
-                  glyphSet={glyphSet}
+                  glyphSet={glyphSet} overrides={glyphOverrides}
                 />
 
                 {/* Retrograde indicator */}
@@ -761,7 +773,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 <text
                   x={degPos.x} y={degPos.y}
                   textAnchor="middle" dominantBaseline="central"
-                  fontSize={labelSz} fill="#5a4a3a"
+                  fontSize={labelSz} fill={t.text}
                   fontFamily={LABEL_FONT}
                 >
                   {planet.degree}°
@@ -771,14 +783,14 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 <SignGlyph
                   index={signIndex} x={signPos.x} y={signPos.y}
                   sz={labelSz} fill={signColor!}
-                  glyphSet={glyphSet}
+                  glyphSet={glyphSet} overrides={glyphOverrides}
                 />
 
                 {/* Minute */}
                 <text
                   x={minPos.x} y={minPos.y}
                   textAnchor="middle" dominantBaseline="central"
-                  fontSize={labelSz * 0.7} fill="#5a4a3a"
+                  fontSize={labelSz * 0.7} fill={t.text}
                   fontFamily={LABEL_FONT}
                 >
                   {planet.minute.toString().padStart(2, '0')}′
@@ -793,8 +805,8 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           {hasTransits && transitData && (
             <>
               {/* Transit band boundary circles */}
-              <circle cx={center} cy={center} r={R.transitOuter} fill="none" stroke="#b8860b" strokeWidth={1} />
-              <circle cx={center} cy={center} r={R.transitInner} fill="none" stroke="#b8860b" strokeWidth={0.5} />
+              <circle cx={center} cy={center} r={R.transitOuter} fill="none" stroke={t.wheelLines} strokeWidth={1} />
+              <circle cx={center} cy={center} r={R.transitInner} fill="none" stroke={t.wheelLines} strokeWidth={0.5} />
 
               {/* Transit ring degree tick marks (outer edge, facing inward) */}
               {Array.from({ length: 360 }).map((_, deg) => {
@@ -809,7 +821,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     <line
                       key={`transit-tick5-${deg}`}
                       x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                      stroke="#c4a96a" strokeWidth={0.6}
+                      stroke={t.wheelLines} strokeWidth={0.6} strokeOpacity={0.6}
                     />
                   );
                 }
@@ -820,7 +832,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   <line
                     key={`transit-tick1-${deg}`}
                     x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y}
-                    stroke="#d4c5a0" strokeWidth={0.3}
+                    stroke={t.wheelLines} strokeWidth={0.3} strokeOpacity={0.35}
                   />
                 );
               })}
@@ -845,9 +857,9 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 const signPos = toPoint(labelLongitude, topR - labelStep * 2);
                 const minPos = toPoint(labelLongitude, topR - labelStep * 3);
 
-                const labelSz = Math.max(bandWidth * 0.11, size * 0.018);
+                const labelSz = Math.max(bandWidth * 0.11, size * 0.018) * fontScale;
                 const signIndex = Math.floor(planet.longitude / 30) % 12;
-                const signColor = SIGN_ELEMENT_COLORS[signIndex];
+                const signColor = elementColors[signIndex];
 
                 return (
                   <g key={`transit-${planet.planet}`}>
@@ -870,7 +882,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                       sz={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
                       fill={color}
                       rotate={planet.planet === 'fortune' ? 45 : undefined}
-                      glyphSet={glyphSet}
+                      glyphSet={glyphSet} overrides={glyphOverrides}
                     />
 
                     {/* Retrograde indicator */}
@@ -890,7 +902,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     <text
                       x={degPos.x} y={degPos.y}
                       textAnchor="middle" dominantBaseline="central"
-                      fontSize={labelSz} fill="#5a4a3a"
+                      fontSize={labelSz} fill={t.text}
                       fontFamily={LABEL_FONT}
                     >
                       {planet.degree}°
@@ -900,14 +912,14 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     <SignGlyph
                       index={signIndex} x={signPos.x} y={signPos.y}
                       sz={labelSz} fill={signColor!}
-                      glyphSet={glyphSet}
+                      glyphSet={glyphSet} overrides={glyphOverrides}
                     />
 
                     {/* Minute */}
                     <text
                       x={minPos.x} y={minPos.y}
                       textAnchor="middle" dominantBaseline="central"
-                      fontSize={labelSz * 0.7} fill="#5a4a3a"
+                      fontSize={labelSz * 0.7} fill={t.text}
                       fontFamily={LABEL_FONT}
                     >
                       {planet.minute.toString().padStart(2, '0')}′
@@ -916,10 +928,10 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 );
               })}
 
-              {/* Transit aspect lines (natal-to-transit, dashed) */}
+              {/* Transit aspect lines (natal-to-transit, Ptolemaic only, orb-weighted) */}
               {showAspects && (
                 <g clipPath="url(#aspectClip)">
-                  {transitData.aspects.map((aspect, index) => {
+                  {transitData.aspects.filter(a => PTOLEMAIC.has(a.type)).map((aspect, index) => {
                     const natalP = chartData.planets.find(p => p.planet === aspect.natalPlanet);
                     const transitP = transitData.planets.find(p => p.planet === aspect.transitPlanet);
                     if (!natalP || !transitP) return null;
@@ -927,14 +939,17 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     const pos1 = toPoint(natalP.longitude, R.houseNumInner * 0.92);
                     const pos2 = toPoint(transitP.longitude, R.houseNumInner * 0.92);
                     const color = ASPECT_COLORS[aspect.type] || '#a09080';
+                    const orbFraction = Math.min(aspect.orb / 8, 1);
+                    const strokeWidth = (2.5 - orbFraction * 2.0) * 0.6;
+                    const strokeOpacity = (0.9 - orbFraction * 0.5) * 0.6;
 
                     return (
                       <line
                         key={`transit-aspect-${index}`}
                         x1={pos1.x} y1={pos1.y} x2={pos2.x} y2={pos2.y}
                         stroke={color}
-                        strokeWidth={aspect.exact ? 1.2 : 0.6}
-                        strokeOpacity={aspect.exact ? 0.6 : 0.3}
+                        strokeWidth={strokeWidth}
+                        strokeOpacity={strokeOpacity}
                         strokeDasharray="2,4"
                       />
                     );
@@ -949,7 +964,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           {(() => {
             const isWholeSigns = chartData.houses.every(h => h.degree === 0 && h.minute === 0);
             if (isWholeSigns) return null;
-            const fontSize = size * 0.014;
+            const fontSize = size * 0.014 * fontScale;
             const labelR = R.zodiacInner + (R.outer - R.zodiacInner) * 0.05;
             return chartData.houses.map((house) => {
               const labelPos = toPoint(house.longitude, labelR);
@@ -966,7 +981,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   <rect
                     x={labelPos.x - bgW / 2} y={labelPos.y - bgH / 2}
                     width={bgW} height={bgH}
-                    fill="#F5F0E8" fillOpacity={0.85} rx={2}
+                    fill={t.background} fillOpacity={0.85} rx={2}
                   />
                   <text
                     x={labelPos.x} y={labelPos.y}
@@ -985,7 +1000,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           })()}
 
           {/* Center dot */}
-          <circle cx={center} cy={center} r={size * 0.006} fill="#b8860b" />
+          <circle cx={center} cy={center} r={size * 0.006} fill={t.wheelLines} />
         </svg>
       </div>
     );

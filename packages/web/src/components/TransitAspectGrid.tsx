@@ -63,15 +63,18 @@ function findTransitAspect(natalLon: number, transitLon: number): CellAspect | n
   return null;
 }
 
+const PTOLEMAIC_TYPES = new Set<AspectType>(['conjunction', 'opposition', 'trine', 'square', 'sextile']);
+
 interface TransitAspectGridProps {
   chartData: ChartResult;
   transitData: TransitResult;
+  ptolemaicOnly?: boolean | undefined;
 }
 
 const CELL_SIZE_DESKTOP = 34;
 const CELL_SIZE_MOBILE = 28;
 
-export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData, transitData }) => {
+export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData, transitData, ptolemaicOnly = true }) => {
   const { isMobile } = useResponsive();
   const CELL_SIZE = isMobile ? CELL_SIZE_MOBILE : CELL_SIZE_DESKTOP;
   // Build natal rows: all planets + ASC + MC
@@ -111,8 +114,9 @@ export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData,
   /** Get aspect between a natal point and transit planet */
   function getAspect(natalKey: string, transitKey: string, natalLon: number, transitLon: number): CellAspect | null {
     const existing = aspectMap.get(`${natalKey}|${transitKey}`);
-    if (existing) return existing;
-    return findTransitAspect(natalLon, transitLon);
+    const result = existing ?? findTransitAspect(natalLon, transitLon);
+    if (result && ptolemaicOnly && !PTOLEMAIC_TYPES.has(result.type)) return null;
+    return result;
   }
 
   return (

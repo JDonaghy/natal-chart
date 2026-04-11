@@ -1,8 +1,15 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo, ReactNode } from 'react';
 import type { BirthData as CoreBirthData, ChartResult, TransitResult } from '@natal-chart/core';
 import { DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
 import { useAuth } from './AuthContext';
 import { getCloudPreferences, syncPreferencesDebounced } from '../services/cloudSync';
+import {
+  type ThemeColors,
+  type ThemePreference,
+  DEFAULT_THEME_PREFERENCE,
+  resolveTheme,
+  applyCssVars,
+} from '../utils/themes';
 
 export interface ExtendedBirthData extends CoreBirthData {
   city?: string;
@@ -41,10 +48,15 @@ interface ChartContextType {
   setTraditionalPlanets: (show: boolean) => void;
   glyphSet: string;
   setGlyphSet: (set: string) => void;
+  glyphOverrides: Record<string, string>;
+  setGlyphOverrides: (overrides: Record<string, string>) => void;
   houseSystem: 'P' | 'W';
   setHouseSystem: (hs: 'P' | 'W') => void;
   ascHorizontal: boolean;
   setAscHorizontal: (asc: boolean) => void;
+  theme: ThemePreference;
+  setTheme: (t: ThemePreference) => void;
+  resolvedTheme: ThemeColors;
 }
 
 export const ChartContext = createContext<ChartContextType | undefined>(undefined);
@@ -105,6 +117,18 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
       // ignore
     }
   }, []);
+  const [glyphOverrides, setGlyphOverridesState] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('natal-chart-glyph-overrides');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const setGlyphOverrides = useCallback((overrides: Record<string, string>) => {
+    setGlyphOverridesState(overrides);
+    try { localStorage.setItem('natal-chart-glyph-overrides', JSON.stringify(overrides)); } catch { /* ignore */ }
+  }, []);
   const [houseSystem, setHouseSystemState] = useState<'P' | 'W'>(() => {
     try {
       const saved = localStorage.getItem('natal-chart-house-system');
@@ -130,6 +154,26 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
     try { localStorage.setItem('natal-chart-asc-horizontal', String(asc)); } catch { /* ignore */ }
   }, []);
 
+  // ─── Theme ──────────────────────────────────────────────────────────────
+  const [theme, setThemeState] = useState<ThemePreference>(() => {
+    try {
+      const saved = localStorage.getItem('natal-chart-theme');
+      return saved ? JSON.parse(saved) : DEFAULT_THEME_PREFERENCE;
+    } catch {
+      return DEFAULT_THEME_PREFERENCE;
+    }
+  });
+  const setTheme = useCallback((t: ThemePreference) => {
+    setThemeState(t);
+    try { localStorage.setItem('natal-chart-theme', JSON.stringify(t)); } catch { /* ignore */ }
+  }, []);
+  const resolvedTheme = useMemo(() => resolveTheme(theme), [theme]);
+
+  // Apply CSS variables whenever theme changes
+  useEffect(() => {
+    applyCssVars(resolvedTheme);
+  }, [resolvedTheme]);
+
   // ─── Cloud Preferences Sync ─────────────────────────────────────────────
   const { user } = useAuth();
   const cloudLoadedRef = useRef(false);
@@ -151,9 +195,18 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
           setGlyphSetState(data.glyphSet);
           try { localStorage.setItem('natal-chart-glyph-set', data.glyphSet); } catch { /* ignore */ }
         }
+        if (data.glyphOverrides && typeof data.glyphOverrides === 'object') {
+          setGlyphOverridesState(data.glyphOverrides as Record<string, string>);
+          try { localStorage.setItem('natal-chart-glyph-overrides', JSON.stringify(data.glyphOverrides)); } catch { /* ignore */ }
+        }
         if (typeof data.ascHorizontal === 'boolean') {
           setAscHorizontalState(data.ascHorizontal);
           try { localStorage.setItem('natal-chart-asc-horizontal', String(data.ascHorizontal)); } catch { /* ignore */ }
+        }
+        if (data.theme && typeof data.theme === 'object' && 'presetId' in data.theme) {
+          const cloudTheme = data.theme as ThemePreference;
+          setThemeState(cloudTheme);
+          try { localStorage.setItem('natal-chart-theme', JSON.stringify(cloudTheme)); } catch { /* ignore */ }
         }
       })
       .catch(err => console.warn('Failed to load cloud preferences:', err));
@@ -167,8 +220,8 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
   // Sync preferences to cloud on change (debounced)
   useEffect(() => {
     if (!user) return;
-    syncPreferencesDebounced({ houseSystem, glyphSet, ascHorizontal });
-  }, [user, houseSystem, glyphSet, ascHorizontal]);
+    syncPreferencesDebounced({ houseSystem, glyphSet, glyphOverrides, ascHorizontal, theme });
+  }, [user, houseSystem, glyphSet, glyphOverrides, ascHorizontal, theme]);
 
   const calculate = useCallback(async (data: ExtendedBirthData) => {
     setLoading(true);
@@ -287,10 +340,15 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
     setTraditionalPlanets,
     glyphSet,
     setGlyphSet,
+    glyphOverrides,
+    setGlyphOverrides,
     houseSystem,
     setHouseSystem,
     ascHorizontal,
     setAscHorizontal,
+    theme,
+    setTheme,
+    resolvedTheme,
   };
 
   return (

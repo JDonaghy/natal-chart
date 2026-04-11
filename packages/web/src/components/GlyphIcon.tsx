@@ -18,9 +18,12 @@ const SIGN_UNICODE: Record<string, string> = {
   libra: '♎', scorpio: '♏', sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
 };
 
-function useGlyphSetFromContext(): string {
+function useGlyphPrefs(): { glyphSet: string; overrides: Record<string, string> } {
   const ctx = useContext(ChartContext);
-  return ctx?.glyphSet ?? DEFAULT_GLYPH_SET;
+  return {
+    glyphSet: ctx?.glyphSet ?? DEFAULT_GLYPH_SET,
+    overrides: ctx?.glyphOverrides ?? {},
+  };
 }
 
 /**
@@ -34,9 +37,9 @@ export const PlanetGlyphIcon: React.FC<{
   style?: React.CSSProperties;
   glyphSet?: string;
 }> = ({ planet, size = '1em', color = 'currentColor', style, glyphSet }) => {
-  const contextGlyphSet = useGlyphSetFromContext();
-  const activeSet = glyphSet ?? contextGlyphSet;
-  const pathData = getPlanetPath(planet, activeSet);
+  const prefs = useGlyphPrefs();
+  const activeSet = glyphSet ?? prefs.glyphSet;
+  const pathData = getPlanetPath(planet, activeSet, prefs.overrides);
   if (pathData) {
     return (
       <svg
@@ -65,10 +68,10 @@ export const SignGlyphIcon: React.FC<{
   style?: React.CSSProperties;
   glyphSet?: string;
 }> = ({ sign, size = '1em', color = 'currentColor', style, glyphSet }) => {
-  const contextGlyphSet = useGlyphSetFromContext();
-  const activeSet = glyphSet ?? contextGlyphSet;
+  const prefs = useGlyphPrefs();
+  const activeSet = glyphSet ?? prefs.glyphSet;
   const index = SIGN_NAMES.indexOf(sign);
-  const pathData = index >= 0 ? getSignPathByIndex(index, activeSet) : undefined;
+  const pathData = index >= 0 ? getSignPathByIndex(index, activeSet, prefs.overrides) : undefined;
   if (pathData) {
     return (
       <svg

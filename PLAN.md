@@ -1,8 +1,8 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.16.0 Seamless Cloud Sync
+## Current Sprint: v0.19.0 Aspect Lines, Readability & Glyph Sources
 **Status**: Complete
-**Last Updated**: 2026-04-06
+**Last Updated**: 2026-04-11
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -243,6 +243,32 @@
 - [x] **Save chart dialog with local-only option** - Replaced browser `prompt()` with `SaveChartDialog` modal: name input + "Keep local only" checkbox (shown when logged in). `localOnly` flag on `SavedChart` interface skips cloud upload.
 - [x] **Bidirectional Sync button** - My Charts Sync button now calls `fullSync()` (push + pull + name sync) instead of just re-fetching cloud list.
 - [x] **Removed CloudMigrationModal** - Automatic sync replaces the one-time migration modal. No manual import step needed on login.
+
+### 🎨 Theme Preferences (v0.17.0)
+- [x] **Theme data layer** - `ThemeColors` interface with 13 color groups (UI chrome + chart wheel + element colors). 4 light presets: Classic Parchment, Rose Quartz, Sage & Stone, Sky & Silver. `resolveTheme()` merges preset with user overrides. `applyCssVars()` sets CSS custom properties on `:root`.
+- [x] **Theme in ChartContext** - `theme`/`setTheme`/`resolvedTheme` in context. localStorage persistence (`natal-chart-theme`). Cloud sync via `CloudPreferences.theme`. CSS vars applied reactively via `useEffect`.
+- [x] **Chart wheel theming** - `ChartWheel` accepts `theme` prop. Replaced ~30 hardcoded color references (gold strokes, parchment fills, segment alternation, element colors, tick marks) with theme-derived values. `PLANET_COLORS` and `ASPECT_COLORS` remain fixed.
+- [x] **Planet legend theming** - `PlanetLegend` accepts `theme` prop. Border, text, and element sign colors derived from theme. CSS variable fallbacks for structural colors.
+- [x] **Theme preferences UI** - New "Theme" section at top of Preferences page. Preset cards with color swatch previews. "Customize colors" expandable panel with grouped color pickers (UI Colors, Chart Wheel, Element Colors). Per-color reset and "Reset all" buttons.
+- [x] **PDF export theming** - `generateChartPdf()` accepts optional `ThemeColors`. PDF table styling (header, text, fill colors) derived from active theme. Chart wheel SVG inherits theme from DOM.
+
+### 🔤 Per-Glyph Customization (v0.18.0)
+- [x] **Glyph registry refactor** - Moved glyph data from monolithic `astro-glyph-paths.ts` (304 lines) into `utils/glyphs/` directory. `GlyphSource` interface, central registry with `registerSource()`, per-source files (`classic.ts`, `modern.ts`, `dejavu-full.ts`). Backward-compatible re-export facade preserves all existing imports.
+- [x] **Extraction pipeline** - Generalized `scripts/extract-font-glyphs.mjs` for extracting SVG path data from any TTF font. Supports multiple codepoint alternatives per planet (e.g., Pluto U+2BD3 / U+2647). Extracted DejaVu Full source (14 planets including lilith, fortune, alt Pluto + all 12 signs).
+- [x] **Per-glyph overrides in context** - `glyphOverrides` / `setGlyphOverrides` added to ChartContext. localStorage persistence (`natal-chart-glyph-overrides`). Cloud sync via `CloudPreferences.glyphOverrides`. Resolution order: overrides → base glyphSet → classic fallback.
+- [x] **Rendering pipeline** - `getPlanetPath()` and `getSignPathByIndex()` accept optional `overrides` parameter. ChartWheel, GlyphIcon, and PlanetLegend all pass overrides through. PDF export inherits from DOM SVG.
+- [x] **Per-glyph picker UI** - `GlyphCustomizer` component with visual SVG thumbnail pickers for each planet and sign. Shows only entities with multiple available variants. Per-entity and "Reset all" buttons. Integrated into Preferences under "Customize individual glyphs…" toggle.
+
+### 📐 Aspect Lines & Readability (v0.19.0)
+- [x] **Orb-weighted aspect line thickness** - Stroke width scales inversely with orb: 2.5px (exact) → 0.5px (wide orb=10°). Opacity also scales: 0.9 → 0.4. Transit aspects scaled to 60%. Conjunction added to "hard" (solid line) category.
+- [x] **Ptolemaic aspects only on chart wheel** - Chart wheel only renders conjunction, opposition, trine, square, sextile aspect lines. Quincunx and semi-sextile filtered out.
+- [x] **Ptolemaic aspects only in aspect grid** - AspectGrid and TransitAspectGrid default to `ptolemaicOnly=true`. "Show all aspects (including minor)" checkbox in ChartView and TransitView aspects tab reveals full grid.
+- [x] **Aspect circle tick marks** - Small radial ticks at the inner circle where each aspect line touches (88%–96% of houseNumInner radius). Colored to match the aspect line. Only shown when aspects are visible.
+- [x] **Increase default font size** - Base font size bumped from browser default (~16px) to `1.1rem` via CSS variable `--font-size` on `.app` class.
+- [x] **Font size preference** - Small (0.95rem) / Medium (1.1rem) / Large (1.25rem) radio selector in Preferences. Persisted via theme system (localStorage + cloud sync).
+- [x] **Astronomicon glyph set** - Extracted 14 planets + 12 signs from Astronomicon TTF (SIL OFL). Professional astrology-specific font with custom ASCII→glyph mapping. Full coverage including Chiron, North Node, Lilith, Fortune.
+- [x] **Astromoony Sans glyph set** - Extracted 10 planets from Astromoony Sans TTF (Public Domain). Purpose-built astrology font, clean sans-serif style.
+- [x] **Header font isolation** - Header bar uses `app-header` CSS class with fixed `px` sizes, immune to font-size preference scaling.
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations

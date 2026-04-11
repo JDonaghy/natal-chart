@@ -46,7 +46,9 @@ export async function deleteAccount(): Promise<void> {
 export interface CloudPreferences {
   houseSystem?: string;
   glyphSet?: string;
+  glyphOverrides?: Record<string, string>;
   ascHorizontal?: boolean;
+  theme?: { presetId: string; overrides?: Record<string, string> | undefined };
   [key: string]: unknown;
 }
 

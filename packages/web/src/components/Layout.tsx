@@ -70,7 +70,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="app">
-      <header style={{ padding, borderBottom: '1px solid #b8860b' }}>
+      <header className="app-header" style={{ padding, borderBottom: '1px solid #b8860b' }}>
         <div className="container" style={{ maxWidth, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Link to="/" style={{ textDecoration: 'none' }}>
