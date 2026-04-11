@@ -270,6 +270,11 @@
 - [x] **Astromoony Sans glyph set** - Extracted 10 planets from Astromoony Sans TTF (Public Domain). Purpose-built astrology font, clean sans-serif style.
 - [x] **Header font isolation** - Header bar uses `app-header` CSS class with fixed `px` sizes, immune to font-size preference scaling.
 
+### 🔧 Chart Wheel Layout Polish (v0.20.0)
+- [x] **Shrink house number ring** - Reduced width by ~20%, extra space given to planet band. Natal: planetInner 0.54→0.52, transit: planetInner 0.44→0.42.
+- [x] **Increase planet glyph size on chart wheel** - Bumped `labelSz` from `bandH*0.11/size*0.018` to `bandH*0.13/size*0.022` (~20% larger, matching legend panel at ~17px).
+- [x] **Shift planet labels inward** - Planet glyph/degree/sign/minute labels moved 30% inward from planet band outer edge (was 15%). Connector lines angle in to match new glyph positions.
+
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations
 - [x] **Error handling** - More graceful error handling for failed geocoding

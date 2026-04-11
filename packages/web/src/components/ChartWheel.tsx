@@ -232,8 +232,8 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       outer: center * 0.76,            // outer edge of zodiac ring
       zodiacInner: center * 0.62,      // inner edge of zodiac ring
       planetOuter: center * 0.62,      // natal planet band outer
-      planetInner: center * 0.44,      // natal planet band inner
-      houseNumOuter: center * 0.44,
+      planetInner: center * 0.42,      // natal planet band inner
+      houseNumOuter: center * 0.42,
       houseNumInner: center * 0.36,
       houseInner: center * 0.0,
     } : {
@@ -242,8 +242,8 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       outer: center * 0.95,
       zodiacInner: center * 0.76,
       planetOuter: center * 0.76,
-      planetInner: center * 0.54,
-      houseNumOuter: center * 0.54,
+      planetInner: center * 0.52,
+      houseNumOuter: center * 0.52,
       houseNumInner: center * 0.44,
       houseInner: center * 0.0,
     };
@@ -713,22 +713,20 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const { planet, tickLongitude, labelLongitude, color } = layout;
             const bandH = R.planetOuter - R.planetInner;
 
-            // Tick from zodiac inner edge into planet band
-            const tickTop = toPoint(tickLongitude, R.zodiacInner);
-            const tickBot = toPoint(tickLongitude, R.planetOuter - bandH * 0.08);
-
-            // Connector from tick to label column (at displaced longitude)
-            const connectorEnd = toPoint(labelLongitude, R.planetOuter - bandH * 0.08);
-
             // Radial label positions from outside in: planet glyph, degree, sign, minute
             const labelStep = bandH * 0.20;
-            const topR = R.planetOuter - bandH * 0.15;
+            const topR = R.planetOuter - bandH * 0.30;
+
+            // Tick from zodiac inner edge, connector angles in to meet glyph position
+            const tickTop = toPoint(tickLongitude, R.zodiacInner);
+            const tickBot = toPoint(tickLongitude, R.planetOuter - bandH * 0.08);
+            const connectorEnd = toPoint(labelLongitude, topR + bandH * 0.08);
             const glyphPos = toPoint(labelLongitude, topR);
             const degPos = toPoint(labelLongitude, topR - labelStep);
             const signPos = toPoint(labelLongitude, topR - labelStep * 2);
             const minPos = toPoint(labelLongitude, topR - labelStep * 3);
 
-            const labelSz = Math.max(bandH * 0.11, size * 0.018) * fontScale;
+            const labelSz = Math.max(bandH * 0.13, size * 0.022) * fontScale;
             const signIndex = Math.floor(planet.longitude / 30) % 12;
             const signColor = elementColors[signIndex];
 
@@ -842,22 +840,20 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 const { planet, tickLongitude, labelLongitude, color } = layout;
                 const bandWidth = R.transitOuter - R.transitInner;
 
-                // Tick mark from outer edge of zodiac outward into transit band
-                const tickBase = toPoint(tickLongitude, R.outer);
-                const tickEnd = toPoint(tickLongitude, R.outer + bandWidth * 0.08);
-
-                // Connector from tick to label column
-                const connectorEnd = toPoint(labelLongitude, R.outer + bandWidth * 0.08);
-
                 // Radial labels from outside in: planet, degree, sign, minute
                 const labelStep = bandWidth * 0.20;
-                const topR = R.transitOuter - bandWidth * 0.15;
+                const topR = R.transitOuter - bandWidth * 0.30;
+
+                // Tick mark from outer edge of zodiac, connector angles in to meet glyph
+                const tickBase = toPoint(tickLongitude, R.outer);
+                const tickEnd = toPoint(tickLongitude, R.outer + bandWidth * 0.08);
+                const connectorEnd = toPoint(labelLongitude, topR + bandWidth * 0.08);
                 const glyphPos = toPoint(labelLongitude, topR);
                 const degPos = toPoint(labelLongitude, topR - labelStep);
                 const signPos = toPoint(labelLongitude, topR - labelStep * 2);
                 const minPos = toPoint(labelLongitude, topR - labelStep * 3);
 
-                const labelSz = Math.max(bandWidth * 0.11, size * 0.018) * fontScale;
+                const labelSz = Math.max(bandWidth * 0.13, size * 0.022) * fontScale;
                 const signIndex = Math.floor(planet.longitude / 30) % 12;
                 const signColor = elementColors[signIndex];
 
