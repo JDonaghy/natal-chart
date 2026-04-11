@@ -1,5 +1,5 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-04-06*
+*Last Updated: 2026-04-11*
 
 ## Deployment Status
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
@@ -7,7 +7,7 @@
 - **Cloudflare D1**: natal-chart-db (user accounts, preferences, saved charts)
 - **Firebase Auth**: natal-chart-329b3 (Google SSO)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.16.0
+- **Current Version**: 0.17.0 (Beta)
 
 ## What Works
 
@@ -52,6 +52,20 @@
 - [x] Multiple glyph sets: Classic (DejaVu Sans) and Modern (Noto Sans Symbols)
 - [x] Centralized Preferences page (`/preferences`) with Glyph Style, House System, ASC Horizontal
 - [x] All settings persist to localStorage and take effect immediately
+
+### Theme & Customization (v0.17.0–v0.19.0)
+- [x] Theme presets: Classic Parchment, Rose Quartz, Sage & Stone, Sky & Silver
+- [x] Per-color customization with grouped color pickers and reset buttons
+- [x] Per-glyph overrides — choose variant per planet/sign from multiple glyph sources
+- [x] Astronomicon and Astromoony Sans glyph sets added
+- [x] Font size preference (Small / Medium / Large)
+- [x] Orb-weighted aspect line thickness and opacity
+- [x] Ptolemaic-only aspect filtering (chart wheel and grid)
+
+### Chart Wheel Layout Polish (v0.20.0)
+- [x] Shrunk house number ring (~20% smaller), enlarged planet glyphs (~20% larger)
+- [x] Planet labels shifted inward for tighter layout
+- [x] Beta label in footer
 
 ### User Accounts & Cloud Sync (v0.14.0)
 - [x] Firebase Authentication with Google SSO (GitHub SSO ready)

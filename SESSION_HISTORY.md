@@ -752,4 +752,22 @@ Added 16 new items to PLAN.md from client feedback:
 
 ---
 
+## Session: 2026-04-11 — v0.17.0 Release Prep
+
+### Features & Changes
+1. **Beta label in footer** — Added "(Beta)" text after semver in the footer status bar.
+2. **Version bump to 0.17.0** — All 5 package.json files bumped from 0.16.0.
+
+### Bug Fixes
+1. **Fix conditional useCallback lint error** — Moved `handleAnimationStep` `useCallback` in `TransitView.tsx` above early returns to comply with React hooks rules.
+2. **Fix core test for Lot of Spirit** — Added `spirit` to the distance-zero exclusion list in `calculator.test.ts` (Lot of Spirit is a calculated point with distance 0, like Fortune and Vertex).
+
+### Files Modified
+- `packages/web/src/components/Layout.tsx` — Added "(Beta)" after semver
+- `packages/web/src/components/TransitView.tsx` — Moved useCallback above early returns
+- `packages/core/test/calculator.test.ts` — Added spirit to distance-zero exclusion
+- All 5 `package.json` files — Version 0.16.0 → 0.17.0
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

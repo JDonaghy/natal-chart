@@ -43,6 +43,11 @@ export const TransitView: React.FC = () => {
   const { isMobile, isTablet } = useResponsive();
   const savedCharts = useSyncedCharts();
 
+  const handleAnimationStep = useCallback((newDateStr: string, newDate: Date) => {
+    setTransitDateStr(newDateStr);
+    calculateTransits(newDate);
+  }, [setTransitDateStr, calculateTransits]);
+
   // Auto-initialize transits on mount if no transit date is set
   useEffect(() => {
     if (initialized.current || !chartData) return;
@@ -230,11 +235,6 @@ export const TransitView: React.FC = () => {
     setTransitDateStr(localStr);
     calculateTransits(now);
   };
-
-  const handleAnimationStep = useCallback((newDateStr: string, newDate: Date) => {
-    setTransitDateStr(newDateStr);
-    calculateTransits(newDate);
-  }, [setTransitDateStr, calculateTransits]);
 
   const handleSave = () => {
     if (!chartData || !birthData) return;
