@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const LoginButton: React.FC = () => {
-  const { user, loading, configured, signInGoogle, signInGithub, logOut } = useAuth();
+  const { user, loading, configured, signInGoogle, signInGithub, signInAuth0, logOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [signInOpen, setSignInOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,11 +22,14 @@ export const LoginButton: React.FC = () => {
 
   if (!configured) return null;
 
-  const handleSignIn = async (provider: 'google' | 'github') => {
+  const auth0Configured = Boolean(import.meta.env.VITE_FIREBASE_AUTH0_PROVIDER_ID);
+
+  const handleSignIn = async (provider: 'google' | 'github' | 'auth0') => {
     setError(null);
     try {
       if (provider === 'google') await signInGoogle();
-      else await signInGithub();
+      else if (provider === 'github') await signInGithub();
+      else await signInAuth0();
       setSignInOpen(false);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sign in failed';
@@ -60,12 +63,14 @@ export const LoginButton: React.FC = () => {
     textAlign: 'left',
     cursor: 'pointer',
     fontFamily: 'Cormorant, serif',
-    fontSize: '1rem',
+    fontSize: '16px',
     color: '#2c2c54',
+    whiteSpace: 'nowrap',
   };
 
   // Signed in — show avatar / name with dropdown
   if (user) {
+
     return (
       <div ref={menuRef} style={{ position: 'relative' }}>
         <button
@@ -96,7 +101,7 @@ export const LoginButton: React.FC = () => {
               {(user.displayName || user.email || '?').charAt(0).toUpperCase()}
             </span>
           )}
-          {user.displayName || user.email || 'Account'}
+          {(user.displayName?.includes('@') ? user.displayName.split('@')[0] : user.displayName) || user.email?.split('@')[0] || 'Account'}
         </button>
         {menuOpen && (
           <div style={dropdownStyle}>
@@ -155,6 +160,16 @@ export const LoginButton: React.FC = () => {
           >
             Sign in with GitHub
           </button>
+          {auth0Configured && (
+            <button
+              onClick={() => handleSignIn('auth0')}
+              style={menuItemStyle}
+              onMouseEnter={e => (e.currentTarget.style.background = '#ede4d0')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+            >
+              Sign in with Email
+            </button>
+          )}
           {error && (
             <div style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', color: '#c0392b' }}>
               {error}

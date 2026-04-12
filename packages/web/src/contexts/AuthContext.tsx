@@ -3,6 +3,7 @@ import {
   subscribeToAuthState,
   signInWithGoogle,
   signInWithGithub,
+  signInWithAuth0,
   signOut,
   isAuthConfigured,
   type User,
@@ -15,6 +16,7 @@ interface AuthContextType {
   configured: boolean;
   signInGoogle: () => Promise<void>;
   signInGithub: () => Promise<void>;
+  signInAuth0: () => Promise<void>;
   logOut: () => Promise<void>;
 }
 
@@ -59,12 +61,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await signInWithGithub();
   }, []);
 
+  const signInAuth0 = useCallback(async () => {
+    await signInWithAuth0();
+  }, []);
+
   const logOut = useCallback(async () => {
     await signOut();
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, configured, signInGoogle, signInGithub, logOut }}>
+    <AuthContext.Provider value={{ user, loading, configured, signInGoogle, signInGithub, signInAuth0, logOut }}>
       {children}
     </AuthContext.Provider>
   );

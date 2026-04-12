@@ -752,6 +752,29 @@ Added 16 new items to PLAN.md from client feedback:
 
 ---
 
+## Session: 2026-04-12 — v0.17.1 Auth Providers & Bug Fixes
+
+### Features
+1. **Auth0 sign-in via Firebase OIDC** — Added `signInWithAuth0()` using `OAuthProvider` with configurable provider ID (`VITE_FIREBASE_AUTH0_PROVIDER_ID`). Button shown only when env var is set. Label reads "Sign in with Email".
+2. **GitHub SSO enabled** — Registered GitHub OAuth App, enabled in Firebase.
+
+### Bug Fixes
+1. **Synced charts load from localStorage** — `SavedChartsView.handleLoad` now loads "synced" charts locally instead of making a cloud API call that fails when logged in as a different user.
+2. **Login button display name** — When `displayName` is an email (Auth0), shows username part only. Prevents header wrapping.
+3. **Login dropdown font size** — Fixed menu items to `16px` with `whiteSpace: nowrap` to match header nav and prevent wrapping.
+4. **Radio/checkbox CSS fix** — Excluded `[type="radio"]` and `[type="checkbox"]` from global input styling that stripped native appearance.
+
+### Files Modified
+- `packages/web/src/services/auth.ts` — Added `OAuthProvider` import and `signInWithAuth0()`
+- `packages/web/src/contexts/AuthContext.tsx` — Exposed `signInAuth0` in context
+- `packages/web/src/components/LoginButton.tsx` — Auth0 button, display name fix, font sizing
+- `packages/web/src/components/SavedChartsView.tsx` — Load synced charts from localStorage
+- `packages/web/src/components/PreferencesView.tsx` — Explicit radio input sizing
+- `packages/web/src/App.css` — Scoped input styles away from radio/checkbox
+- `packages/web/.env.example` — Documented Auth0 env var
+
+---
+
 ## Session: 2026-04-11 — v0.17.0 Release Prep
 
 ### Features & Changes

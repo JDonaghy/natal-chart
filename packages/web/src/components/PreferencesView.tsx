@@ -42,6 +42,12 @@ const radioLabelStyle: React.CSSProperties = {
   cursor: 'pointer',
 };
 
+const radioInputStyle: React.CSSProperties = {
+  width: '16px',
+  height: '16px',
+  accentColor: '#b8860b',
+};
+
 const PREVIEW_PLANETS = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'];
 const PREVIEW_SIGNS = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo'];
 
@@ -225,6 +231,7 @@ export const PreferencesView: React.FC = () => {
             <label key={key} style={radioLabelStyle}>
               <input
                 type="radio"
+                style={radioInputStyle}
                 name="glyphSet"
                 value={key}
                 checked={glyphSet === key}
@@ -283,6 +290,7 @@ export const PreferencesView: React.FC = () => {
             <label key={value} style={radioLabelStyle}>
               <input
                 type="radio"
+                style={radioInputStyle}
                 name="fontSize"
                 value={value}
                 checked={resolvedTheme.fontSize === value}
@@ -304,6 +312,7 @@ export const PreferencesView: React.FC = () => {
           <label style={radioLabelStyle}>
             <input
               type="radio"
+              style={radioInputStyle}
               name="houseSystem"
               value="W"
               checked={houseSystem === 'W'}
@@ -314,6 +323,7 @@ export const PreferencesView: React.FC = () => {
           <label style={radioLabelStyle}>
             <input
               type="radio"
+              style={radioInputStyle}
               name="houseSystem"
               value="P"
               checked={houseSystem === 'P'}

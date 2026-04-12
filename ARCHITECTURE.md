@@ -1,6 +1,6 @@
 # Natal Chart Application Architecture
 
-*Last Updated: 2026-04-05 (v0.14.0)*
+*Last Updated: 2026-04-12 (v0.17.1)*
 
 ## System Overview
 
@@ -179,18 +179,85 @@ CREATE TABLE saved_charts (
 
 **Enabled providers:**
 - Google (primary)
-- GitHub (configured in code, needs OAuth App registration)
+- GitHub (via GitHub OAuth App)
+- Auth0 (via Firebase OIDC custom provider)
+
+**Settings** (Firebase Console > Authentication > Settings):
+- **User account linking**: "Create multiple accounts for each identity provider" (each provider creates a separate Firebase UID, even with the same email)
+- **Authorized domains**: `jdonaghy.github.io`, `localhost`, `192.168.1.109` (LAN dev)
 
 **How it works:**
-1. User clicks Sign In → Firebase SDK opens Google popup
-2. Firebase returns an ID Token (RS256 JWT)
-3. SPA sends token as `Authorization: Bearer <token>` to Worker
-4. Worker verifies JWT against Google's public JWKS (cached 1hr in memory)
-5. Worker extracts `user_id` from JWT `sub` claim
+1. User clicks Sign In → Firebase SDK opens provider popup (Google, GitHub, or Auth0)
+2. Provider authenticates user → redirects to Firebase callback handler
+3. Firebase returns an ID Token (RS256 JWT) to the SPA
+4. SPA sends token as `Authorization: Bearer <token>` to Worker
+5. Worker verifies JWT against Google's public JWKS (cached 1hr in memory)
+6. Worker extracts `user_id` from JWT `sub` claim
 
-**Authorized domains** (Firebase Console > Authentication > Settings):
-- `jdonaghy.github.io`
-- `localhost`
+**Note**: The Worker JWT verification works for all providers — Firebase issues the same format JWT regardless of upstream provider.
+
+#### 4a. GitHub OAuth App
+
+**Dashboard**: GitHub > Settings > Developer settings > OAuth Apps
+
+**Configuration:**
+| Field | Value |
+|-------|-------|
+| Application name | Natal Chart |
+| Homepage URL | `https://jdonaghy.github.io/natal-chart/` |
+| Authorization callback URL | `https://natal-chart-329b3.firebaseapp.com/__/auth/handler` |
+
+**Firebase setup**: Firebase Console > Authentication > Sign-in method > GitHub > paste Client ID and Client Secret from the GitHub OAuth App.
+
+**To recreate:**
+1. GitHub > Settings > Developer settings > OAuth Apps > New OAuth App
+2. Enter the fields above, save
+3. Generate a Client Secret
+4. Firebase Console > Authentication > Sign-in method > GitHub > Enable
+5. Paste Client ID and Client Secret, save
+
+#### 4b. Auth0 (OIDC Provider)
+
+**Auth0 tenant**: `dev-0jaf3cd2fk3u2iqy.us.auth0.com`
+**Auth0 dashboard**: https://manage.auth0.com
+**Auth0 application name**: AstroWeb (Regular Web Application)
+
+**Auth0 application configuration:**
+| Field | Value |
+|-------|-------|
+| Application Type | Regular Web Application |
+| Allowed Callback URLs | `https://natal-chart-329b3.firebaseapp.com/__/auth/handler` |
+| Allowed Web Origins | `https://jdonaghy.github.io` |
+
+**Grant types** (Advanced Settings > Grant Types): Authorization Code must be enabled.
+
+**Firebase OIDC configuration** (Firebase Console > Authentication > Sign-in method > OpenID Connect):
+| Field | Value |
+|-------|-------|
+| Name | auth0 |
+| Provider ID | `oidc.auth0` (auto-assigned by Firebase from the name) |
+| Issuer URL | `https://dev-0jaf3cd2fk3u2iqy.us.auth0.com` |
+| Client ID | From Auth0 > Applications > AstroWeb > Settings |
+| Client Secret | From Auth0 > Applications > AstroWeb > Settings |
+
+**SPA environment variable**: `VITE_FIREBASE_AUTH0_PROVIDER_ID=oidc.auth0`
+This must be set in `.env` (local) and GitHub Actions secrets (production). If unset, the "Sign in with Email" button is hidden.
+
+**To recreate from scratch:**
+1. Create Auth0 account at https://auth0.com
+2. Create a new application: Applications > Create Application > "AstroWeb" > Regular Web Application
+3. In Settings, set Allowed Callback URLs to `https://natal-chart-329b3.firebaseapp.com/__/auth/handler`
+4. In Settings, set Allowed Web Origins to `https://jdonaghy.github.io`
+5. Note the Domain, Client ID, and Client Secret
+6. In Firebase Console > Authentication > Sign-in method > Add new provider > OpenID Connect
+7. Name: `auth0`, Issuer URL: `https://YOUR-TENANT.us.auth0.com`, paste Client ID and Client Secret
+8. Save — Firebase assigns provider ID `oidc.auth0`
+9. Set `VITE_FIREBASE_AUTH0_PROVIDER_ID=oidc.auth0` in `.env` and GitHub secrets
+
+**Important notes:**
+- Must be a **Regular Web Application** in Auth0, not an SPA — Firebase exchanges the auth code on its backend and needs a Client Secret
+- Auth0 sets `displayName` to the user's email address (not a separate name field). The app handles this by showing only the username portion before `@`
+- Auth0 does not populate `user.email` on the Firebase user object — the email is only in `displayName`
 
 ### 5. Cloudflare KV
 
@@ -244,6 +311,7 @@ Browser                    Firebase              Worker               D1
 | `VITE_FIREBASE_AUTH_DOMAIN` | From Firebase Console > Project Settings | Firebase config |
 | `VITE_FIREBASE_PROJECT_ID` | From Firebase Console > Project Settings | Firebase config |
 | `VITE_FIREBASE_APP_ID` | From Firebase Console > Project Settings | Firebase config |
+| `VITE_FIREBASE_AUTH0_PROVIDER_ID` | `oidc.auth0` | Auth0 OIDC provider ID |
 | `VITE_WORKER_API_URL` | Worker URL + `/api` | Cloud sync API |
 
 ### GitHub Actions: Release (`.github/workflows/release.yml`)
@@ -393,11 +461,14 @@ This creates KV namespace, D1 database, applies migrations, sets secrets, and de
 
 1. **Cloudflare Worker + KV + D1**: Run `scripts/setup-infrastructure.sh`
 2. **Restore D1 data**: Follow "Restoring D1 from Backup" above
-3. **GitHub secrets**: Re-enter all 6 secrets (see CI/CD section above)
+3. **GitHub secrets**: Re-enter all 7 secrets (see CI/CD section above)
 4. **Firebase** (if project lost): Recreate in Firebase Console:
    - Create project, add web app, copy config
    - Enable Google sign-in provider
+   - Add GitHub sign-in (see section 4a above for OAuth App setup)
+   - Add Auth0 OIDC provider (see section 4b above for full setup)
    - Add `jdonaghy.github.io` to authorized domains
+   - Set user account linking to "Create multiple accounts for each identity provider"
 5. **GitHub Pages**: Push to `main` or `gh workflow run deploy.yml --ref main`
 6. **Verify**: Sign in, check preferences sync, save/load a chart
 7. **Re-enable cron backup**: `crontab -e`, add the backup cron entry
@@ -412,6 +483,8 @@ These values must be kept safe — they cannot be recovered from the codebase:
 | `OPENCAGE_API_KEY` | Worker secret (geocoding) | https://opencagedata.com/dashboard |
 | Firebase config (4 values) | GitHub secrets + `.env` | Firebase Console > Project Settings |
 | `FIREBASE_PROJECT_ID` | Worker secret (JWT verify) | Firebase Console > Project Settings |
+| GitHub OAuth Client ID + Secret | Firebase GitHub provider | GitHub > Settings > Developer settings > OAuth Apps |
+| Auth0 Client ID + Secret | Firebase OIDC provider | Auth0 Dashboard > Applications > AstroWeb > Settings |
 
 ---
 

@@ -6,6 +6,7 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   GithubAuthProvider,
+  OAuthProvider,
   type Auth,
   type User,
   type Unsubscribe,
@@ -53,6 +54,16 @@ export async function signInWithGoogle(): Promise<User> {
 
 export async function signInWithGithub(): Promise<User> {
   const provider = new GithubAuthProvider();
+  const result = await signInWithPopup(getFirebaseAuth(), provider);
+  return result.user;
+}
+
+export async function signInWithAuth0(): Promise<User> {
+  const providerId = import.meta.env.VITE_FIREBASE_AUTH0_PROVIDER_ID;
+  if (!providerId) {
+    throw new Error('Auth0 provider not configured. Set VITE_FIREBASE_AUTH0_PROVIDER_ID.');
+  }
+  const provider = new OAuthProvider(providerId);
   const result = await signInWithPopup(getFirebaseAuth(), provider);
   return result.user;
 }

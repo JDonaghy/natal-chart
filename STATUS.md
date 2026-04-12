@@ -7,7 +7,7 @@
 - **Cloudflare D1**: natal-chart-db (user accounts, preferences, saved charts)
 - **Firebase Auth**: natal-chart-329b3 (Google SSO)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.17.0 (Beta)
+- **Current Version**: 0.17.1 (Beta)
 
 ## What Works
 
@@ -68,7 +68,7 @@
 - [x] Beta label in footer
 
 ### User Accounts & Cloud Sync (v0.14.0)
-- [x] Firebase Authentication with Google SSO (GitHub SSO ready)
+- [x] Firebase Authentication with Google SSO, GitHub SSO, Auth0 (OIDC)
 - [x] Sign In / Sign Out button in header with avatar and dropdown menu
 - [x] Cloudflare D1 database for user data (users, preferences, saved_charts tables)
 - [x] JWT verification in Worker (Firebase ID tokens via Google JWKS)
