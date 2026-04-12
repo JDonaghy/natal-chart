@@ -22,7 +22,7 @@ const WORKER_URL = import.meta.env.VITE_WORKER_API_URL || '';
 export const SavedChartsView: React.FC = () => {
   const { loadChart, calculateChart, setTransitDateStr, setTransitLocation, calculateTransits, setShowAspects, setShowBoundsDecans, setTraditionalPlanets, setGlyphSet } = useChart();
   const { user } = useAuth();
-  const { triggerSync } = useSync();
+  const { triggerSync, syncStatus } = useSync();
   const navigate = useNavigate();
 
   const [charts, setCharts] = useState<SavedChartSummary[]>([]);
@@ -262,7 +262,7 @@ export const SavedChartsView: React.FC = () => {
       </div>
       <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
         {charts.length} chart{charts.length !== 1 ? 's' : ''} saved
-        {user ? ' (syncing to cloud)' : ' (local only — sign in to sync)'}
+        {user ? (syncStatus === 'syncing' ? ' (syncing...)' : ' (synced to cloud)') : ' (local only — sign in to sync)'}
       </p>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
