@@ -85,7 +85,7 @@ export const SavedChartsView: React.FC = () => {
   const handleLoad = async (chart: SavedChartSummary) => {
     setActionLoading(chart.id);
     try {
-      if (chart.source === 'local') {
+      if (chart.source === 'local' || chart.source === 'synced') {
         const localCharts = getSavedCharts();
         const found = localCharts.find((c: SavedChart) => c.id === chart.id);
         if (found) {
