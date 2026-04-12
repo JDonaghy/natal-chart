@@ -108,7 +108,7 @@
 - [x] **Firebase project setup** - Created Firebase project natal-chart-329b3, enabled Google sign-in.
 - [x] **Firebase Auth SDK in SPA** - `firebase/auth` package, `services/auth.ts`, `AuthContext` with `onAuthStateChanged`.
 - [x] **Login UI** - Sign In button in header with provider picker, avatar dropdown when logged in.
-- [ ] **Additional SSO providers** - GitHub code ready, needs OAuth App registration. Facebook/Apple not yet added.
+- [x] **Additional SSO providers** - Google, GitHub, and Auth0 (via Firebase OIDC) all enabled. Facebook/Apple not yet added.
 
 #### Phase 2: Cloudflare D1 Database
 - [x] **D1 database creation** - Created natal-chart-db (ae3aa7c7-606b-490f-a1bd-cb7a9314e45c), region ENAM.
