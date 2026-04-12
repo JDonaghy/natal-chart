@@ -21,8 +21,9 @@ import '../App.css';
 
 export const TransitView: React.FC = () => {
   const navigate = useNavigate();
-  const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation, showAspects, setShowAspects, traditionalPlanets, setTraditionalPlanets, glyphSet, setGlyphSet, ascHorizontal } = useChart();
+  const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation, showAspects, setShowAspects, traditionalPlanets, setTraditionalPlanets, glyphSet, setGlyphSet, glyphOverrides, ascHorizontal, resolvedTheme } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
+  const [showAllAspects, setShowAllAspects] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -41,6 +42,11 @@ export const TransitView: React.FC = () => {
   }, [transitData, traditionalPlanets]);
   const { isMobile, isTablet } = useResponsive();
   const savedCharts = useSyncedCharts();
+
+  const handleAnimationStep = useCallback((newDateStr: string, newDate: Date) => {
+    setTransitDateStr(newDateStr);
+    calculateTransits(newDate);
+  }, [setTransitDateStr, calculateTransits]);
 
   // Auto-initialize transits on mount if no transit date is set
   useEffect(() => {
@@ -141,7 +147,7 @@ export const TransitView: React.FC = () => {
       if (!(svgElement instanceof SVGElement)) {
         throw new Error('Retrieved element is not an SVGElement');
       }
-      const pdf = await generateChartPdf(chartData, birthData, svgElement, transitData ?? undefined, transitLocation ?? undefined, undefined, glyphSet);
+      const pdf = await generateChartPdf(chartData, birthData, svgElement, transitData ?? undefined, transitLocation ?? undefined, undefined, glyphSet, resolvedTheme);
 
       const fileName = `transit-chart-${new Date().toISOString().slice(0, 10)}.pdf`;
       pdf.save(fileName);
@@ -229,11 +235,6 @@ export const TransitView: React.FC = () => {
     setTransitDateStr(localStr);
     calculateTransits(now);
   };
-
-  const handleAnimationStep = useCallback((newDateStr: string, newDate: Date) => {
-    setTransitDateStr(newDateStr);
-    calculateTransits(newDate);
-  }, [setTransitDateStr, calculateTransits]);
 
   const handleSave = () => {
     if (!chartData || !birthData) return;
@@ -521,7 +522,7 @@ export const TransitView: React.FC = () => {
                 Traditional planets
               </label>
             </div>
-            <ChartWheel ref={chartWheelRef} chartData={displayData!} transitData={displayTransit ?? undefined} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} glyphSet={glyphSet} />
+            <ChartWheel ref={chartWheelRef} chartData={displayData!} transitData={displayTransit ?? undefined} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} glyphSet={glyphSet} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend
@@ -529,6 +530,7 @@ export const TransitView: React.FC = () => {
               transitData={displayTransit ?? undefined}
               birthDateLabel={birthData ? new Date(birthData.dateTimeUtc).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined}
               transitDateLabel={transitDateStr ? new Date(transitDateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : undefined}
+              theme={resolvedTheme}
             />
           </div>
         </div>
@@ -593,11 +595,15 @@ export const TransitView: React.FC = () => {
 
         {/* Aspects Tab */}
         <div style={{ display: activeTab === 'aspects' ? 'block' : 'none' }}>
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', marginBottom: '0.5rem', cursor: 'pointer' }}>
+            <input type="checkbox" checked={showAllAspects} onChange={(e) => setShowAllAspects(e.target.checked)} />
+            Show all aspects (including minor)
+          </label>
           {/* Natal Aspect Grid */}
           <div className="card">
             <h3>Natal Aspects</h3>
             {displayData!.aspects.length > 0 ? (
-              <AspectGrid chartData={displayData!} />
+              <AspectGrid chartData={displayData!} ptolemaicOnly={!showAllAspects} />
             ) : (
               <p>No natal aspects found within orb limits.</p>
             )}
@@ -607,7 +613,7 @@ export const TransitView: React.FC = () => {
           {displayTransit && (
             <div className="card" style={{ marginTop: '1rem' }}>
               <h3>Natal-to-Transit Aspects</h3>
-              <TransitAspectGrid chartData={displayData!} transitData={displayTransit} />
+              <TransitAspectGrid chartData={displayData!} transitData={displayTransit} ptolemaicOnly={!showAllAspects} />
             </div>
           )}
         </div>

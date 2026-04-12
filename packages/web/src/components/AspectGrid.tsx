@@ -37,8 +37,11 @@ const LUMINARY_ASPECT_DEFS: { angle: number; orb: number; type: AspectType }[] =
 
 const LUMINARIES = new Set(['sun', 'moon']);
 
+const PTOLEMAIC_TYPES = new Set<AspectType>(['conjunction', 'opposition', 'trine', 'square', 'sextile']);
+
 interface AspectGridProps {
   chartData: ChartResult;
+  ptolemaicOnly?: boolean | undefined;
 }
 
 /** Build a lookup: key "p1|p2" → array of aspects (longitude + parallel) */
@@ -76,7 +79,7 @@ interface CellAspect {
 const CELL_SIZE_DESKTOP = 34;
 const CELL_SIZE_MOBILE = 28;
 
-export const AspectGrid: React.FC<AspectGridProps> = ({ chartData }) => {
+export const AspectGrid: React.FC<AspectGridProps> = ({ chartData, ptolemaicOnly = true }) => {
   const { isMobile } = useResponsive();
   const CELL_SIZE = isMobile ? CELL_SIZE_MOBILE : CELL_SIZE_DESKTOP;
   // Build ordered list of grid points
@@ -103,19 +106,24 @@ export const AspectGrid: React.FC<AspectGridProps> = ({ chartData }) => {
 
   /** Get all aspects between two grid points */
   function getGridAspects(keyA: string, keyB: string): CellAspect[] {
+    let result: CellAspect[];
     // Pre-computed aspects (includes longitude + parallel/contraparallel)
     const existing = aspectMap.get(`${keyA}|${keyB}`);
     if (existing && existing.length > 0) {
-      return existing.map(a => ({ type: a.type, orb: a.orb }));
+      result = existing.map(a => ({ type: a.type, orb: a.orb }));
+    } else {
+      // Calculate for ASC/MC pairs (longitude only)
+      const lonA = lonMap.get(keyA);
+      const lonB = lonMap.get(keyB);
+      if (lonA === undefined || lonB === undefined) return [];
+      const isLuminary = LUMINARIES.has(keyA) || LUMINARIES.has(keyB);
+      const asp = findAspect(lonA, lonB, isLuminary);
+      result = asp ? [asp] : [];
     }
-
-    // Calculate for ASC/MC pairs (longitude only)
-    const lonA = lonMap.get(keyA);
-    const lonB = lonMap.get(keyB);
-    if (lonA === undefined || lonB === undefined) return [];
-    const isLuminary = LUMINARIES.has(keyA) || LUMINARIES.has(keyB);
-    const asp = findAspect(lonA, lonB, isLuminary);
-    return asp ? [asp] : [];
+    if (ptolemaicOnly) {
+      result = result.filter(a => PTOLEMAIC_TYPES.has(a.type));
+    }
+    return result;
   }
 
   const n = points.length;

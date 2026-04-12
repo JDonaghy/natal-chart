@@ -2,6 +2,87 @@
 
 *This file tracks completed work across development sessions. Items are moved here from PLAN.md and BUGS.md when marked as completed or resolved.*
 
+## Session 2026-04-11: v0.17.0–v0.19.0 — Themes, Glyphs, Aspects, Readability & New Glyph Sources
+
+### ✅ Features Completed
+
+#### v0.17.0 — Theme Preferences
+1. **Theme data layer** — `ThemeColors` interface with 14 color groups (UI chrome + chart wheel + element colors + bounds/decans opacity). 4 light presets: Classic Parchment, Rose Quartz, Sage & Stone, Sky & Silver. `resolveTheme()` merges preset with user overrides. `applyCssVars()` sets CSS custom properties on `:root`.
+2. **Theme in ChartContext** — `theme`/`setTheme`/`resolvedTheme` in context. localStorage persistence (`natal-chart-theme`). Cloud sync via `CloudPreferences.theme`. CSS vars applied reactively via `useEffect`.
+3. **Chart wheel theming** — `ChartWheel` accepts `theme` prop. Replaced ~30 hardcoded color references (gold strokes, parchment fills, segment alternation, element colors, tick marks) with theme-derived values. `PLANET_COLORS` and `ASPECT_COLORS` remain fixed.
+4. **Planet legend theming** — `PlanetLegend` accepts `theme` prop. Border, text, and element sign colors derived from theme. CSS variable fallbacks for structural colors.
+5. **Theme preferences UI** — New "Theme" section at top of Preferences page. Preset cards with color swatch previews. "Customize colors" expandable panel with grouped color pickers (UI Colors, Chart Wheel, Element Colors). Per-color reset, "Reset to default" on preset cards, and "Reset all" buttons.
+6. **Bounds/decans opacity** — Increased default from 10% to 25%. Customizable via slider (5%–60%) in theme preferences.
+7. **PDF export theming** — `generateChartPdf()` accepts optional `ThemeColors`. PDF table styling derived from active theme.
+
+#### v0.18.0 — Per-Glyph Customization
+1. **Glyph registry refactor** — Moved from monolithic `astro-glyph-paths.ts` to `utils/glyphs/` directory. `GlyphSource` interface, central registry with `registerSource()`, per-source files. Backward-compatible re-export facade.
+2. **Extraction pipeline** — Generalized `scripts/extract-font-glyphs.mjs`. Extracted DejaVu Full source (14 planets including lilith, fortune, alt Pluto + all 12 signs).
+3. **Per-glyph overrides** — `glyphOverrides` in ChartContext with localStorage + cloud sync. Resolution: overrides → base set → classic fallback.
+4. **Rendering pipeline** — `getPlanetPath()` and `getSignPathByIndex()` accept `overrides` parameter. ChartWheel, GlyphIcon pass overrides through.
+5. **Per-glyph picker UI** — `GlyphCustomizer` component with SVG thumbnail pickers per planet and sign. Integrated into Preferences.
+
+### 📁 Files Created
+- `packages/web/src/utils/themes.ts` — Theme types, presets, resolver, CSS var applicator
+- `packages/web/src/utils/glyphs/types.ts` — GlyphPath, GlyphSource interfaces
+- `packages/web/src/utils/glyphs/registry.ts` — Source registry and variant lookup
+- `packages/web/src/utils/glyphs/sources/classic.ts` — Classic (DejaVu Sans) paths
+- `packages/web/src/utils/glyphs/sources/modern.ts` — Modern (Noto Sans) paths
+- `packages/web/src/utils/glyphs/sources/dejavu-full.ts` — Full DejaVu Sans (14 planets + 12 signs)
+- `packages/web/src/utils/glyphs/index.ts` — Public API with backward compatibility
+- `packages/web/src/components/GlyphCustomizer.tsx` — Per-glyph picker component
+- `scripts/extract-font-glyphs.mjs` — Generalized font glyph extraction script
+
+### 📁 Files Changed
+- `packages/web/src/utils/astro-glyph-paths.ts` — Converted to re-export facade
+- `packages/web/src/contexts/ChartContext.tsx` — Added theme + glyphOverrides state, cloud sync
+- `packages/web/src/services/cloudSync.ts` — Added theme + glyphOverrides to CloudPreferences
+- `packages/web/src/App.css` — Added wheel/element CSS variables
+- `packages/web/src/components/ChartWheel.tsx` — Theme + overrides props, replaced hardcoded colors
+- `packages/web/src/components/PlanetLegend.tsx` — Theme prop, dynamic borders/colors
+- `packages/web/src/components/GlyphIcon.tsx` — Reads overrides from context
+- `packages/web/src/components/PreferencesView.tsx` — Theme section + glyph customizer
+- `packages/web/src/services/pdfExport.ts` — Theme-derived colors
+- `packages/web/src/components/ChartView.tsx` — Passes theme/overrides props
+- `packages/web/src/components/TransitView.tsx` — Passes theme/overrides props
+- `packages/web/src/components/CurrentPlanetsView.tsx` — Passes theme/overrides props
+- `packages/web/src/components/CompareView.tsx` — Passes theme/overrides props
+
+### 📝 Notes
+- Only 3 glyph sources so far (classic, modern, dejavu-full). OTF fonts (Symbola, Catrinity) couldn't be parsed by opentype.js 1.3.4. More sources can be added later with TTF fonts.
+- Nerd Fonts Symbols Only doesn't contain astrological Unicode codepoints.
+- Planet colors and aspect colors intentionally NOT themed (semantically fixed in astrology).
+- Changes on `develop` branch, not yet committed.
+
+#### v0.19.0 — Aspect Lines & Readability
+1. **Orb-weighted aspect line thickness** — Stroke width scales inversely with orb (2.5px exact → 0.5px wide). Opacity also scales (0.9 → 0.4). Transit aspects at 60%. Conjunction added to "hard" (solid line) category.
+2. **Ptolemaic aspects only on chart wheel** — Only conjunction, opposition, trine, square, sextile lines rendered. Quincunx and semi-sextile filtered out.
+3. **Ptolemaic filter in aspect grids** — AspectGrid and TransitAspectGrid default to Ptolemaic only. "Show all aspects (including minor)" checkbox reveals full grid.
+4. **Aspect circle tick marks** — Radial ticks at inner circle where each aspect line touches, colored to match aspect.
+5. **Font size preference** — Small (0.95rem) / Medium (1.1rem) / Large (1.25rem) selector in Preferences. Applied to `html` root so all `rem` units scale. Header nav pinned at 16px to prevent overflow.
+
+#### Additional glyph sources
+6. **Astronomicon glyph set** — 14 planets + 12 signs from Astronomicon TTF (SIL OFL). Custom ASCII→glyph mapping (Q=Sun, A=Aries, etc). Full coverage including Chiron, Node, Lilith, Fortune.
+7. **Astromoony Sans glyph set** — 10 planets from Astromoony Sans TTF (Public Domain). Clean sans-serif astrology-specific style.
+8. **Header font isolation** — `app-header` CSS class with fixed `px` sizes, immune to root font-size scaling. Prevents header overflow on Large text size.
+9. **Chart wheel font scaling** — Glyph/label sizes in ChartWheel scale with the font size preference via `fontScale` multiplier derived from theme `fontSize`.
+
+### 📁 Additional Files Created/Changed (v0.19.0)
+- `packages/web/src/utils/glyphs/sources/astronomicon.ts` — Astronomicon glyph paths (14p + 12s)
+- `packages/web/src/utils/glyphs/sources/astromoony-sans.ts` — Astromoony Sans paths (10p)
+- `packages/web/src/utils/glyphs/sources/astrochart.ts` — AstroChart geometric (disabled, viewBox issues)
+- `scripts/extract-astrochart-glyphs.mjs` — AstroChart extraction script
+- `packages/web/src/components/ChartWheel.tsx` — Orb-weighted strokes, Ptolemaic filter, tick marks, fontScale
+- `packages/web/src/components/AspectGrid.tsx` — `ptolemaicOnly` prop + filter
+- `packages/web/src/components/TransitAspectGrid.tsx` — `ptolemaicOnly` prop + filter
+- `packages/web/src/components/ChartView.tsx` — "Show all aspects" checkbox
+- `packages/web/src/components/TransitView.tsx` — "Show all aspects" checkbox
+- `packages/web/src/components/Layout.tsx` — `app-header` class
+- `packages/web/src/utils/themes.ts` — Added `fontSize` to ThemeColors, applied to html root
+- `packages/web/src/App.css` — `--font-size` variable, `.app-header` fixed sizing
+
+---
+
 ## Session 2026-04-05b: v0.13.0 — Multiple Glyph Sets & Preferences Tab
 
 ### ✅ Features Completed
@@ -668,6 +749,24 @@ Added 16 new items to PLAN.md from client feedback:
 - `packages/web/src/components/TransitView.tsx` — `useSyncedCharts()`, `SaveChartDialog`
 - `packages/web/src/components/CompareView.tsx` — `useSyncedCharts()`
 - `packages/web/src/components/SavedChartsView.tsx` — Sync button calls `triggerSync()`
+
+---
+
+## Session: 2026-04-11 — v0.17.0 Release Prep
+
+### Features & Changes
+1. **Beta label in footer** — Added "(Beta)" text after semver in the footer status bar.
+2. **Version bump to 0.17.0** — All 5 package.json files bumped from 0.16.0.
+
+### Bug Fixes
+1. **Fix conditional useCallback lint error** — Moved `handleAnimationStep` `useCallback` in `TransitView.tsx` above early returns to comply with React hooks rules.
+2. **Fix core test for Lot of Spirit** — Added `spirit` to the distance-zero exclusion list in `calculator.test.ts` (Lot of Spirit is a calculated point with distance 0, like Fortune and Vertex).
+
+### Files Modified
+- `packages/web/src/components/Layout.tsx` — Added "(Beta)" after semver
+- `packages/web/src/components/TransitView.tsx` — Moved useCallback above early returns
+- `packages/core/test/calculator.test.ts` — Added spirit to distance-zero exclusion
+- All 5 `package.json` files — Version 0.16.0 → 0.17.0
 
 ---
 

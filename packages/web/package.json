@@ -1,6 +1,6 @@
 {
   "name": "@natal-chart/web",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Vite + React web application for natal chart visualization",
   "type": "module",
   "private": true,
@@ -42,6 +42,7 @@
     "eslint": "^10.1.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
+    "opentype.js": "^1.3.4",
     "typescript": "^5.3.3",
     "vite": "^5.0.0",
     "vitest": "^1.2.0"

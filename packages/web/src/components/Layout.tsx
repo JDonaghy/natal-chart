@@ -70,7 +70,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   return (
     <div className="app">
-      <header style={{ padding, borderBottom: '1px solid #b8860b' }}>
+      <header className="app-header" style={{ padding, borderBottom: '1px solid #b8860b' }}>
         <div className="container" style={{ maxWidth, margin: '0 auto' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <Link to="/" style={{ textDecoration: 'none' }}>
@@ -136,7 +136,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
              Calculations performed entirely in your browser • Sign in to sync across devices
            </p>
             <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.7rem', color: '#888', fontFamily: 'monospace' }}>
-              v{__APP_SEMVER__ || '0.0.0'} • Build: {__APP_VERSION__ || 'dev'} • {__BUILD_TIME__ ? new Date(__BUILD_TIME__).toLocaleDateString() : 'development'}
+              v{__APP_SEMVER__ || '0.0.0'} (Beta) • Build: {__APP_VERSION__ || 'dev'} • {__BUILD_TIME__ ? new Date(__BUILD_TIME__).toLocaleDateString() : 'development'}
             </p>
         </div>
       </footer>

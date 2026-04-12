@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useSyncedCharts } from '../hooks/useSyncedCharts';
 import { ChartWheel } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
-import type { ExtendedBirthData } from '../contexts/ChartContext';
+import { useChart, type ExtendedBirthData } from '../contexts/ChartContext';
 import { useResponsive } from '../hooks/useResponsive';
 import '../App.css';
 
@@ -33,6 +33,7 @@ export const CompareView: React.FC = () => {
   const [leftId, setLeftId] = useState('');
   const [rightId, setRightId] = useState('');
   const { isMobile, isTablet } = useResponsive();
+  const { glyphOverrides, resolvedTheme } = useChart();
 
   const leftChart = savedCharts.find(c => c.id === leftId);
   const rightChart = savedCharts.find(c => c.id === rightId);
@@ -100,8 +101,8 @@ export const CompareView: React.FC = () => {
             <>
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{leftChart.name}</h3>
               <BirthDataSummary birthData={leftChart.birthData} />
-              <ChartWheel chartData={leftChart.chartData} size={chartSize} ascHorizontal={leftChart.birthData?.ascHorizontal} />
-              <PlanetLegend chartData={leftChart.chartData} />
+              <ChartWheel chartData={leftChart.chartData} size={chartSize} ascHorizontal={leftChart.birthData?.ascHorizontal} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
+              <PlanetLegend chartData={leftChart.chartData} theme={resolvedTheme} />
             </>
           ) : (
             <div className="card" style={{ textAlign: 'center', color: '#888' }}>
@@ -116,8 +117,8 @@ export const CompareView: React.FC = () => {
             <>
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{rightChart.name}</h3>
               <BirthDataSummary birthData={rightChart.birthData} />
-              <ChartWheel chartData={rightChart.chartData} size={chartSize} ascHorizontal={rightChart.birthData?.ascHorizontal} />
-              <PlanetLegend chartData={rightChart.chartData} />
+              <ChartWheel chartData={rightChart.chartData} size={chartSize} ascHorizontal={rightChart.birthData?.ascHorizontal} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
+              <PlanetLegend chartData={rightChart.chartData} theme={resolvedTheme} />
             </>
           ) : (
             <div className="card" style={{ textAlign: 'center', color: '#888' }}>

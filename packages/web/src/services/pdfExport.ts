@@ -5,6 +5,7 @@ import type { Svg2pdfOptions } from 'svg2pdf.js';
 import type { ChartResult, TransitResult, ZRTimeline, LotResult } from '@natal-chart/core';
 import type { ExtendedBirthData, TransitLocation } from '../contexts/ChartContext';
 import { getSignPathByIndex, getPlanetPath, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { type ThemeColors } from '../utils/themes';
 
 type JsPDFWithAutoTable = jsPDF & { lastAutoTable: { finalY: number } };
 
@@ -85,8 +86,8 @@ async function addFontToDoc(doc: jsPDF, fileName: string, fontName: string): Pro
   }
 }
 
-// PDF styling constants
-const COLORS = {
+// PDF styling constants — updated from theme at export time
+let COLORS = {
   parchment: '#faf7f0',
   gold: '#b8860b',
   darkGold: '#8b6914',
@@ -96,6 +97,16 @@ const COLORS = {
   error: '#cc3333',
   success: '#33cc66',
 };
+
+function applyThemeToColors(theme: ThemeColors): void {
+  COLORS = {
+    ...COLORS,
+    parchment: theme.backgroundAlt,
+    gold: theme.accent,
+    darkGold: theme.accent,
+    text: theme.textHeading,
+  };
+}
 
 const FONTS = {
   title: 20,
@@ -117,7 +128,9 @@ export async function generateChartPdf(
   transitLocation?: TransitLocation | undefined,
   releasingData?: { lots: LotResult; timeline: ZRTimeline } | undefined,
   glyphSet?: string | undefined,
+  theme?: ThemeColors | undefined,
 ): Promise<jsPDF> {
+  if (theme) applyThemeToColors(theme);
   // Create PDF document in portrait orientation (A4)
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -540,7 +553,7 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
 
       if (row === col) {
         // Diagonal: planet label cell
-        doc.setFillColor('#f5f0e8');
+        doc.setFillColor(COLORS.parchment);
         doc.rect(cx, cy, cellSize, cellSize, 'FD');
         doc.setDrawColor('#d4c9a8');
         doc.rect(cx, cy, cellSize, cellSize, 'S');
@@ -777,7 +790,7 @@ function addTransitAspectGrid(
     const cy = y;
     const col = transitCols[c]!;
 
-    doc.setFillColor('#f5f0e8');
+    doc.setFillColor(COLORS.parchment);
     doc.setDrawColor('#d4c9a8');
     doc.rect(cx, cy, cellSize, headerCellH, 'FD');
 
@@ -806,7 +819,7 @@ function addTransitAspectGrid(
   }
 
   // Empty corner cell
-  doc.setFillColor('#f5f0e8');
+  doc.setFillColor(COLORS.parchment);
   doc.setDrawColor('#d4c9a8');
   doc.rect(gridX, y, rowHeaderW, headerCellH, 'FD');
 
@@ -818,7 +831,7 @@ function addTransitAspectGrid(
     const ry = bodyY + r * cellSize;
 
     // Row header: natal planet glyph
-    doc.setFillColor('#f5f0e8');
+    doc.setFillColor(COLORS.parchment);
     doc.setDrawColor('#d4c9a8');
     doc.rect(gridX, ry, rowHeaderW, cellSize, 'FD');
 

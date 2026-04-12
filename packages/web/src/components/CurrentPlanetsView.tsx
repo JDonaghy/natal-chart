@@ -24,7 +24,7 @@ export const CurrentPlanetsView: React.FC = () => {
   const [showAspects, setShowAspects] = useState(true);
   const [showBoundsDecans, setShowBoundsDecans] = useState(false);
   const [traditionalPlanets, setTraditionalPlanets] = useState(false);
-  const { glyphSet } = useChart();
+  const { glyphSet, glyphOverrides, resolvedTheme } = useChart();
   const chartWheelRef = useRef<ChartWheelHandle>(null);
   const { isMobile, isTablet } = useResponsive();
 
@@ -162,10 +162,10 @@ export const CurrentPlanetsView: React.FC = () => {
                 Traditional planets
               </label>
             </div>
-            <ChartWheel ref={chartWheelRef} chartData={traditionalPlanets ? filterTraditionalPlanets(chartData) : chartData} size={chartSize} fixedAnchor={0} showAspects={showAspects} showBoundsDecans={showBoundsDecans} glyphSet={glyphSet} />
+            <ChartWheel ref={chartWheelRef} chartData={traditionalPlanets ? filterTraditionalPlanets(chartData) : chartData} size={chartSize} fixedAnchor={0} showAspects={showAspects} showBoundsDecans={showBoundsDecans} glyphSet={glyphSet} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
-            <PlanetLegend chartData={traditionalPlanets ? filterTraditionalPlanets(chartData) : chartData} />
+            <PlanetLegend chartData={traditionalPlanets ? filterTraditionalPlanets(chartData) : chartData} theme={resolvedTheme} />
           </div>
         </div>
       )}

@@ -1,13 +1,7 @@
 import React from 'react';
 import { ChartResult, TransitResult } from '@natal-chart/core';
 import { PlanetGlyphIcon, SignGlyphIcon } from './GlyphIcon';
-
-const SIGN_ELEMENT_COLORS: Record<string, string> = {
-  aries: '#CC3333', leo: '#CC3333', sagittarius: '#CC3333',
-  taurus: '#338833', virgo: '#338833', capricorn: '#338833',
-  gemini: '#CCAA00', libra: '#CCAA00', aquarius: '#CCAA00',
-  cancer: '#3366CC', scorpio: '#3366CC', pisces: '#3366CC',
-};
+import { type ThemeColors, signColorMap, resolveTheme, DEFAULT_THEME_PREFERENCE } from '../utils/themes';
 
 const PLANET_COLOR_ORANGE = '#D4761C';
 
@@ -43,6 +37,7 @@ interface PlanetLegendProps {
   transitData?: TransitResult | undefined;
   birthDateLabel?: string | undefined;
   transitDateLabel?: string | undefined;
+  theme?: ThemeColors | undefined;
 }
 
 
@@ -56,16 +51,19 @@ const cellStyle: React.CSSProperties = {
 const headerStyle: React.CSSProperties = {
   margin: '0 0 0.3rem 0',
   fontSize: '0.9rem',
-  borderBottom: '1px solid #b8860b',
+  borderBottom: '1px solid var(--gold)',
   paddingBottom: '0.2rem',
-  color: '#5a4a3a',
+  color: 'var(--dark-blue)',
 };
 
-const SignDeg: React.FC<{ longitude: number }> = ({ longitude }) => {
+const DEFAULT_THEME = resolveTheme(DEFAULT_THEME_PREFERENCE);
+
+const SignDeg: React.FC<{ longitude: number; elementColorMap?: Record<string, string> }> = ({ longitude, elementColorMap }) => {
   const sign = signFromLongitude(longitude);
+  const colors = elementColorMap || signColorMap(DEFAULT_THEME);
   return (
     <span style={{ whiteSpace: 'nowrap' }}>
-      <SignGlyphIcon sign={sign} color={SIGN_ELEMENT_COLORS[sign] || '#5a4a3a'} />
+      <SignGlyphIcon sign={sign} color={colors[sign] || 'var(--dark-blue)'} />
       {' '}
       <span>{formatDegMin(longitude)}</span>
     </span>
@@ -77,7 +75,12 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
   transitData,
   birthDateLabel,
   transitDateLabel,
+  theme: themeProp,
 }) => {
+  const th = themeProp || DEFAULT_THEME;
+  const elementColorMap = React.useMemo(() => signColorMap(th), [th]);
+  const borderLight = `1px solid ${th.accent}33`;  // accent at ~20% opacity
+  const borderMed = `1px solid ${th.accent}66`;    // accent at ~40% opacity
   const isTransit = !!transitData;
   const houseSystemLabel = 'Placidus';
 
@@ -113,7 +116,7 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
         {/* Planet table: Planet | Birth | Transit */}
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #d4c9b0' }}>
+            <tr style={{ borderBottom: borderMed }}>
               <th style={{ ...cellStyle, textAlign: 'left', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Planet</th>
               <th style={{ ...cellStyle, textAlign: 'right', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Birth</th>
               <th style={{ ...cellStyle, textAlign: 'right', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Transit</th>
@@ -125,24 +128,24 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
                 (tp) => tp.planet === natalPlanet.planet,
               );
               return (
-                <tr key={natalPlanet.planet} style={{ borderBottom: '1px solid #ece5d8' }}>
+                <tr key={natalPlanet.planet} style={{ borderBottom: borderLight }}>
                   {/* Planet glyph + name */}
                   <td style={{ ...cellStyle }}>
                     <PlanetGlyphIcon planet={natalPlanet.planet} color={PLANET_COLOR_ORANGE} style={{ marginRight: '0.25rem' }} />
-                    <span style={{ color: '#5a4a3a' }}>{formatPlanetName(natalPlanet.planet)}</span>
+                    <span style={{ color: th.text }}>{formatPlanetName(natalPlanet.planet)}</span>
                     {natalPlanet.retrograde && (
                       <span style={{ color: '#CC3333', fontSize: '0.7rem', marginLeft: '0.15rem' }}>R</span>
                     )}
                   </td>
                   {/* Birth position */}
                   <td style={{ ...cellStyle, textAlign: 'right' }}>
-                    <SignDeg longitude={natalPlanet.longitude} />
+                    <SignDeg elementColorMap={elementColorMap} longitude={natalPlanet.longitude} />
                   </td>
                   {/* Transit position */}
                   <td style={{ ...cellStyle, textAlign: 'right' }}>
                     {transitPlanet ? (
                       <>
-                        <SignDeg longitude={transitPlanet.longitude} />
+                        <SignDeg elementColorMap={elementColorMap} longitude={transitPlanet.longitude} />
                         {transitPlanet.retrograde && (
                           <span style={{ color: '#CC3333', fontSize: '0.7rem', marginLeft: '0.15rem' }}>R</span>
                         )}
@@ -163,7 +166,7 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
         </h4>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #d4c9b0' }}>
+            <tr style={{ borderBottom: borderMed }}>
               <th style={{ ...cellStyle, textAlign: 'left', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}></th>
               <th style={{ ...cellStyle, textAlign: 'right', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Birth</th>
               <th style={{ ...cellStyle, textAlign: 'right', fontWeight: 'normal', color: '#888', fontSize: '0.72rem' }}>Transit</th>
@@ -176,14 +179,14 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
               ['DSC', chartData.angles.descendant, transitData.angles?.descendant],
               ['MC', chartData.angles.midheaven, transitData.angles?.midheaven],
             ] as [string, number, number | undefined][]).map(([label, birthLong, transitLong]) => (
-              <tr key={label} style={{ borderBottom: '1px solid #ece5d8' }}>
-                <td style={{ ...cellStyle, fontWeight: 'bold', color: '#5a4a3a' }}>{label}</td>
+              <tr key={label} style={{ borderBottom: borderLight }}>
+                <td style={{ ...cellStyle, fontWeight: 'bold', color: th.text }}>{label}</td>
                 <td style={{ ...cellStyle, textAlign: 'right' }}>
-                  <SignDeg longitude={birthLong} />
+                  <SignDeg elementColorMap={elementColorMap} longitude={birthLong} />
                 </td>
                 <td style={{ ...cellStyle, textAlign: 'right' }}>
                   {transitLong !== undefined ? (
-                    <SignDeg longitude={transitLong} />
+                    <SignDeg elementColorMap={elementColorMap} longitude={transitLong} />
                   ) : (
                     <span style={{ color: '#ccc' }}>—</span>
                   )}
@@ -204,15 +207,15 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <tbody>
           {chartData.planets.map((planet) => (
-            <tr key={planet.planet} style={{ borderBottom: '1px solid #ece5d8' }}>
+            <tr key={planet.planet} style={{ borderBottom: borderLight }}>
               <td style={{ ...cellStyle }}>
                 <PlanetGlyphIcon planet={planet.planet} color={PLANET_COLOR_ORANGE} />
               </td>
-              <td style={{ ...cellStyle, color: '#5a4a3a' }}>
+              <td style={{ ...cellStyle, color: th.text }}>
                 {formatPlanetName(planet.planet)}
               </td>
               <td style={{ ...cellStyle, textAlign: 'right' }}>
-                <SignDeg longitude={planet.longitude} />
+                <SignDeg elementColorMap={elementColorMap} longitude={planet.longitude} />
               </td>
               <td style={{ ...cellStyle, textAlign: 'right', color: '#888' }}>
                 {planet.house}
@@ -236,10 +239,10 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
             ['DSC', chartData.angles.descendant],
             ['MC', chartData.angles.midheaven],
           ] as [string, number][]).map(([label, longitude]) => (
-            <tr key={label} style={{ borderBottom: '1px solid #ece5d8' }}>
-              <td style={{ ...cellStyle, fontWeight: 'bold', color: '#5a4a3a' }}>{label}</td>
+            <tr key={label} style={{ borderBottom: borderLight }}>
+              <td style={{ ...cellStyle, fontWeight: 'bold', color: th.text }}>{label}</td>
               <td style={{ ...cellStyle, textAlign: 'right' }}>
-                <SignDeg longitude={longitude} />
+                <SignDeg elementColorMap={elementColorMap} longitude={longitude} />
               </td>
             </tr>
           ))}
