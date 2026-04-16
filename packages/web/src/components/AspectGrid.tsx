@@ -286,7 +286,7 @@ export const AspectGrid: React.FC<AspectGridProps> = ({ chartData, ptolemaicOnly
           ['semiSextile', 'Semi-sextile (30°)'],
           ['parallel', 'Parallel'],
           ['contraparallel', 'Contraparallel'],
-        ] as const).map(([key, label]) => (
+        ] as const).filter(([key]) => !ptolemaicOnly || PTOLEMAIC_TYPES.has(key as AspectType)).map(([key, label]) => (
           <span key={key} style={{ whiteSpace: 'nowrap' }}>
             <span className="glyph" style={{ color: getAspectColor(key), fontSize: '0.95rem', marginRight: '0.2rem' }}>
               {getAspectGlyph(key)}

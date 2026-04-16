@@ -734,10 +734,13 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const tickBot = toPoint(tickLongitude, R.planetOuter - bandH * 0.08);
             const connectorEnd = toPoint(labelLongitude, topR + bandH * 0.08);
             const glyphPos = toPoint(labelLongitude, topR);
-            const degPos = toPoint(labelLongitude, topR - labelStep);
+            // Degree sits between planet glyph and (smaller) sign — nudge inward
+            const degPos = hideSignGlyphs
+              ? toPoint(labelLongitude, topR - labelStep * 1.5)
+              : toPoint(labelLongitude, topR - labelStep * 1.15);
             const signPos = toPoint(labelLongitude, topR - labelStep * 2);
             const minPos = hideSignGlyphs
-              ? toPoint(labelLongitude, topR - labelStep * 2)
+              ? toPoint(labelLongitude, topR - labelStep * 2.5)
               : toPoint(labelLongitude, topR - labelStep * 3);
 
             const labelSz = Math.max(bandH * 0.156, size * 0.0264) * fontScale;
@@ -791,11 +794,11 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   {planet.degree}<tspan fontSize={labelSz * 0.65}>°</tspan>
                 </text>
 
-                {/* Sign glyph */}
+                {/* Sign glyph (30% smaller than planet glyph) */}
                 {!hideSignGlyphs && (
                   <SignGlyph
                     index={signIndex} x={signPos.x} y={signPos.y}
-                    sz={labelSz} fill={signColor!}
+                    sz={labelSz * 0.8} fill={signColor!}
                     glyphSet={glyphSet} overrides={glyphOverrides}
                   />
                 )}
