@@ -15,25 +15,46 @@ const BirthDataSummary: React.FC<{ birthData: ExtendedBirthData }> = ({ birthDat
     marginBottom: '0.5rem',
     lineHeight: 1.6,
   }}>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem 0.8rem' }}>
-      {birthData.city && <span>{birthData.city}</span>}
+    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {birthData.city && <span>{birthData.city} &middot; </span>}
       <span>{birthData.latitude.toFixed(2)}, {birthData.longitude.toFixed(2)}</span>
-      {birthData.timezone && <span>{birthData.timezone}</span>}
+      {birthData.timezone && <span> &middot; {birthData.timezone}</span>}
     </div>
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem 0.8rem' }}>
+    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
       <span>{new Date(birthData.dateTimeUtc).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-      <span>{new Date(birthData.dateTimeUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</span>
-      <span>{birthData.houseSystem === 'P' ? 'Placidus' : 'Whole Sign'}</span>
+      <span> &middot; {new Date(birthData.dateTimeUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</span>
+      <span> &middot; {birthData.houseSystem === 'P' ? 'Placidus' : 'Whole Sign'}</span>
     </div>
   </div>
 );
 
+const STORAGE_KEY = 'natal-chart-compare';
+
+function loadCompareState(): { leftId: string; rightId: string; showAspects: boolean } {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch { /* ignore */ }
+  return { leftId: '', rightId: '', showAspects: true };
+}
+
+function saveCompareState(state: { leftId: string; rightId: string; showAspects: boolean }): void {
+  try { sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch { /* ignore */ }
+}
+
 export const CompareView: React.FC = () => {
   const savedCharts = useSyncedCharts();
-  const [leftId, setLeftId] = useState('');
-  const [rightId, setRightId] = useState('');
+  const initial = React.useMemo(() => loadCompareState(), []);
+  const [leftId, setLeftId] = useState(initial.leftId);
+  const [rightId, setRightId] = useState(initial.rightId);
+  const [showAspects, setShowAspects] = useState(initial.showAspects);
   const { isMobile, isTablet } = useResponsive();
   const { glyphOverrides, resolvedTheme } = useChart();
+
+  // Persist selections to sessionStorage
+  React.useEffect(() => {
+    saveCompareState({ leftId, rightId, showAspects });
+  }, [leftId, rightId, showAspects]);
 
   const leftChart = savedCharts.find(c => c.id === leftId);
   const rightChart = savedCharts.find(c => c.id === rightId);
@@ -51,7 +72,18 @@ export const CompareView: React.FC = () => {
 
   return (
     <div>
-      <h1 style={{ margin: '0 0 0.5rem 0' }}>Compare Charts</h1>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.5rem 1.5rem', margin: '0 0 0.5rem 0' }}>
+        <h1 style={{ margin: 0 }}>Compare Charts</h1>
+        <label style={{ cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <input
+            type="checkbox"
+            checked={showAspects}
+            onChange={(e) => setShowAspects(e.target.checked)}
+            style={{ marginRight: '0.4rem' }}
+          />
+          Show aspect lines
+        </label>
+      </div>
 
       {/* Chart selectors */}
       <div style={{
@@ -101,7 +133,7 @@ export const CompareView: React.FC = () => {
             <>
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{leftChart.name}</h3>
               <BirthDataSummary birthData={leftChart.birthData} />
-              <ChartWheel chartData={leftChart.chartData} size={chartSize} ascHorizontal={leftChart.birthData?.ascHorizontal} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
+              <ChartWheel chartData={leftChart.chartData} size={chartSize} ascHorizontal={leftChart.birthData?.ascHorizontal} showAspects={showAspects} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
               <PlanetLegend chartData={leftChart.chartData} theme={resolvedTheme} />
             </>
           ) : (
@@ -117,7 +149,7 @@ export const CompareView: React.FC = () => {
             <>
               <h3 style={{ margin: '0 0 0.5rem 0' }}>{rightChart.name}</h3>
               <BirthDataSummary birthData={rightChart.birthData} />
-              <ChartWheel chartData={rightChart.chartData} size={chartSize} ascHorizontal={rightChart.birthData?.ascHorizontal} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
+              <ChartWheel chartData={rightChart.chartData} size={chartSize} ascHorizontal={rightChart.birthData?.ascHorizontal} showAspects={showAspects} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
               <PlanetLegend chartData={rightChart.chartData} theme={resolvedTheme} />
             </>
           ) : (

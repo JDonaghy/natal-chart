@@ -1,8 +1,8 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.19.0 Aspect Lines, Readability & Glyph Sources
+## Current Sprint: v0.21.0 Chart Wheel Cosmetic Polish & Compare UX
 **Status**: Complete
-**Last Updated**: 2026-04-11
+**Last Updated**: 2026-04-16
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -274,6 +274,19 @@
 - [x] **Shrink house number ring** - Reduced width by ~20%, extra space given to planet band. Natal: planetInner 0.54→0.52, transit: planetInner 0.44→0.42.
 - [x] **Increase planet glyph size on chart wheel** - Bumped `labelSz` from `bandH*0.11/size*0.018` to `bandH*0.13/size*0.022` (~20% larger, matching legend panel at ~17px).
 - [x] **Shift planet labels inward** - Planet glyph/degree/sign/minute labels moved 30% inward from planet band outer edge (was 15%). Connector lines angle in to match new glyph positions.
+
+### 🎨 Chart Wheel Cosmetic Polish & Compare UX (v0.21.0)
+- [x] **Hide sign glyphs on transit chart** - Added `hideSignGlyphs` prop to ChartWheel. Transit charts omit zodiac sign glyphs from radial labels in both natal and transit bands, reducing clutter. Minute labels moved closer to degree when signs hidden.
+- [x] **Smaller degree symbol** - Degree symbol (°) rendered at 65% of the number font size via `<tspan>` in both natal and transit bands.
+- [x] **Normalized planet glyph sizes** - Per-planet scale factors (`PLANET_GLYPH_SCALE`) in ChartWheel and GlyphIcon. Chiron 1.25×, Lilith 1.2×, North Node 1.15×, Fortune 1.1×, Vertex 0.65×. Consistent across chart wheel and legend panel.
+- [x] **Increased planet glyph size** - Bumped `labelSz` from `bandH*0.13/size*0.022` to `bandH*0.156/size*0.0264` (~20% larger) in both natal and transit bands.
+- [x] **Improved collision avoidance algorithm** - Replaced centered-cluster spreading with two-pass forward+settle algorithm. Forward pass: monotonic order guaranteed, lowest-degree planet stays at true position. Settle pass: nudges displaced planets clockwise into available sign space without crossing sign boundaries. Prevents sign-boundary overlap and maintains visual order.
+- [x] **Tuned label separation** - Natal band: 5° min separation. Transit band: 3.5° min separation (tighter for narrower band).
+- [x] **Transit band label spacing** - Increased step to `bandWidth*0.27` and moved glyph start outward to prevent degree/glyph overlap with larger glyphs.
+- [x] **Compare view aspect lines** - Added "Show aspect lines" checkbox inline with "Compare Charts" heading. Wraps to own line on small screens.
+- [x] **Compare view session persistence** - Left/right chart selections and aspect toggle persisted to `sessionStorage`.
+- [x] **Compare view birth data alignment** - Birth data summary now single-line with ellipsis overflow, ensuring chart wheels align horizontally regardless of city name length.
+- [x] **Footer planet order** - Changed from Chaldean to distance-from-Sun order (☉ ☽ ☿ ♀ ♂ ♃ ♄) for beginner-friendliness.
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations

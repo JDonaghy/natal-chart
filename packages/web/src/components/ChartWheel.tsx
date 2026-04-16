@@ -14,6 +14,16 @@ const PLANET_UNICODE: Record<string, string> = {
 const GLYPH_FONT = "'DejaVuSans', sans-serif";
 const LABEL_FONT = "'Cormorant', serif";
 
+/** Per-planet visual scale factors to normalize apparent glyph sizes on the chart wheel.
+ *  Glyphs with thin strokes or small visual weight get scaled up; compact ones scaled down. */
+const PLANET_GLYPH_SCALE: Record<string, number> = {
+  chiron: 1.25,
+  lilith: 1.2,
+  northNode: 1.15,
+  fortune: 1.1,
+  vertex: 0.65,
+};
+
 /** Render a planet glyph as an SVG <path> (font-independent), falling back to <text> */
 function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAULT_GLYPH_SET, overrides }: {
   planet: string; x: number; y: number; sz: number; fill: string;
@@ -61,63 +71,64 @@ const angleDiff = (a: number, b: number): number => {
   return d;
 };
 
-// Cluster-based collision avoidance: detect overlapping groups and spread evenly
+// Collision avoidance for planet labels (two passes).
+//
+// Forward pass: walk ascending longitude, push each label to
+//   max(trueLon, prevLabel + minSep). Guarantees monotonic order and
+//   keeps the lowest-degree planet near its true position.
+//
+// Settle pass: walk forward again and nudge each label clockwise into
+//   available space — halfway between the floor (sign boundary or
+//   prevLabel + minSep) and the ceiling (nextLabel − minSep or trueLon,
+//   whichever is larger). This pulls glyphs away from sign boundaries
+//   and uses empty clockwise room without breaking order.
 const spreadLabels = (longitudes: number[], minSep: number): number[] => {
   const n = longitudes.length;
   if (n <= 1) return [...longitudes];
   const positions = [...longitudes];
 
-  for (let pass = 0; pass < 20; pass++) {
-    let stable = true;
-
-    // Detect clusters of overlapping labels and spread each evenly
-    let i = 0;
-    while (i < n) {
-      const cluster = [i];
-      for (let j = i + 1; j < n; j++) {
-        const diff = Math.abs(angleDiff(positions[cluster[cluster.length - 1]!]!, positions[j]!));
-        if (diff < minSep) {
-          cluster.push(j);
-        } else {
-          break;
-        }
-      }
-
-      if (cluster.length > 1) {
-        // Compute center of cluster using angular mean (handles wrap-around)
-        const refLon = positions[cluster[0]!]!;
-        let sumOffset = 0;
-        for (const idx of cluster) {
-          sumOffset += angleDiff(refLon, positions[idx]!);
-        }
-        const centerLon = (refLon + sumOffset / cluster.length + 360) % 360;
-
-        // Spread evenly around center
-        const totalSpan = (cluster.length - 1) * minSep;
-        for (let k = 0; k < cluster.length; k++) {
-          const newPos = (centerLon - totalSpan / 2 + k * minSep + 360) % 360;
-          if (Math.abs(angleDiff(positions[cluster[k]!]!, newPos)) > 0.01) {
-            stable = false;
-          }
-          positions[cluster[k]!] = newPos;
-        }
-      }
-      i += cluster.length;
+  // Forward pass: push labels counter-clockwise to avoid overlap
+  for (let i = 1; i < n; i++) {
+    const gap = angleDiff(positions[i - 1]!, positions[i]!);
+    if (gap < minSep) {
+      positions[i] = (positions[i - 1]! + minSep + 360) % 360;
     }
+  }
 
-    // Handle wrap-around: check overlap between last and first planet
-    if (n > 1) {
-      const diff = Math.abs(angleDiff(positions[n - 1]!, positions[0]!));
-      if (diff < minSep && diff > 0) {
-        const push = (minSep - diff) / 2;
-        const sign = angleDiff(positions[n - 1]!, positions[0]!) > 0 ? 1 : -1;
-        positions[n - 1] = (positions[n - 1]! - sign * push + 360) % 360;
-        positions[0] = (positions[0]! + sign * push + 360) % 360;
-        stable = false;
-      }
+  // Handle wrap-around: if last overlaps first, push last back clockwise
+  if (n > 1) {
+    const wrapDiff = angleDiff(positions[n - 1]!, (positions[0]! + 360));
+    if (Math.abs(wrapDiff) < minSep && Math.abs(wrapDiff) > 0) {
+      positions[n - 1] = (positions[0]! + 360 - minSep + 360) % 360;
     }
+  }
 
-    if (stable) break;
+  // Settle pass: only for planets that were pushed by the forward pass.
+  // Nudge them clockwise into available gaps to reduce displacement from true position.
+  for (let i = 0; i < n; i++) {
+    const trueLon = longitudes[i]!;
+    // Skip planets that are still at their true position (not displaced)
+    if (Math.abs(angleDiff(trueLon, positions[i]!)) < 0.01) continue;
+
+    const signStart = Math.floor(trueLon / 30) * 30;
+
+    // Floor: sign boundary or previous label + minSep (whichever is further CCW)
+    const floor = i > 0
+      ? Math.max(signStart, (positions[i - 1]! + minSep + 360) % 360)
+      : signStart;
+
+    // Ceiling: next label − minSep, but never below trueLon (don't push past true pos)
+    const ceiling = i < n - 1
+      ? Math.max(trueLon, (positions[i + 1]! - minSep + 360) % 360)
+      : positions[i]!;
+
+    // Target: midpoint of available window, clamped to [floor, current position]
+    if (ceiling > floor) {
+      const mid = (floor + ceiling) / 2;
+      // Only move clockwise (toward floor), never counter-clockwise past current
+      const target = Math.max(floor, Math.min(mid, positions[i]!));
+      positions[i] = target;
+    }
   }
 
   return positions;
@@ -202,6 +213,7 @@ interface ChartWheelProps {
   ascHorizontal?: boolean | undefined;
   showAspects?: boolean | undefined;
   showBoundsDecans?: boolean | undefined;
+  hideSignGlyphs?: boolean | undefined;
   fixedAnchor?: number | undefined;
   glyphSet?: string | undefined;
   glyphOverrides?: Record<string, string> | undefined;
@@ -213,7 +225,7 @@ export interface ChartWheelHandle {
 }
 
 export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
-  ({ chartData, transitData, size = 800, ascHorizontal = true, showAspects = true, showBoundsDecans = false, fixedAnchor, glyphSet = DEFAULT_GLYPH_SET, glyphOverrides, theme: themeProp }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
+  ({ chartData, transitData, size = 800, ascHorizontal = true, showAspects = true, showBoundsDecans = false, hideSignGlyphs = false, fixedAnchor, glyphSet = DEFAULT_GLYPH_SET, glyphOverrides, theme: themeProp }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
     const t = themeProp || DEFAULT_THEME;
     const elementColors = React.useMemo(() => signElementColors(t), [t]);
     // Scale glyph/label sizes by font size preference (1.3rem = 1.0x baseline)
@@ -302,7 +314,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       const sorted = [...chartData.planets].sort((a, b) => a.longitude - b.longitude);
       if (sorted.length === 0) return [];
 
-      const labelPositions = spreadLabels(sorted.map(p => p.longitude), 6);
+      const labelPositions = spreadLabels(sorted.map(p => p.longitude), 5);
 
       return sorted.map((planet, i) => ({
         planet,
@@ -326,13 +338,13 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       });
     }, [chartData.houses]);
 
-    // Collision avoidance for transit planet labels
+    // Collision avoidance for transit planet labels (tighter spacing — narrower band)
     const transitLayouts = React.useMemo(() => {
       if (!transitData) return [];
       const sorted = [...transitData.planets].sort((a, b) => a.longitude - b.longitude);
       if (sorted.length === 0) return [];
 
-      const labelPositions = spreadLabels(sorted.map(p => p.longitude), 6);
+      const labelPositions = spreadLabels(sorted.map(p => p.longitude), 3.5);
 
       return sorted.map((planet, i) => ({
         planet,
@@ -713,7 +725,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const { planet, tickLongitude, labelLongitude, color } = layout;
             const bandH = R.planetOuter - R.planetInner;
 
-            // Radial label positions from outside in: planet glyph, degree, sign, minute
+            // Radial label positions from outside in: planet glyph, degree, [sign], minute
             const labelStep = bandH * 0.20;
             const topR = R.planetOuter - bandH * 0.30;
 
@@ -724,9 +736,11 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
             const glyphPos = toPoint(labelLongitude, topR);
             const degPos = toPoint(labelLongitude, topR - labelStep);
             const signPos = toPoint(labelLongitude, topR - labelStep * 2);
-            const minPos = toPoint(labelLongitude, topR - labelStep * 3);
+            const minPos = hideSignGlyphs
+              ? toPoint(labelLongitude, topR - labelStep * 2)
+              : toPoint(labelLongitude, topR - labelStep * 3);
 
-            const labelSz = Math.max(bandH * 0.13, size * 0.022) * fontScale;
+            const labelSz = Math.max(bandH * 0.156, size * 0.0264) * fontScale;
             const signIndex = Math.floor(planet.longitude / 30) % 12;
             const signColor = elementColors[signIndex];
 
@@ -748,7 +762,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 {/* Planet glyph */}
                 <PlanetGlyph
                   planet={planet.planet} x={glyphPos.x} y={glyphPos.y}
-                  sz={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
+                  sz={labelSz * (PLANET_GLYPH_SCALE[planet.planet] ?? 1)}
                   fill={color}
                   rotate={planet.planet === 'fortune' ? 45 : undefined}
                   glyphSet={glyphSet} overrides={glyphOverrides}
@@ -774,15 +788,17 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   fontSize={labelSz} fill={t.text}
                   fontFamily={LABEL_FONT}
                 >
-                  {planet.degree}°
+                  {planet.degree}<tspan fontSize={labelSz * 0.65}>°</tspan>
                 </text>
 
                 {/* Sign glyph */}
-                <SignGlyph
-                  index={signIndex} x={signPos.x} y={signPos.y}
-                  sz={labelSz} fill={signColor!}
-                  glyphSet={glyphSet} overrides={glyphOverrides}
-                />
+                {!hideSignGlyphs && (
+                  <SignGlyph
+                    index={signIndex} x={signPos.x} y={signPos.y}
+                    sz={labelSz} fill={signColor!}
+                    glyphSet={glyphSet} overrides={glyphOverrides}
+                  />
+                )}
 
                 {/* Minute */}
                 <text
@@ -840,9 +856,9 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 const { planet, tickLongitude, labelLongitude, color } = layout;
                 const bandWidth = R.transitOuter - R.transitInner;
 
-                // Radial labels from outside in: planet, degree, sign, minute
-                const labelStep = bandWidth * 0.20;
-                const topR = R.transitOuter - bandWidth * 0.30;
+                // Radial labels from outside in: planet, degree, [sign], minute
+                const labelStep = bandWidth * 0.27;
+                const topR = R.transitOuter - bandWidth * 0.22;
 
                 // Tick mark from outer edge of zodiac, connector angles in to meet glyph
                 const tickBase = toPoint(tickLongitude, R.outer);
@@ -851,9 +867,11 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 const glyphPos = toPoint(labelLongitude, topR);
                 const degPos = toPoint(labelLongitude, topR - labelStep);
                 const signPos = toPoint(labelLongitude, topR - labelStep * 2);
-                const minPos = toPoint(labelLongitude, topR - labelStep * 3);
+                const minPos = hideSignGlyphs
+                  ? toPoint(labelLongitude, topR - labelStep * 2)
+                  : toPoint(labelLongitude, topR - labelStep * 3);
 
-                const labelSz = Math.max(bandWidth * 0.13, size * 0.022) * fontScale;
+                const labelSz = Math.max(bandWidth * 0.156, size * 0.0264) * fontScale;
                 const signIndex = Math.floor(planet.longitude / 30) % 12;
                 const signColor = elementColors[signIndex];
 
@@ -875,7 +893,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     {/* Planet glyph */}
                     <PlanetGlyph
                       planet={planet.planet} x={glyphPos.x} y={glyphPos.y}
-                      sz={planet.planet === 'vertex' ? labelSz * 0.65 : labelSz}
+                      sz={labelSz * (PLANET_GLYPH_SCALE[planet.planet] ?? 1)}
                       fill={color}
                       rotate={planet.planet === 'fortune' ? 45 : undefined}
                       glyphSet={glyphSet} overrides={glyphOverrides}
@@ -901,15 +919,17 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                       fontSize={labelSz} fill={t.text}
                       fontFamily={LABEL_FONT}
                     >
-                      {planet.degree}°
+                      {planet.degree}<tspan fontSize={labelSz * 0.65}>°</tspan>
                     </text>
 
                     {/* Sign glyph */}
-                    <SignGlyph
-                      index={signIndex} x={signPos.x} y={signPos.y}
-                      sz={labelSz} fill={signColor!}
-                      glyphSet={glyphSet} overrides={glyphOverrides}
-                    />
+                    {!hideSignGlyphs && (
+                      <SignGlyph
+                        index={signIndex} x={signPos.x} y={signPos.y}
+                        sz={labelSz} fill={signColor!}
+                        glyphSet={glyphSet} overrides={glyphOverrides}
+                      />
+                    )}
 
                     {/* Minute */}
                     <text

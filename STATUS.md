@@ -1,5 +1,5 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-04-11*
+*Last Updated: 2026-04-16*
 
 ## Deployment Status
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
@@ -7,7 +7,7 @@
 - **Cloudflare D1**: natal-chart-db (user accounts, preferences, saved charts)
 - **Firebase Auth**: natal-chart-329b3 (Google SSO)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.17.1 (Beta)
+- **Current Version**: 0.18.0 (Beta)
 
 ## What Works
 
@@ -66,6 +66,14 @@
 - [x] Shrunk house number ring (~20% smaller), enlarged planet glyphs (~20% larger)
 - [x] Planet labels shifted inward for tighter layout
 - [x] Beta label in footer
+
+### Cosmetic Polish & Compare UX (v0.21.0)
+- [x] Transit chart: sign glyphs hidden from radial labels (less clutter), tighter label spacing
+- [x] Normalized planet glyph sizes with per-planet scale factors
+- [x] Rewritten collision avoidance: forward+settle algorithm preserves order, respects sign boundaries
+- [x] Smaller degree symbol (°), larger planet glyphs (~20% bump)
+- [x] Compare view: aspect lines toggle, session persistence, aligned birth data summaries
+- [x] Footer planet order: distance-from-Sun (beginner-friendly)
 
 ### User Accounts & Cloud Sync (v0.14.0)
 - [x] Firebase Authentication with Google SSO, GitHub SSO, Auth0 (OIDC)

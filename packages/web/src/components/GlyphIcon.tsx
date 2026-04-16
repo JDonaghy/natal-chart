@@ -18,6 +18,15 @@ const SIGN_UNICODE: Record<string, string> = {
   libra: '♎', scorpio: '♏', sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
 };
 
+/** Per-planet visual scale factors to normalize apparent glyph sizes in inline contexts. */
+const PLANET_GLYPH_SCALE: Record<string, number> = {
+  chiron: 1.25,
+  lilith: 1.2,
+  northNode: 1.15,
+  fortune: 1.1,
+  vertex: 0.65,
+};
+
 function useGlyphPrefs(): { glyphSet: string; overrides: Record<string, string> } {
   const ctx = useContext(ChartContext);
   return {
@@ -41,9 +50,18 @@ export const PlanetGlyphIcon: React.FC<{
   const activeSet = glyphSet ?? prefs.glyphSet;
   const pathData = getPlanetPath(planet, activeSet, prefs.overrides);
   if (pathData) {
+    const scaleFactor = PLANET_GLYPH_SCALE[planet] ?? 1;
+    // Pad the viewBox to shrink the glyph (scale < 1) or grow it (scale > 1)
+    const vbParts = pathData.viewBox.split(' ').map(Number);
+    const [vbX, vbY, vbW, vbH] = [vbParts[0] ?? 0, vbParts[1] ?? 0, vbParts[2] ?? 100, vbParts[3] ?? 100];
+    const newW = vbW / scaleFactor;
+    const newH = vbH / scaleFactor;
+    const newX = vbX - (newW - vbW) / 2;
+    const newY = vbY - (newH - vbH) / 2;
+    const adjustedViewBox = `${newX} ${newY} ${newW} ${newH}`;
     return (
       <svg
-        width={size} height={size} viewBox={pathData.viewBox}
+        width={size} height={size} viewBox={adjustedViewBox}
         style={{ display: 'inline-block', verticalAlign: '-0.15em', ...style }}
         aria-label={planet}
       >

@@ -2,6 +2,41 @@
 
 *This file tracks completed work across development sessions. Items are moved here from PLAN.md and BUGS.md when marked as completed or resolved.*
 
+## Session 2026-04-16: v0.21.0 — Chart Wheel Cosmetic Polish & Compare UX
+
+### ✅ Features Completed
+
+#### Chart Wheel Improvements
+1. **Hide sign glyphs on transit chart** — Added `hideSignGlyphs` prop to ChartWheel. TransitView passes it to remove zodiac sign glyphs from radial labels in both natal and transit bands. Minute labels repositioned closer to degree when signs hidden.
+2. **Smaller degree symbol** — Degree symbol (°) rendered at 65% of number font size via `<tspan>` in both natal and transit bands.
+3. **Normalized planet glyph sizes** — Added `PLANET_GLYPH_SCALE` map in ChartWheel and GlyphIcon with per-planet scale factors: Chiron 1.25×, Lilith 1.2×, North Node 1.15×, Fortune 1.1×, Vertex 0.65×. Replaces old inline vertex-only check.
+4. **Increased planet glyph size** — Bumped `labelSz` coefficients by ~20% in both natal (`bandH*0.156/size*0.0264`) and transit (`bandWidth*0.156/size*0.0264`) bands.
+5. **Rewritten collision avoidance** — Replaced old centered-cluster algorithm with two-pass forward+settle approach. Forward pass walks ascending longitude, placing each label at max(trueLon, prevLabel+minSep) — guarantees monotonic order. Settle pass nudges only displaced planets clockwise into available sign space (midpoint of floor/ceiling window), skipping non-displaced planets. No planet crosses its sign boundary clockwise.
+6. **Tuned label separation** — Natal: 5° minimum. Transit: 3.5° minimum (tighter for narrower band).
+7. **Transit band label spacing** — Step increased to `bandWidth*0.27`, glyph start moved outward (`bandWidth*0.22` offset) to prevent degree/glyph overlap.
+
+#### Compare View
+8. **Aspect lines toggle** — "Show aspect lines" checkbox inline with "Compare Charts" heading, wraps on small screens via `flexWrap`.
+9. **Session persistence** — Left/right chart selections and aspect toggle saved to `sessionStorage`, restored on revisit within same browser session.
+10. **Birth data alignment** — Summary rows use `whiteSpace: nowrap` + `textOverflow: ellipsis` with middot separators, ensuring both columns are always same height.
+
+#### Footer
+11. **Planet order** — Changed from Chaldean (☉ ☽ ♂ ♃ ♀ ☿ ♄) to distance-from-Sun order (☉ ☽ ☿ ♀ ♂ ♃ ♄).
+
+### 📁 Files Changed
+- `packages/web/src/components/ChartWheel.tsx` — `hideSignGlyphs` prop, degree `<tspan>`, `PLANET_GLYPH_SCALE`, increased glyph sizes, rewritten `spreadLabels`, tuned minSep, transit band spacing
+- `packages/web/src/components/GlyphIcon.tsx` — `PLANET_GLYPH_SCALE` with adjusted viewBox for size normalization
+- `packages/web/src/components/TransitView.tsx` — Passes `hideSignGlyphs` to ChartWheel
+- `packages/web/src/components/CompareView.tsx` — Aspect toggle, sessionStorage persistence, birth data summary reformat
+- `packages/web/src/components/Layout.tsx` — Planet order in footer
+- `packages/web/src/utils/glyphs/index.ts` — No net change (geometric mean reverted)
+
+### 📝 Notes
+- `glyphTransform` in `utils/glyphs/index.ts` briefly used geometric mean scaling but was reverted — per-planet scale factors in ChartWheel/GlyphIcon are more targeted.
+- Changes on `develop` branch, not yet committed.
+
+---
+
 ## Session 2026-04-11: v0.17.0–v0.19.0 — Themes, Glyphs, Aspects, Readability & New Glyph Sources
 
 ### ✅ Features Completed
