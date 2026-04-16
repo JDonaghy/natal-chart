@@ -522,7 +522,7 @@ export const TransitView: React.FC = () => {
                 Traditional planets
               </label>
             </div>
-            <ChartWheel ref={chartWheelRef} chartData={displayData!} transitData={displayTransit ?? undefined} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} glyphSet={glyphSet} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
+            <ChartWheel ref={chartWheelRef} chartData={displayData!} transitData={displayTransit ?? undefined} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} hideSignGlyphs glyphSet={glyphSet} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend

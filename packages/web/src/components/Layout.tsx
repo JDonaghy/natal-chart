@@ -130,7 +130,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="container" style={{ maxWidth, margin: '0 auto' }}>
           <p style={{ margin: 0 }}>
             Natal Chart Calculator • Powered by Swiss Ephemeris WASM •
-            <span className="glyph" style={{ marginLeft: '0.5rem' }}>☉ ☽ ♂ ♃ ♀ ☿ ♄</span>
+            <span className="glyph" style={{ marginLeft: '0.5rem' }}>☉ ☽ ☿ ♀ ♂ ♃ ♄</span>
           </p>
            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.8rem', color: '#666' }}>
              Calculations performed entirely in your browser • Sign in to sync across devices
