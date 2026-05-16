@@ -58,12 +58,16 @@ export async function signInWithGithub(): Promise<User> {
   return result.user;
 }
 
-export async function signInWithAuth0(): Promise<User> {
+export async function signInWithAuth0(options?: { signup?: boolean }): Promise<User> {
   const providerId = import.meta.env.VITE_FIREBASE_AUTH0_PROVIDER_ID;
   if (!providerId) {
     throw new Error('Auth0 provider not configured. Set VITE_FIREBASE_AUTH0_PROVIDER_ID.');
   }
   const provider = new OAuthProvider(providerId);
+  if (options?.signup) {
+    // Auth0 universal-login parameter: opens the Sign Up tab instead of Log In.
+    provider.setCustomParameters({ screen_hint: 'signup' });
+  }
   const result = await signInWithPopup(getFirebaseAuth(), provider);
   return result.user;
 }
