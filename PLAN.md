@@ -1,8 +1,8 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.21.0 Chart Wheel Cosmetic Polish & Compare UX
+## Current Sprint: v0.22.0 Auth UX, Dark Themes & Empty-State Polish
 **Status**: Complete
-**Last Updated**: 2026-04-16
+**Last Updated**: 2026-05-16
 
 ### ✅ Completed Features
 - [x] **Automatic timezone detection** - Remove manual timezone selector from input form
@@ -287,6 +287,14 @@
 - [x] **Compare view session persistence** - Left/right chart selections and aspect toggle persisted to `sessionStorage`.
 - [x] **Compare view birth data alignment** - Birth data summary now single-line with ellipsis overflow, ensuring chart wheels align horizontally regardless of city name length.
 - [x] **Footer planet order** - Changed from Chaldean to distance-from-Sun order (☉ ☽ ☿ ♀ ♂ ♃ ♄) for beginner-friendliness.
+
+### 🔐 Auth UX, Dark Themes & Empty-State Polish (v0.22.0)
+- [x] **Auth0 signup discoverability** - Account creation was hidden behind the "Sign in with Email" provider button; users had to discover the Sign Up tab inside Auth0's hosted UI. `signInWithAuth0()` now accepts `{ signup: true }` which sets `screen_hint=signup` so the popup lands on the Sign Up tab.
+- [x] **User-icon dropdown menu** - Replaced the two-button "Sign In / Create Account" header with a single circular user-icon button (avatar/initial when signed in, person silhouette otherwise). Dropdown contains Sign In, Create Account, and Preferences (signed out) or email + Preferences + Sign Out (signed in). Frees header chrome on mobile and matches common SaaS pattern.
+- [x] **Provider modal** - Sign In and Create Account each open a centered modal listing Email (Auth0) first, then Google, then GitHub. "Switch mode" link at the bottom toggles between sign-in and sign-up. ESC and backdrop click both close.
+- [x] **Preferences moved to user menu** - Preferences NavLink removed from the top nav (both desktop row and mobile hamburger dropdown). Now lives in the user-icon menu only.
+- [x] **Four dark theme presets** - Midnight Sky (gold-on-navy, high contrast), Nebula (cosmic violet + lilac), Obsidian Ember (volcanic near-black + copper), Forest Nocturne (deep forest + jade). Each is a peer of the existing 4 light presets; same `ThemeColors` contract, no theme-system changes required.
+- [x] **Empty-state 'Calculate a chart' is now a link** - ChartView, TransitView, ReleasingView, CompareView, and SavedChartsView empty-state messages now wrap "calculate a chart" in `<Link to="/">` so users have one click back to the form instead of hunting the nav.
 
 ### 📋 Technical Debt & Refactoring
 - [x] **Test coverage** - Increase unit test coverage for timezone calculations
