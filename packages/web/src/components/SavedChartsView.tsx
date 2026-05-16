@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useChart, type ExtendedBirthData } from '../contexts/ChartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSync } from '../contexts/SyncContext';
@@ -231,7 +231,7 @@ export const SavedChartsView: React.FC = () => {
     return (
       <div style={{ maxWidth: '600px' }}>
         <h2 style={{ fontFamily: "'Cormorant', serif", color: '#2c2c54', marginBottom: '1rem' }}>My Charts</h2>
-        <p style={{ color: '#666' }}>No saved charts yet. Calculate a chart and save it from the Natal Chart or Transit Chart views.</p>
+        <p style={{ color: '#666' }}>No saved charts yet. <Link to="/">Calculate a chart</Link> and save it from the Natal Chart or Transit Chart views.</p>
       </div>
     );
   }

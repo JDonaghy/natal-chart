@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useSyncedCharts } from '../hooks/useSyncedCharts';
 import { ChartWheel } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
@@ -63,7 +64,7 @@ export const CompareView: React.FC = () => {
     return (
       <div className="card" style={{ textAlign: 'center' }}>
         <h2>Compare Charts</h2>
-        <p>No saved charts yet. Calculate a chart and save it to enable comparison.</p>
+        <p>No saved charts yet. <Link to="/">Calculate a chart</Link> and save it to enable comparison.</p>
       </div>
     );
   }

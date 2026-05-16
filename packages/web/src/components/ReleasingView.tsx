@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useChart } from '../contexts/ChartContext';
 import { ReleasingTimeline } from './ReleasingTimeline';
 import {
@@ -43,7 +44,7 @@ export const ReleasingView: React.FC = () => {
     return (
       <div className="card">
         <h2>Zodiacal Releasing</h2>
-        <p>Please calculate a chart first.</p>
+        <p>Please <Link to="/">calculate a chart</Link> first.</p>
       </div>
     );
   }
