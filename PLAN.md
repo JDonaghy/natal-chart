@@ -1,6 +1,17 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.22.0 Auth UX, Dark Themes & Empty-State Polish
+## Current Sprint: v0.19.1 Glyph Fixes & Astromoony Cleanup
+**Status**: Complete
+**Last Updated**: 2026-05-17
+
+### 🩹 Glyph Fixes & Astromoony Cleanup (v0.19.1)
+- [x] **Fix Lot of Fortune glyph** - Changed Unicode from `⊕` (rotated 45° hack) to `⊗` (X-in-circle) directly. Removed the conditional rotation transform from both natal and transit planet rendering in ChartWheel.
+- [x] **Fix Lot of Spirit glyph** - Was `☩` (Cross of Jerusalem, incorrect). Changed to `Φ` (Greek capital phi), which renders as a circle with a vertical line extending slightly beyond the diameter — the traditional Lot of Spirit symbol. Also added missing `spirit` entry to `chart-helpers.ts` `getPlanetGlyph()`.
+- [x] **Uniform text-fallback glyph sizing** - Unicode `<text>` glyphs only fill ~70% of their em-box, so they previously appeared ~30% smaller than SVG path glyphs at the same nominal size. Added `TEXT_FALLBACK_SCALE = 1.4` multiplier to `fontSize` in ChartWheel's `PlanetGlyph` and GlyphIcon's `PlanetGlyphIcon` text branches.
+- [x] **Remove Astromoony glyph set** - Astromoony Sans was incomplete (no Chiron/Lilith/Fortune/Spirit/Node SVG paths) and the source files were exposing size-inconsistency. Unregistered the source, removed it from `GLYPH_SET_NAMES`, and deleted `astromoony-sans.ts` and the orphaned `astromoony-serif.ts`.
+- [x] **Graceful migration for existing Astromoony users** - Added `migrateGlyphSet()` and `migrateGlyphOverrides()` helpers in `glyphs/index.ts`. ChartContext now migrates the saved `'astromoony-sans'` glyph-set preference (and any per-entity overrides referencing it) to the default Classic set on localStorage load and on cloud preferences sync, writing the corrected value back to both stores. Users land on Classic transparently with no UI breakage.
+
+## Previous Sprint: v0.22.0 Auth UX, Dark Themes & Empty-State Polish
 **Status**: Complete
 **Last Updated**: 2026-05-16
 

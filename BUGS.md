@@ -37,6 +37,8 @@
 - ~~#14 Missing house cusp degree labels~~ — Added labels at zodiac ring boundary (v0.12.0)
 - ~~#22 Transit city search button disabled~~ — Fixed by initializing transitCityQuery with birth city
 - ~~#23 Renamed charts don't sync~~ — Fixed cloud name merge in getAllSavedChartSummaries
+- ~~#24 Lot of Spirit rendered as Cross of Jerusalem (☩)~~ — Replaced with Φ (circle + vertical line) in all glyph maps (v0.19.1)
+- ~~#25 Lot of Fortune appeared tiny in Classic glyph set~~ — Bumped text-fallback fontSize by 1.4× to match SVG path glyph sizing; replaced ⊕ + 45° rotation hack with direct ⊗ (v0.19.1)
 
 ## 📝 Bug Reporting Template
 ```markdown

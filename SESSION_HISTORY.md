@@ -863,4 +863,35 @@ Added 16 new items to PLAN.md from client feedback:
 
 ---
 
+## Session 2026-05-17: v0.19.1 — Lot glyph fixes & Astromoony cleanup
+
+### 🩹 Bug Fixes
+1. **Lot of Spirit glyph was wrong** — Unicode was `☩` (U+2629 Cross of Jerusalem), nothing like the traditional astrology symbol. Changed to `Φ` (Greek capital phi), which renders as a circle with a vertical line extending slightly past the diameter. Also added the missing `spirit` entry to `chart-helpers.ts` `getPlanetGlyph()` (previously fell back to `○`).
+2. **Lot of Fortune was rendered via a rotation hack** — Glyph was `⊕` rotated 45° to *visually* approximate `⊗`. Replaced with `⊗` directly and removed the per-planet `rotate` prop from `<PlanetGlyph>` calls in both the natal and transit planet bands. Side effect: users on the `dejavu-full` glyph set now see Fortune as `⊕` (the literal SVG path shape) until/unless the path is re-drawn — minor regression for non-default users only.
+3. **Text-fallback glyphs were ~30% smaller than SVG path glyphs at the same nominal size** — Unicode glyphs only fill ~70% of their em-box, while SVG paths are scaled to fill `sz × sz` via `glyphTransform()`. Added `TEXT_FALLBACK_SCALE = 1.4` in `ChartWheel.PlanetGlyph` and `GlyphIcon.PlanetGlyphIcon` text branches so the two rendering paths visually match. Particularly fixed Fortune appearing tiny in the Classic glyph set (which has no Fortune SVG path).
+
+### 🧹 Cleanup: Astromoony Removed
+4. **Astromoony Sans glyph set deleted** — The source only covered Sun–Pluto. Chiron, Lilith, North Node, Fortune, Spirit, and Vertex all fell through to text fallback, producing the size-inconsistency complaint that triggered this work. Unregistered the source in `glyphs/index.ts`, removed `'astromoony-sans': 'Astromoony'` from `GLYPH_SET_NAMES`, deleted `astromoony-sans.ts` and the orphaned `astromoony-serif.ts` (the latter had never been imported).
+5. **Graceful migration for existing users** — Added `migrateGlyphSet()` and `migrateGlyphOverrides()` exports in `utils/glyphs/index.ts` that map removed-set IDs (`astromoony-sans`, `astromoony-serif`) to `DEFAULT_GLYPH_SET`. `ChartContext` runs both migrations:
+   - On localStorage initialization (writes the corrected value back so it sticks)
+   - On cloud preferences sync (writes the corrected value to both state and localStorage)
+
+   Users previously on Astromoony land on Classic transparently — no broken radio button, no missing glyphs.
+
+### 📁 Files Changed
+- `packages/web/src/components/ChartWheel.tsx` — Fortune `⊕` → `⊗`, Spirit `☩` → `Φ`, added `TEXT_FALLBACK_SCALE`, removed `rotate={planet.planet === 'fortune' ? 45 : undefined}` in both natal and transit planet bands
+- `packages/web/src/components/GlyphIcon.tsx` — Same Unicode updates and `TEXT_FALLBACK_SCALE`; applies fallback scale to `fontSize` whether `size` is a number or a CSS string
+- `packages/web/src/utils/chart-helpers.ts` — Added missing `spirit: 'Φ'` entry to `getPlanetGlyph()` map; updated Fortune to `'⊗'`
+- `packages/web/src/utils/glyphs/index.ts` — Removed `astromoony-sans` import, removed it from `GLYPH_SET_NAMES`, added `REMOVED_GLYPH_SETS` set + `migrateGlyphSet()` + `migrateGlyphOverrides()` helpers
+- `packages/web/src/contexts/ChartContext.tsx` — Imported the migrators, applied them in the `glyphSet` and `glyphOverrides` `useState` initializers and in the cloud-preferences `getCloudPreferences()` handler; writes corrected value back to localStorage if it changed
+- `packages/web/src/utils/glyphs/sources/astromoony-sans.ts` — Deleted
+- `packages/web/src/utils/glyphs/sources/astromoony-serif.ts` — Deleted (was never registered)
+- All 5 `package.json` files — Version 0.19.0 → 0.19.1
+
+### 📝 Notes
+- Worker package's `pnpm test` fails with "No test files found" — confirmed pre-existing on unmodified v0.19.0, not introduced by this work.
+- `dejavu-full`'s Fortune SVG path is shaped like `⊕` (a literal plus inside a circle). Without the 45° rotation hack, users on that set will see the `⊕` shape. Acceptable trade-off — Classic is default; if someone selects `dejavu-full` we can replace the path later.
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

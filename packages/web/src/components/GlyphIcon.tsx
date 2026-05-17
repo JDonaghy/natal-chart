@@ -5,8 +5,10 @@ import { ChartContext } from '../contexts/ChartContext';
 const PLANET_UNICODE: Record<string, string> = {
   sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
   jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '⯓',
-  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊕', spirit: '☩', vertex: 'Vx',
+  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊗', spirit: 'Φ', vertex: 'Vx',
 };
+// Unicode glyphs render visually smaller than SVG paths at the same nominal size.
+const TEXT_FALLBACK_SCALE = 1.4;
 
 const SIGN_NAMES = [
   'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
@@ -69,8 +71,12 @@ export const PlanetGlyphIcon: React.FC<{
       </svg>
     );
   }
+  const fallbackSize =
+    typeof size === 'number'
+      ? size * TEXT_FALLBACK_SCALE
+      : `calc(${size} * ${TEXT_FALLBACK_SCALE})`;
   return (
-    <span style={{ fontFamily: "'DejaVuSans', sans-serif", ...style }}>
+    <span style={{ fontFamily: "'DejaVuSans', sans-serif", fontSize: fallbackSize, lineHeight: 1, ...style }}>
       {PLANET_UNICODE[planet] || '○'}
     </span>
   );

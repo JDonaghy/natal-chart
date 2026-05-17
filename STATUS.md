@@ -1,5 +1,5 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-05-16*
+*Last Updated: 2026-05-17*
 
 ## Deployment Status
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
@@ -7,7 +7,7 @@
 - **Cloudflare D1**: natal-chart-db (user accounts, preferences, saved charts)
 - **Firebase Auth**: natal-chart-329b3 (Google SSO)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.19.0 (Beta)
+- **Current Version**: 0.19.1 (Beta)
 
 ## What Works
 
@@ -57,7 +57,7 @@
 - [x] Theme presets: Classic Parchment, Rose Quartz, Sage & Stone, Sky & Silver
 - [x] Per-color customization with grouped color pickers and reset buttons
 - [x] Per-glyph overrides — choose variant per planet/sign from multiple glyph sources
-- [x] Astronomicon and Astromoony Sans glyph sets added
+- [x] Astronomicon glyph set added (Astromoony removed in v0.19.1)
 - [x] Font size preference (Small / Medium / Large)
 - [x] Orb-weighted aspect line thickness and opacity
 - [x] Ptolemaic-only aspect filtering (chart wheel and grid)
