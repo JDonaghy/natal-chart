@@ -34,7 +34,8 @@ export function getPlanetGlyph(planet: string): string {
     northNode: '☊',
     chiron: '⚷',
     lilith: '⚸',
-    fortune: '⊕',
+    fortune: '⊗',
+    spirit: 'Φ',
     vertex: 'Vx',
   };
   return glyphs[planet] || '○';

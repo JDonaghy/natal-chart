@@ -10,7 +10,6 @@ import './sources/classic';
 import './sources/modern';
 import './sources/dejavu-full';
 // import './sources/astrochart'; // removed: viewBox extraction needs work
-import './sources/astromoony-sans';
 import './sources/astronomicon';
 
 // Re-export public types and registry API
@@ -29,9 +28,28 @@ export const GLYPH_SET_NAMES: Record<string, string> = {
   classic: 'Classic',
   modern: 'Modern',
   'dejavu-full': 'DejaVu Full',
-  'astromoony-sans': 'Astromoony',
   'astronomicon': 'Astronomicon',
 };
+
+/**
+ * Glyph set IDs that were once available but have since been removed.
+ * Saved preferences referencing these IDs are migrated to DEFAULT_GLYPH_SET.
+ */
+const REMOVED_GLYPH_SETS = new Set(['astromoony-sans', 'astromoony-serif']);
+
+/** Map a (possibly removed) glyph set ID to a still-valid one. */
+export function migrateGlyphSet(set: string): string {
+  return REMOVED_GLYPH_SETS.has(set) ? DEFAULT_GLYPH_SET : set;
+}
+
+/** Strip per-entity overrides that point at removed glyph sets. */
+export function migrateGlyphOverrides(overrides: Record<string, string>): Record<string, string> {
+  const next: Record<string, string> = {};
+  for (const [key, value] of Object.entries(overrides)) {
+    if (!REMOVED_GLYPH_SETS.has(value)) next[key] = value;
+  }
+  return next;
+}
 
 export const SIGN_ORDER = [
   'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',

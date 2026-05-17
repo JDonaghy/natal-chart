@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef, useMemo, ReactNode } from 'react';
 import type { BirthData as CoreBirthData, ChartResult, TransitResult } from '@natal-chart/core';
 import { DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { migrateGlyphSet, migrateGlyphOverrides } from '../utils/glyphs/index';
 import { useAuth } from './AuthContext';
 import { getCloudPreferences, syncPreferencesDebounced } from '../services/cloudSync';
 import {
@@ -104,7 +105,10 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
   const [traditionalPlanets, setTraditionalPlanets] = useState(false);
   const [glyphSet, setGlyphSetState] = useState(() => {
     try {
-      return localStorage.getItem('natal-chart-glyph-set') || DEFAULT_GLYPH_SET;
+      const raw = localStorage.getItem('natal-chart-glyph-set') || DEFAULT_GLYPH_SET;
+      const migrated = migrateGlyphSet(raw);
+      if (migrated !== raw) localStorage.setItem('natal-chart-glyph-set', migrated);
+      return migrated;
     } catch {
       return DEFAULT_GLYPH_SET;
     }
@@ -120,7 +124,12 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
   const [glyphOverrides, setGlyphOverridesState] = useState<Record<string, string>>(() => {
     try {
       const saved = localStorage.getItem('natal-chart-glyph-overrides');
-      return saved ? JSON.parse(saved) : {};
+      const parsed = saved ? JSON.parse(saved) : {};
+      const migrated = migrateGlyphOverrides(parsed);
+      if (Object.keys(migrated).length !== Object.keys(parsed).length) {
+        localStorage.setItem('natal-chart-glyph-overrides', JSON.stringify(migrated));
+      }
+      return migrated;
     } catch {
       return {};
     }
@@ -192,12 +201,14 @@ export const ChartProvider: React.FC<ChartProviderProps> = ({ children }) => {
           try { localStorage.setItem('natal-chart-house-system', data.houseSystem); } catch { /* ignore */ }
         }
         if (typeof data.glyphSet === 'string') {
-          setGlyphSetState(data.glyphSet);
-          try { localStorage.setItem('natal-chart-glyph-set', data.glyphSet); } catch { /* ignore */ }
+          const migrated = migrateGlyphSet(data.glyphSet);
+          setGlyphSetState(migrated);
+          try { localStorage.setItem('natal-chart-glyph-set', migrated); } catch { /* ignore */ }
         }
         if (data.glyphOverrides && typeof data.glyphOverrides === 'object') {
-          setGlyphOverridesState(data.glyphOverrides as Record<string, string>);
-          try { localStorage.setItem('natal-chart-glyph-overrides', JSON.stringify(data.glyphOverrides)); } catch { /* ignore */ }
+          const migrated = migrateGlyphOverrides(data.glyphOverrides as Record<string, string>);
+          setGlyphOverridesState(migrated);
+          try { localStorage.setItem('natal-chart-glyph-overrides', JSON.stringify(migrated)); } catch { /* ignore */ }
         }
         if (typeof data.ascHorizontal === 'boolean') {
           setAscHorizontalState(data.ascHorizontal);

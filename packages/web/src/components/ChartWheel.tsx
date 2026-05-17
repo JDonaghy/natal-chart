@@ -9,10 +9,13 @@ const ZODIAC_UNICODE = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', 
 const PLANET_UNICODE: Record<string, string> = {
   sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
   jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '⯓',
-  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊕', spirit: '☩', vertex: 'Vx',
+  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊗', spirit: 'Φ', vertex: 'Vx',
 };
 const GLYPH_FONT = "'DejaVuSans', sans-serif";
 const LABEL_FONT = "'Cormorant', serif";
+// Unicode text glyphs only fill ~70% of their em-box, so text fallbacks look
+// smaller than SVG path glyphs (which fill sz×sz). Bump the font size to match.
+const TEXT_FALLBACK_SCALE = 1.4;
 
 /** Per-planet visual scale factors to normalize apparent glyph sizes on the chart wheel.
  *  Glyphs with thin strokes or small visual weight get scaled up; compact ones scaled down. */
@@ -36,10 +39,10 @@ function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAU
     const fullT = rotate ? `rotate(${rotate} ${x} ${y}) ${t}` : t;
     return <path d={pathData.d} fill={fill} transform={fullT} fillOpacity={opacity} />;
   }
-  // Fallback to text for glyphs without path data (lilith, fortune, vertex)
+  // Fallback to text for glyphs without path data (lilith, fortune, spirit, vertex)
   return (
     <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
-      fontSize={sz} fontFamily={GLYPH_FONT} fill={fill} fillOpacity={opacity}
+      fontSize={sz * TEXT_FALLBACK_SCALE} fontFamily={GLYPH_FONT} fill={fill} fillOpacity={opacity}
       transform={rotate ? `rotate(${rotate} ${x} ${y})` : undefined}>
       {PLANET_UNICODE[planet] || '○'}
     </text>
@@ -767,7 +770,6 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   planet={planet.planet} x={glyphPos.x} y={glyphPos.y}
                   sz={labelSz * (PLANET_GLYPH_SCALE[planet.planet] ?? 1)}
                   fill={color}
-                  rotate={planet.planet === 'fortune' ? 45 : undefined}
                   glyphSet={glyphSet} overrides={glyphOverrides}
                 />
 
