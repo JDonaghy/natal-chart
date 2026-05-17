@@ -61,7 +61,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <li><NavLink to="/compare" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Compare</NavLink></li>
       <li><NavLink to="/releasing" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Releasing</NavLink></li>
       <li><NavLink to="/charts" style={navLinkStyle} onClick={() => setMenuOpen(false)}>My Charts</NavLink></li>
-      <li><NavLink to="/preferences" style={navLinkStyle} onClick={() => setMenuOpen(false)}>Preferences</NavLink></li>
     </>
   );
 

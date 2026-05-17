@@ -828,4 +828,39 @@ Added 16 new items to PLAN.md from client feedback:
 
 ---
 
+## Session 2026-05-16: v0.22.0 (released as v0.19.0) — Auth UX, Dark Themes & Empty-State Polish
+
+### ✅ Features Completed
+
+#### Auth UX overhaul
+1. **Auth0 signup discoverability** — Users were unable to find the Create Account flow because the existing dropdown listed only sign-in options; account creation lived behind the Sign Up tab inside Auth0's hosted UI. `signInWithAuth0()` now accepts `{ signup: true }` and sets `screen_hint=signup` on the underlying `OAuthProvider`, so the popup opens directly on the Sign Up tab.
+2. **User-icon dropdown menu** — Replaced the previous two-button "Sign In / Create Account" header (cramped on mobile) with a single circular user-icon button. Signed-out users see a person silhouette; signed-in users see their avatar or initial. Dropdown contains all account-adjacent controls.
+3. **Provider modal** — Sign In and Create Account each open a centered modal with Email (Auth0) first, then Google, then GitHub. Modal includes ESC/backdrop close, error display, and a "switch mode" link at the bottom (e.g. "Already have an account? Sign in").
+4. **Preferences moved into user menu** — Preferences NavLink removed from both the desktop top nav and the mobile hamburger menu. Lives in the user-icon dropdown only.
+
+#### Theme presets
+5. **Four dark themes added** — Midnight Sky (gold-on-navy), Nebula (cosmic violet + lilac), Obsidian Ember (volcanic + copper), Forest Nocturne (deep forest + jade). All peers of the existing 4 light presets, same `ThemeColors` contract. Bumped `boundsDecansOpacity` slightly on dark presets (0.35–0.4) for visibility.
+
+#### Empty-state polish
+6. **'Calculate a chart' empty-state link** — Five views (ChartView, TransitView, ReleasingView, CompareView, SavedChartsView) had a "Please calculate a chart first." or "Calculate a chart and save it" message but no link. Now wraps "calculate a chart" / "Calculate a chart" in `<Link to="/">`, picking up the global gold anchor styling.
+
+### 📁 Files Changed
+- `packages/web/src/services/auth.ts` — `signInWithAuth0({ signup })` with Auth0 `screen_hint=signup`
+- `packages/web/src/contexts/AuthContext.tsx` — Passes signup option through
+- `packages/web/src/components/LoginButton.tsx` — Rewritten as user-icon button with dropdown + provider modal
+- `packages/web/src/components/Layout.tsx` — Preferences NavLink removed
+- `packages/web/src/utils/themes.ts` — Added Midnight Sky, Nebula, Obsidian Ember, Forest Nocturne presets
+- `packages/web/src/components/ChartView.tsx` — Empty-state link
+- `packages/web/src/components/TransitView.tsx` — Empty-state link
+- `packages/web/src/components/ReleasingView.tsx` — Empty-state link, added `react-router-dom` import
+- `packages/web/src/components/CompareView.tsx` — Empty-state link, added `react-router-dom` import
+- `packages/web/src/components/SavedChartsView.tsx` — Empty-state link
+- All 5 `package.json` files — Version 0.18.1 → 0.19.0
+
+### 📝 Notes
+- Hardcoded color values in inline styles across ~14 components are not migrated to CSS variables; same partial-theming bleed applies to all 8 presets (not specific to dark mode). Migration is a candidate for a follow-up sprint.
+- The two `throw new Error('… Please calculate a chart first.')` strings in ChartView and TransitView load paths remain plain strings — they bubble up as error messages, not JSX, so they cannot contain a link.
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useChart } from '../contexts/ChartContext';
 import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
@@ -181,7 +181,7 @@ export const ChartView: React.FC = () => {
     return (
       <div className="card">
         <h2>No Chart Data</h2>
-        <p>Please calculate a chart first.</p>
+        <p>Please <Link to="/">calculate a chart</Link> first.</p>
       </div>
     );
   }

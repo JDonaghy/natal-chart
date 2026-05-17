@@ -1,5 +1,5 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-04-16*
+*Last Updated: 2026-05-16*
 
 ## Deployment Status
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
@@ -7,7 +7,7 @@
 - **Cloudflare D1**: natal-chart-db (user accounts, preferences, saved charts)
 - **Firebase Auth**: natal-chart-329b3 (Google SSO)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.18.0 (Beta)
+- **Current Version**: 0.19.0 (Beta)
 
 ## What Works
 
@@ -74,6 +74,13 @@
 - [x] Smaller degree symbol (°), larger planet glyphs (~20% bump)
 - [x] Compare view: aspect lines toggle, session persistence, aligned birth data summaries
 - [x] Footer planet order: distance-from-Sun (beginner-friendly)
+
+### Auth UX, Dark Themes & Empty-State Polish (v0.22.0)
+- [x] Consolidated user-icon dropdown menu — Sign In, Create Account, and Preferences all live behind one circular avatar/silhouette button
+- [x] Provider modal for sign-in / sign-up — Email (Auth0) first, then Google, then GitHub; "switch mode" link inside
+- [x] Auth0 signup uses `screen_hint=signup` so users land on the Sign Up tab instead of having to discover it
+- [x] Four dark theme presets: Midnight Sky, Nebula, Obsidian Ember, Forest Nocturne
+- [x] Empty-state "Calculate a chart" copy now hyperlinks to `/` in Chart, Transit, Releasing, Compare, and My Charts views
 
 ### User Accounts & Cloud Sync (v0.14.0)
 - [x] Firebase Authentication with Google SSO, GitHub SSO, Auth0 (OIDC)

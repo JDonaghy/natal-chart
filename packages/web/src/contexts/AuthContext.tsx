@@ -16,7 +16,7 @@ interface AuthContextType {
   configured: boolean;
   signInGoogle: () => Promise<void>;
   signInGithub: () => Promise<void>;
-  signInAuth0: () => Promise<void>;
+  signInAuth0: (options?: { signup?: boolean }) => Promise<void>;
   logOut: () => Promise<void>;
 }
 
@@ -61,8 +61,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     await signInWithGithub();
   }, []);
 
-  const signInAuth0 = useCallback(async () => {
-    await signInWithAuth0();
+  const signInAuth0 = useCallback(async (options?: { signup?: boolean }) => {
+    await signInWithAuth0(options);
   }, []);
 
   const logOut = useCallback(async () => {
