@@ -67,6 +67,25 @@ export const ReleasingView: React.FC = () => {
         <h1 style={{ margin: 0 }}>Zodiacal Releasing</h1>
       </div>
 
+      {/* Birth data summary (matches ChartView header) */}
+      <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '0.4rem 1.2rem',
+        padding: '0.5rem 0',
+        fontSize: '0.85rem',
+        color: '#666',
+        borderBottom: '1px solid #e8e0d0',
+        marginBottom: '0.5rem',
+      }}>
+        {birthData.city && <span>{birthData.city}</span>}
+        <span>{new Date(birthData.dateTimeUtc).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        <span>{new Date(birthData.dateTimeUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</span>
+        <span>{birthData.latitude.toFixed(2)}°, {birthData.longitude.toFixed(2)}°</span>
+        {birthData.timezone && <span>{birthData.timezone}</span>}
+        <span>{birthData.houseSystem === 'P' ? 'Placidus' : 'Whole Sign'}</span>
+      </div>
+
       {/* Lot summary */}
       <LotSummary lots={lots} />
 

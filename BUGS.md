@@ -39,6 +39,7 @@
 - ~~#23 Renamed charts don't sync~~ — Fixed cloud name merge in getAllSavedChartSummaries
 - ~~#24 Lot of Spirit rendered as Cross of Jerusalem (☩)~~ — Replaced with Φ (circle + vertical line) in all glyph maps (v0.19.1)
 - ~~#25 Lot of Fortune appeared tiny in Classic glyph set~~ — Bumped text-fallback fontSize by 1.4× to match SVG path glyph sizing; replaced ⊕ + 45° rotation hack with direct ⊗ (v0.19.1)
+- ~~#26 Zodiacal Releasing L2 sub-periods capped at 12~~ — `generatePeriodsForLevel` had a hard `for (i < 12)` cap that truncated sub-periods when the parent window exceeded one full 12-sign cycle (~17.5 years at L2). Replaced with a `currentDate < windowEnd` guard so L2+ fully covers the parent (e.g. Virgo L1 → 15 L2 entries). Also restored "currently active" L2 marker for periods that fell in the previously-uncovered tail. (v0.19.2)
 
 ## 📝 Bug Reporting Template
 ```markdown

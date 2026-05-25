@@ -1,6 +1,14 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.19.1 Glyph Fixes & Astromoony Cleanup
+## Current Sprint: v0.19.2 Zodiacal Releasing Fixes
+**Status**: Complete
+**Last Updated**: 2026-05-25
+
+### 🩹 Bug Fixes (v0.19.2)
+- [x] **Fix sub-period 12-cap in Zodiacal Releasing** — `generatePeriodsForLevel` was hard-capped at 12 iterations, truncating L2+ sub-periods whenever the parent window outlasted one full 12-sign cycle (e.g. an L1 longer than ~17.5 years like Virgo/Cancer/Aquarius). Replaced the fixed `for` cap with a safety-limited loop that keeps cycling through the signs until `currentDate >= windowEnd`. L2 sub-periods now fully cover their parent L1 (e.g. Virgo L1 produces 15 L2 entries), and the "currently active" L2 is no longer missing for periods that fell into the previously-uncovered tail. Also affects L3 inside long L2s and L1 when `maxAge` exceeds 211 years (the descent restarts at the lot sign per classical ZR).
+- [x] **Add birth-data header to Releasing view** — Mirrors the ChartView header (city, date, time UTC, coordinates, timezone, house system) so the Zodiacal Releasing page identifies which chart it's computed for.
+
+## Previous Sprint: v0.19.1 Glyph Fixes & Astromoony Cleanup
 **Status**: Complete
 **Last Updated**: 2026-05-17
 
