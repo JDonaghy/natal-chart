@@ -918,4 +918,37 @@ Added 16 new items to PLAN.md from client feedback:
 
 ---
 
+## Session 2026-05-25 (later): v0.19.3 — Loosing of the Bond now actually jumps
+
+### 🩹 Bug Fix
+A second ZR issue surfaced right after v0.19.2 shipped, reported against a Saint Paul, MN April 1968 chart. The L4 timeline under Lot of Fortune was showing **Cancer** as the current sign (May 25, 2026), but external references showed it should be **Aquarius**, transitioning to Aquarius on May 24 from Capricorn with a Loosing of the Bond jump from Capricorn to Leo on May 3. Diagnosing this revealed that the LB code was *never correct* — both before and after v0.19.2:
+
+1. **It marked every sub-period whose own sign had > 17 minor years as LB**, including at L1 — but LB is a property of *how a parent's sub-periods unfold*, not a self-property of any period.
+2. **It never actually altered the descent.** Classical ZR (Vettius Valens / Brennan): when a parent period whose sign has > 17 minor years is subdivided, the descent runs zodiacally for one full 12-sign cycle and then *jumps* to the sign opposite the parent, continuing zodiacally from there. Exactly one jump per parent.
+
+With the v0.19.2 cap fix in place, the un-jumped descent for an Aquarius L3 (75 days, > 17 minor years) cycled through 12 signs (Aqu→Cap, 44 days), then *re-started from Aquarius* — so day 66 (May 25) landed in the second Cancer (entry 18) instead of the post-jump Aquarius (entry 19). Hence "current = Cancer," which was a regression from v0.19.1 (where the cap simply produced no current period at all).
+
+### 🔧 Implementation
+- `generatePeriodsForLevel` now takes optional `parentSignIndex` and `parentBaseYears` parameters. Top-level (L1) calls leave them undefined.
+- A flag `lbEligible = parentSignIndex !== undefined && parentBaseYears > 17` and a `lbTriggered` boolean drive the jump: when the loop counter hits `i === 12`, if eligible and not yet triggered, `signIndex` is reassigned to `(parentSignIndex + 6) % 12` (opposite of parent) and the period at i=12 is marked `isLoosingOfBond = true`.
+- The post-jump period's `startDate` is the LB moment; `loosingSign` is set to the post-jump sign itself (so existing UI tooltips still render).
+- The old per-period `baseYears > LB_THRESHOLD_YEARS` marker and the now-defunct `loosingDate` computation loop were removed entirely.
+
+### 🧪 Tests
+- `should never mark L1 periods as Loosing of the Bond` — verifies the L1-no-LB invariant for a maxLevels=1 timeline.
+- Replaced the old "L1 Cancer/Leo marked LB" assertion with `should mark exactly one LB jump per long-years parent at the sub-period level` — Aries L1 (15y, no LB) has no LB-marked L2; Cancer L1 (25y, LB) has exactly one LB at L2 (Capricorn = opposite Cancer), and the L2 sequence continues zodiacally from Capricorn (entry 13 = Aquarius).
+- Updated the v0.19.2 Virgo L1 → 15 L2 entries test: entries 13–15 are now Pisces/Aries/Taurus (post-jump from Pisces) instead of Virgo/Libra/Scorpio (un-jumped). Count unchanged at 15.
+- New `should produce 21 L4 entries with one LB inside an Aquarius L3` — a synthetic test that mirrors the Saint Paul scenario: Lot at 300° (Aquarius), maxLevels=4, walk down to the first Aquarius L3, assert 21 L4 entries with the LB at entry 13 jumping Capricorn → Leo.
+
+### 📁 Files Changed
+- `packages/core/src/zodiacal-releasing.ts` — Rewrote LB section of `generatePeriodsForLevel`, added parent params to recursive call.
+- `packages/core/test/zodiacal-releasing.test.ts` — Replaced old LB-at-L1 test, updated Virgo test, added Aquarius L3 → 21 L4 test.
+- All 5 `package.json` files — Version 0.19.2 → 0.19.3.
+
+### 📝 Notes
+- During investigation I built a one-off `zr-saint-paul.debug.test.ts` that ran the real Swiss Ephemeris calculation for the user's chart, computed the Lot of Fortune (Cancer at 117.9°), and printed the L4 timeline. Output matched the user's reference to within 1 day on every transition (May 24 vs May 25 for Cap→Aqu, May 3 vs May 4 for the LB) — the 1-day offsets are expected slop from zodiacal-year (360d) vs. solar calendar mapping. Debug test was removed before commit.
+- Worker `test` still fails with "No test files found" — unchanged, pre-existing.
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

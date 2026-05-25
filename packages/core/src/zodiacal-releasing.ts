@@ -149,6 +149,13 @@ export function calculateZodiacalReleasing(
 
 /**
  * Recursively generate periods for a given level.
+ *
+ * Loosing of the Bond (LB): when a parent period whose sign has > 17 minor
+ * years is being subdivided, after one full 12-sign descent the sub-period
+ * sequence "jumps" to the sign opposite the parent and continues zodiacally
+ * from there. Only one jump per parent. The post-jump period is marked
+ * with `isLoosingOfBond = true`. L1 has no parent, so it never carries an
+ * LB marker (the second descent at L1 just restarts at the lot sign).
  */
 function generatePeriodsForLevel(
   level: number,
@@ -158,6 +165,8 @@ function generatePeriodsForLevel(
   windowStart: Date,
   windowEnd: Date,
   maxLevels: number,
+  parentSignIndex?: number,
+  parentBaseYears?: number,
 ): ZRPeriod[] {
   const periods: ZRPeriod[] = [];
   let currentDate = new Date(windowStart.getTime());
@@ -182,8 +191,21 @@ function generatePeriodsForLevel(
   // inside an Aquarius L1 ≈ ~155 entries).
   const MAX_ITERATIONS = 2000;
 
+  const lbEligible =
+    parentSignIndex !== undefined &&
+    parentBaseYears !== undefined &&
+    parentBaseYears > LB_THRESHOLD_YEARS;
+  let lbTriggered = false;
+
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     if (currentDate >= windowEnd) break;
+
+    // After one full 12-sign descent, if the parent qualifies, jump to the
+    // sign opposite the parent. This is the Loosing of the Bond.
+    if (i === 12 && lbEligible && !lbTriggered) {
+      signIndex = (parentSignIndex! + 6) % 12;
+      lbTriggered = true;
+    }
 
     const sign = ZODIAC_SIGNS[signIndex]!;
     const baseYears = SIGN_YEARS[sign];
@@ -196,43 +218,8 @@ function generatePeriodsForLevel(
     const signDistance = ((signIndex - lotSignIndex) % 12 + 12) % 12;
     const isPeak = [0, 3, 6, 9].includes(signDistance);
 
-    // Loosing of the Bond
-    let isLoosingOfBond = false;
-    let loosingDate: Date | undefined;
-    let loosingSign: ZodiacSign | undefined;
-
-    if (baseYears > LB_THRESHOLD_YEARS) {
-      // LB occurs at the point where the remaining time would equal the time
-      // spent in the opposite sign. The jump is to the sign opposite (+ 6 signs).
-      // LB happens when we've traversed enough sub-periods to reach the opposite sign.
-      // Simplified: LB at the midpoint when the period exceeds 17 years (scaled).
-      // More accurately: LB occurs after traversing signs up to the 8th sign from
-      // the period's sign in the sub-period sequence. At that point the sequence
-      // jumps to the opposite sign for the remainder.
-      // For simplicity and correctness with standard implementations:
-      // LB triggers at the sub-period that lands on the sign opposite to the
-      // releasing sign. We mark the period and compute the date.
-      const oppositeIndex = (signIndex + 6) % 12;
-      loosingSign = ZODIAC_SIGNS[oppositeIndex]!;
-      isLoosingOfBond = true;
-
-      // Calculate when LB occurs: sum sub-period durations until we reach
-      // the sign opposite to the period's sign in the sub-period cycle
-      const subDivisor = divisor * 12;
-      let elapsed = 0;
-      let subIdx = signIndex;
-      for (let s = 0; s < 12; s++) {
-        const subSign = ZODIAC_SIGNS[subIdx]!;
-        const subDays = (SIGN_YEARS[subSign] * 360) / subDivisor;
-        if (subIdx === oppositeIndex) {
-          // LB triggers at the start of this sub-period
-          loosingDate = new Date(currentDate.getTime() + elapsed * 86400000);
-          break;
-        }
-        elapsed += subDays;
-        subIdx = (subIdx + 1) % 12;
-      }
-    }
+    // Mark this period as the post-jump LB period.
+    const isLoosingOfBond = lbTriggered && i === 12;
 
     // Modality match (for L2+)
     const modalityMatch = level > 1 && SIGN_MODALITY[sign] === lotModality;
@@ -251,11 +238,10 @@ function generatePeriodsForLevel(
       modality: SIGN_MODALITY[sign],
       modalityMatch,
     };
-    if (loosingDate) {
-      period.loosingDate = loosingDate;
-    }
-    if (loosingSign) {
-      period.loosingSign = loosingSign;
+    if (isLoosingOfBond) {
+      // startDate IS the LB moment; loosingSign is the post-jump destination.
+      period.loosingDate = new Date(currentDate.getTime());
+      period.loosingSign = sign;
     }
 
     // Generate sub-periods if needed
@@ -268,6 +254,8 @@ function generatePeriodsForLevel(
         currentDate,
         clampedEnd,
         maxLevels,
+        signIndex,
+        baseYears,
       );
     }
 
