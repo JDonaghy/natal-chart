@@ -57,12 +57,14 @@ describe('calculateZodiacalReleasing', () => {
   const birthDate = new Date('1990-06-15T12:00:00Z');
 
   it('should generate L1 periods starting from the Lot sign', () => {
-    // Lot at 0° Aries (sign index 0), maxAge 220 to cover full 12-sign cycle
+    // Lot at 0° Aries (sign index 0), maxAge 220 — covers one full 211-year
+    // cycle plus a partial 13th period (descent restarts at the lot sign).
     const timeline = calculateZodiacalReleasing(0, birthDate, 1, 220);
 
     expect(timeline.lotSign).toBe('aries');
     expect(timeline.lotSignIndex).toBe(0);
-    expect(timeline.periods).toHaveLength(12);
+    expect(timeline.periods).toHaveLength(13);
+    expect(timeline.periods[12]!.sign).toBe('aries'); // second descent
   });
 
   it('should start from the Lot sign', () => {
@@ -131,6 +133,30 @@ describe('calculateZodiacalReleasing', () => {
     // L2 sub-periods should start from the same sign as the L1 period
     expect(firstPeriod.subPeriods![0]!.sign).toBe(firstPeriod.sign);
     expect(firstPeriod.subPeriods![0]!.level).toBe(2);
+  });
+
+  it('should generate more than 12 L2 sub-periods for long L1 periods', () => {
+    // Lot at 150° → Virgo (20-year L1 = 7200 days). One full L2 cycle is
+    // 211*30 = 6330 days, so Virgo L1 must continue past 12 sub-periods,
+    // landing on 15 entries (Virgo, Libra, Scorpio truncated as 15th).
+    const timeline = calculateZodiacalReleasing(150, birthDate, 2);
+    const virgoL1 = timeline.periods[0]!;
+    expect(virgoL1.sign).toBe('virgo');
+
+    const l2 = virgoL1.subPeriods!;
+    expect(l2).toHaveLength(15);
+    expect(l2[12]!.sign).toBe('virgo'); // cycle restarts
+    expect(l2[13]!.sign).toBe('libra');
+    expect(l2[14]!.sign).toBe('scorpio');
+
+    // The last L2 must not extend past the parent L1
+    expect(l2[l2.length - 1]!.endDate.getTime()).toBeLessThanOrEqual(
+      virgoL1.endDate.getTime(),
+    );
+
+    // Sub-periods together must cover the entire parent period
+    expect(l2[0]!.startDate.getTime()).toBe(virgoL1.startDate.getTime());
+    expect(l2[l2.length - 1]!.endDate.getTime()).toBe(virgoL1.endDate.getTime());
   });
 
   it('should have sequential dates without gaps', () => {

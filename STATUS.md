@@ -1,5 +1,5 @@
 # Natal Chart - Current Status
-*Last Updated: 2026-05-17*
+*Last Updated: 2026-05-25*
 
 ## Deployment Status
 - **GitHub Pages**: https://jdonaghy.github.io/natal-chart/
@@ -7,7 +7,7 @@
 - **Cloudflare D1**: natal-chart-db (user accounts, preferences, saved charts)
 - **Firebase Auth**: natal-chart-329b3 (Google SSO)
 - **Auto-deployment**: GitHub Actions on push to `main`
-- **Current Version**: 0.19.1 (Beta)
+- **Current Version**: 0.19.2 (Beta)
 
 ## What Works
 

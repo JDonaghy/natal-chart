@@ -894,4 +894,28 @@ Added 16 new items to PLAN.md from client feedback:
 
 ---
 
+## Session 2026-05-25: v0.19.2 — Zodiacal Releasing sub-period 12-cap fix
+
+### 🩹 Bug Fixes
+1. **Zodiacal Releasing L2+ sub-periods were truncated at 12** — `generatePeriodsForLevel` in `packages/core/src/zodiacal-releasing.ts` had a hard `for (let i = 0; i < 12; i++)` cap. For any parent period longer than one full sub-period cycle (211 × 30 ≈ 6330 days ≈ 17.58 years at L2), the cap left a gap at the end of the parent where no sub-period existed. Two visible symptoms reported by a user with a May 10, 1964 Belfast chart:
+   - **L2 entries inside the active L1 stopped at 12**, when external references (e.g. astro.com) show 15 for a Virgo L1 (20 years = 7200 days needs ~15 L2 entries of varying lengths).
+   - **No "currently active" L2 marker** for natives whose current date fell into the uncovered tail.
+
+   Replaced the fixed-count `for` with a `currentDate < windowEnd` while-style loop (safety-bounded at 2000 iterations to prevent runaway on pathological inputs). Sub-periods now keep cycling through the 12 signs, wrapping back to the L1's start sign after each full pass, until the parent window is filled. Same logic applies at L3 inside long L2s and L1 inside `maxAge > 211` (rare; the descent restarts at the lot sign per classical ZR practice from Vettius Valens).
+
+### ✨ UI
+2. **Birth-data header on Releasing view** — Mirrored the ChartView header (`city, date, time UTC, lat/lon, timezone, house system`) above the Lot summary in `ReleasingView`, so users can tell at a glance which chart the timeline was computed for.
+
+### 📁 Files Changed
+- `packages/core/src/zodiacal-releasing.ts` — Replaced 12-iteration `for` with safety-bounded loop; updated explanatory comment block to describe the multi-cycle behavior.
+- `packages/core/test/zodiacal-releasing.test.ts` — Updated the existing "L1 cycles once with maxAge=220" assertion to expect 13 entries (a partial Aries 13th period — correct ZR second-descent behavior). Added new test asserting 15 L2 entries for a Virgo L1 with the cycle restarting at Virgo on entry 13, and that sub-periods fully cover the parent.
+- `packages/web/src/components/ReleasingView.tsx` — Added birth-data header block (same markup as `ChartView`).
+- All 5 `package.json` files — Version 0.19.1 → 0.19.2.
+
+### 📝 Notes
+- Core tests: 18/18 pass. Web typecheck/build clean. Web lint has 9 pre-existing warnings (no errors). Worker `test` still fails with "No test files found" — pre-existing.
+- Verified in the dev server before release; user confirmed the L2 expansion and active-period marker now display correctly.
+
+---
+
 *Add new sessions below with date headers. Move completed items from PLAN.md and resolved items from BUGS.md to appropriate sections above.*

@@ -163,7 +163,12 @@ function generatePeriodsForLevel(
   let currentDate = new Date(windowStart.getTime());
   let signIndex = startSignIndex;
 
-  // Each level cycles through all 12 signs starting from startSignIndex
+  // Each level cycles through signs starting from startSignIndex.
+  // The cycle continues past 12 signs when needed: at L1 the descent
+  // restarts at the lot sign after one full 211-year cycle; at L2+ the
+  // sub-periods must keep cycling to fill the parent period (e.g., a
+  // 20-year Virgo L1 needs ~15 L2 sub-periods to fill 7200 days, since
+  // one full L2 cycle is only 6330 days).
   // Duration at each level: L1 = years, L2 = L1/12, L3 = L2/12, L4 = L3/12
   // More precisely, each level uses the same sign-year table but scaled:
   // L1: years * 360 days (zodiacal year = 360 days)
@@ -172,7 +177,12 @@ function generatePeriodsForLevel(
   // L4: years * 360/1728 days
   const divisor = Math.pow(12, level - 1);
 
-  for (let i = 0; i < 12; i++) {
+  // Safety cap: prevents runaway generation in pathological inputs.
+  // Far exceeds any plausible real use (deepest case is L4 sub-periods
+  // inside an Aquarius L1 ≈ ~155 entries).
+  const MAX_ITERATIONS = 2000;
+
+  for (let i = 0; i < MAX_ITERATIONS; i++) {
     if (currentDate >= windowEnd) break;
 
     const sign = ZODIAC_SIGNS[signIndex]!;
