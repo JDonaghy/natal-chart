@@ -105,21 +105,42 @@ describe('calculateZodiacalReleasing', () => {
     expect(timeline.periods[9]!.isPeak).toBe(true);  // Capricorn (9)
   });
 
-  it('should mark Loosing of the Bond for long periods', () => {
-    // Lot at 0° Aries, maxAge 220
-    // Aries = 15y (no LB), Cancer = 25y (LB), Leo = 19y (LB), etc.
+  it('should never mark L1 periods as Loosing of the Bond', () => {
+    // LB is a property of how a parent's sub-periods unfold — L1 has no
+    // parent, so no LB marker at L1, even for long-years signs.
     const timeline = calculateZodiacalReleasing(0, birthDate, 1, 220);
 
-    // Aries (15y) — no LB
-    expect(timeline.periods[0]!.isLoosingOfBond).toBe(false);
+    for (const period of timeline.periods) {
+      expect(period.isLoosingOfBond).toBe(false);
+    }
+  });
 
-    // Cancer (25y) — LB
-    expect(timeline.periods[3]!.isLoosingOfBond).toBe(true);
-    expect(timeline.periods[3]!.loosingSign).toBe('capricorn'); // opposite of Cancer
+  it('should mark exactly one LB jump per long-years parent at the sub-period level', () => {
+    // Lot at 0° Aries. First L1 is Aries (15y, no LB). 4th L1 is Cancer
+    // (25y > 17 → LB at L2). L2 descent inside Cancer starts at Cancer,
+    // cycles all 12 signs, then jumps to Capricorn (opposite Cancer).
+    const timeline = calculateZodiacalReleasing(0, birthDate, 2, 220);
 
-    // Leo (19y) — LB
-    expect(timeline.periods[4]!.isLoosingOfBond).toBe(true);
-    expect(timeline.periods[4]!.loosingSign).toBe('aquarius'); // opposite of Leo
+    // Aries L1 (15y, no LB) — none of its L2 should be marked LB
+    const ariesL1 = timeline.periods[0]!;
+    expect(ariesL1.sign).toBe('aries');
+    for (const sub of ariesL1.subPeriods!) {
+      expect(sub.isLoosingOfBond).toBe(false);
+    }
+
+    // Cancer L1 (25y, LB) — exactly one LB at L2 (the post-jump Capricorn)
+    const cancerL1 = timeline.periods[3]!;
+    expect(cancerL1.sign).toBe('cancer');
+    const cancerL2 = cancerL1.subPeriods!;
+    const lbMarkers = cancerL2.filter(p => p.isLoosingOfBond);
+    expect(lbMarkers).toHaveLength(1);
+    expect(lbMarkers[0]!.sign).toBe('capricorn'); // opposite of Cancer
+    // First 12 sub-periods cycle Cancer → Gemini; the LB jump period is #13
+    expect(cancerL2[12]!.sign).toBe('capricorn');
+    expect(cancerL2[12]!.isLoosingOfBond).toBe(true);
+    // After the jump, descent continues zodiacally from Capricorn
+    expect(cancerL2[13]!.sign).toBe('aquarius');
+    expect(cancerL2[13]!.isLoosingOfBond).toBe(false);
   });
 
   it('should generate sub-periods when maxLevels > 1', () => {
@@ -135,28 +156,66 @@ describe('calculateZodiacalReleasing', () => {
     expect(firstPeriod.subPeriods![0]!.level).toBe(2);
   });
 
-  it('should generate more than 12 L2 sub-periods for long L1 periods', () => {
+  it('should generate more than 12 L2 sub-periods for long L1 periods with an LB jump', () => {
     // Lot at 150° → Virgo (20-year L1 = 7200 days). One full L2 cycle is
-    // 211*30 = 6330 days, so Virgo L1 must continue past 12 sub-periods,
-    // landing on 15 entries (Virgo, Libra, Scorpio truncated as 15th).
+    // 211*30 = 6330 days, so Virgo L1 must continue past 12 sub-periods.
+    // Virgo > 17 minor years, so after entry 12 the descent jumps to Pisces
+    // (opposite Virgo) for the Loosing of the Bond, then continues
+    // zodiacally. Total: 15 entries (Pisces, Aries, Taurus truncated).
     const timeline = calculateZodiacalReleasing(150, birthDate, 2);
     const virgoL1 = timeline.periods[0]!;
     expect(virgoL1.sign).toBe('virgo');
 
     const l2 = virgoL1.subPeriods!;
     expect(l2).toHaveLength(15);
-    expect(l2[12]!.sign).toBe('virgo'); // cycle restarts
-    expect(l2[13]!.sign).toBe('libra');
-    expect(l2[14]!.sign).toBe('scorpio');
-
-    // The last L2 must not extend past the parent L1
-    expect(l2[l2.length - 1]!.endDate.getTime()).toBeLessThanOrEqual(
-      virgoL1.endDate.getTime(),
-    );
+    expect(l2[12]!.sign).toBe('pisces'); // LB jump to opposite-of-parent
+    expect(l2[12]!.isLoosingOfBond).toBe(true);
+    expect(l2[13]!.sign).toBe('aries');
+    expect(l2[14]!.sign).toBe('taurus');
 
     // Sub-periods together must cover the entire parent period
     expect(l2[0]!.startDate.getTime()).toBe(virgoL1.startDate.getTime());
     expect(l2[l2.length - 1]!.endDate.getTime()).toBe(virgoL1.endDate.getTime());
+  });
+
+  it('should produce 21 L4 entries with one LB inside an Aquarius L3', () => {
+    // Aquarius L3 is 30 * 360 / 144 = 75 days, long enough to need a second
+    // L4 cycle. Aquarius minor years (30) > 17, so the L4 descent jumps to
+    // Leo (opposite Aquarius) after entry 12, yielding exactly one LB and
+    // 21 total L4 entries (the 21st truncated).
+    const timeline = calculateZodiacalReleasing(300, birthDate, 4, 120);
+
+    // Walk down to an L3 whose sign is Aquarius. Lot at 300° → Aquarius L1,
+    // Aquarius L2 (first sub-period), Aquarius L3 (first sub-sub-period).
+    const aqL1 = timeline.periods[0]!;
+    expect(aqL1.sign).toBe('aquarius');
+    const aqL2 = aqL1.subPeriods![0]!;
+    expect(aqL2.sign).toBe('aquarius');
+    const aqL3 = aqL2.subPeriods![0]!;
+    expect(aqL3.sign).toBe('aquarius');
+
+    const l4 = aqL3.subPeriods!;
+    expect(l4).toHaveLength(21);
+
+    // First 12 entries cycle Aquarius → Capricorn
+    expect(l4[0]!.sign).toBe('aquarius');
+    expect(l4[11]!.sign).toBe('capricorn');
+
+    // Entry 13: LB jump from Capricorn to Leo (opposite of Aquarius parent)
+    expect(l4[12]!.sign).toBe('leo');
+    expect(l4[12]!.isLoosingOfBond).toBe(true);
+    expect(l4[12]!.loosingSign).toBe('leo');
+
+    // Exactly one LB total
+    expect(l4.filter(p => p.isLoosingOfBond)).toHaveLength(1);
+
+    // After the jump, descent continues zodiacally from Leo
+    expect(l4[13]!.sign).toBe('virgo');
+    expect(l4[14]!.sign).toBe('libra');
+
+    // Sub-periods cover the parent exactly
+    expect(l4[0]!.startDate.getTime()).toBe(aqL3.startDate.getTime());
+    expect(l4[l4.length - 1]!.endDate.getTime()).toBe(aqL3.endDate.getTime());
   });
 
   it('should have sequential dates without gaps', () => {

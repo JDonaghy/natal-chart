@@ -1,6 +1,13 @@
 # Natal Chart Development Plan
 
-## Current Sprint: v0.19.2 Zodiacal Releasing Fixes
+## Current Sprint: v0.19.3 Zodiacal Releasing — Loosing of the Bond
+**Status**: Complete
+**Last Updated**: 2026-05-25
+
+### 🩹 Bug Fixes (v0.19.3)
+- [x] **Implement proper Loosing of the Bond jump** — Previous LB code marked every sub-period whose own sign had > 17 minor years as LB, but never altered the descent. Classical ZR (Vettius Valens / Brennan): when a parent period whose sign has > 17 minor years is subdivided, the descent runs zodiacally for one full 12-sign cycle and then *jumps* to the sign opposite the parent, continuing zodiacally from there. Exactly one jump per parent; L1 has no parent and never carries an LB marker. `generatePeriodsForLevel` now takes `parentSignIndex` + `parentBaseYears`, performs the jump after entry 12, and marks the post-jump period as LB. Fixes the Saint Paul 1968 chart that was showing a wrong current L4 (Cancer instead of Aquarius) because the un-jumped descent placed Cancer at the current date instead of Aquarius.
+
+## Previous Sprint: v0.19.2 Zodiacal Releasing Fixes
 **Status**: Complete
 **Last Updated**: 2026-05-25
 
