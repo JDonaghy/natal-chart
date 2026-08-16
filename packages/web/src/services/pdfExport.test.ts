@@ -156,12 +156,15 @@ describe('generateChartPdf', () => {
     skippedPlanets: [],
   };
 
-  // The full 15-planet point set pdfExport's glyph maps support (see
-  // getPlanetGlyph in pdfExport.ts) — combined with ASC/MC this yields the
-  // n=17 aspect grid that used to blow through the page margins.
+  // The full 16-member Planet union (packages/core/src/types.ts) — this is
+  // what calculateChart() actually produces in real usage (it always
+  // includes both 'fortune' and 'spirit'). Combined with ASC/MC this yields
+  // the n=18 aspect grid that lands exactly on the 15mm page margins
+  // (cellSize = min(12, 180/18) = 10, gridTotalWidth = 180mm), which is the
+  // real-world boundary case, not the n=17 the fixture used to exercise.
   const ALL_PLANETS: Planet[] = [
     'sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus',
-    'neptune', 'pluto', 'northNode', 'chiron', 'lilith', 'fortune', 'vertex',
+    'neptune', 'pluto', 'northNode', 'chiron', 'lilith', 'fortune', 'spirit', 'vertex',
   ];
 
   const fullChartData: ChartResult = {
