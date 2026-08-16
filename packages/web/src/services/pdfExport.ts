@@ -117,6 +117,58 @@ const FONTS = {
   tableBody: 10,
 };
 
+/** Shared left/right page margin (mm) used by every section on every page. */
+const PAGE_MARGIN = 15;
+
+/** Rough height (mm) of an autoTable header row + one body row at the default
+ *  table font sizes/padding used in this document — enough to guarantee the
+ *  first row of a table lands on the same page as its section heading. */
+const MIN_TABLE_FIRST_ROW_HEIGHT = 24;
+
+/**
+ * Ensure `requiredHeight` mm of vertical space remains below `y` before the
+ * footer (`pageHeight - PAGE_MARGIN`); if it doesn't, start a fresh page.
+ * Returns the y position to draw at (either the original `y`, or the top
+ * margin of a new page).
+ *
+ * This is the single guard every section heading routes through so a heading
+ * can never be emitted on a page that has no room for its content.
+ */
+function ensureSpace(doc: jsPDF, y: number, requiredHeight: number): number {
+  const pageHeight = doc.internal.pageSize.height;
+  if (y + requiredHeight > pageHeight - PAGE_MARGIN) {
+    doc.addPage();
+    return 20;
+  }
+  return y;
+}
+
+/**
+ * Start a section: reserve space for the heading plus `requiredHeight` mm of
+ * content (breaking to a new page first if it won't fit), then draw the
+ * heading. Returns the y position for the section's content.
+ */
+function startSection(doc: jsPDF, title: string, y: number, requiredHeight: number, color: string): number {
+  y = ensureSpace(doc, y, FONTS.heading * 0.4 + requiredHeight);
+
+  doc.setFontSize(FONTS.heading);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(color);
+  doc.text(title, PAGE_MARGIN, y);
+  return y + 8;
+}
+
+/**
+ * Compute the left x of a grid of `contentWidth` mm centred within the page,
+ * clamped so it never sits inside either the left or right margin — i.e. the
+ * grid's left edge is never left of `margin` and its right edge is never
+ * right of `pageWidth - margin`.
+ */
+function clampCenteredX(pageWidth: number, contentWidth: number, margin: number): number {
+  const centered = (pageWidth - contentWidth) / 2;
+  return Math.min(Math.max(centered, margin), Math.max(margin, pageWidth - margin - contentWidth));
+}
+
 /**
  * Generate a PDF of the natal chart with all data
  */
@@ -204,7 +256,7 @@ export async function generateChartPdf(
  */
 function addHeader(doc: jsPDF, birthData: ExtendedBirthData, transitData?: TransitResult | undefined, transitLocation?: TransitLocation | undefined): number {
   const pageWidth = doc.internal.pageSize.width;
-  const margin = 15;
+  const margin = PAGE_MARGIN;
   const hasTransits = !!transitData;
 
   // Background color for header
@@ -293,22 +345,18 @@ async function addChartWheel(
   glyphSet?: string | undefined,
 ): Promise<number> {
   const pageWidth = doc.internal.pageSize.width;
-  const margin = 15;
-  let y = startY;
-  
-  // Add section title
-  doc.setFontSize(FONTS.heading);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.darkGold);
-  doc.text('Chart Wheel', margin, y);
-  y += 8;
-  
+  const margin = PAGE_MARGIN;
+  const targetSize = pageWidth - (2 * margin);
+
+  // Add section title (breaks to a fresh page first if the wheel won't fit
+  // underneath it on the current page)
+  let y = startSection(doc, 'Chart Wheel', startY, targetSize, COLORS.darkGold);
+
   try {
     // Create a temporary container for the SVG
     const svgClone = svgElement.cloneNode(true) as SVGElement;
     
     // Set SVG size for PDF (fit within page width)
-    const targetSize = pageWidth - (2 * margin);
     svgClone.setAttribute('width', `${targetSize}mm`);
     svgClone.setAttribute('height', `${targetSize}mm`);
     svgClone.setAttribute('viewBox', `0 0 800 800`);
@@ -378,16 +426,10 @@ async function addChartWheel(
  * Add planet positions table
  */
 function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number, fontLoaded: boolean = false): number {
-  const margin = 15;
-  let y = startY;
-  
-  // Add section title
-  doc.setFontSize(FONTS.heading);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.darkGold);
-  doc.text('Planet Positions', margin, y);
-  y += 8;
-  
+  // Add section title (breaks to a fresh page first if there isn't room for
+  // the heading plus at least the table header + first data row underneath it)
+  let y = startSection(doc, 'Planet Positions', startY, MIN_TABLE_FIRST_ROW_HEIGHT, COLORS.darkGold);
+
   // Set font for table based on font availability
   if (fontLoaded) {
     doc.setFont('DejaVuSans', 'normal');
@@ -482,21 +524,7 @@ function findAspectByLongitude(lon1: number, lon2: number, isLuminary: boolean):
  * Add aspect grid (triangular aspectarian) to PDF
  */
 function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, fontLoaded: boolean = false): number {
-  const margin = 15;
-  let y = startY;
-
-  // Check if we need a new page
-  if (y > doc.internal.pageSize.height - 80) {
-    doc.addPage();
-    y = 20;
-  }
-
-  // Section title
-  doc.setFontSize(FONTS.heading);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.darkGold);
-  doc.text('Aspects', margin, y);
-  y += 8;
+  const margin = PAGE_MARGIN;
 
   // Build grid points: planets + ASC + MC
   interface GridPoint { key: string; label: string; glyph: string; longitude: number }
@@ -529,19 +557,20 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
   }
 
   const n = points.length;
-  const cellSize = 12; // mm
-  const gridTotalWidth = n * cellSize;
-
-  // Center the grid
   const pageWidth = doc.internal.pageSize.width;
-  const gridX = (pageWidth - gridTotalWidth) / 2;
-
-  // Check if grid fits on current page, otherwise add page
+  // Shrink cells (rather than centering an oversized grid) so the grid never
+  // exceeds the same 15mm margins every other section uses.
+  const cellSize = Math.min(12, (pageWidth - 2 * margin) / n); // mm
+  const gridTotalWidth = n * cellSize;
   const gridHeight = n * cellSize;
-  if (y + gridHeight > doc.internal.pageSize.height - 20) {
-    doc.addPage();
-    y = 20;
-  }
+  const gridX = clampCenteredX(pageWidth, gridTotalWidth, margin);
+  // Scale glyph/orb font sizes down with the cell so text keeps clear of
+  // the (now possibly smaller) cell borders.
+  const fontScale = cellSize / 12;
+
+  // Section title (breaks to a fresh page first if the whole grid — heading
+  // included — won't fit on the current page)
+  let y = startSection(doc, 'Aspects', startY, gridHeight, COLORS.darkGold);
 
   const useGlyphFont = fontLoaded;
 
@@ -560,13 +589,13 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
 
         if (useGlyphFont && points[row]!.key !== 'asc' && points[row]!.key !== 'mc') {
           doc.setFont('DejaVuSans', 'normal');
-          doc.setFontSize(9);
+          doc.setFontSize(9 * fontScale);
         } else {
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(7);
+          doc.setFontSize(7 * fontScale);
         }
         doc.setTextColor(COLORS.text);
-        doc.text(points[row]!.glyph, cx + cellSize / 2, cy + cellSize / 2 + 1.5, { align: 'center' });
+        doc.text(points[row]!.glyph, cx + cellSize / 2, cy + cellSize / 2 + 1.5 * fontScale, { align: 'center' });
       } else {
         // Lower-left triangle: aspect cell
         const asp = getGridAspect(points[row]!.key, points[col]!.key);
@@ -588,14 +617,14 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
           } else {
             doc.setFont('helvetica', 'normal');
           }
-          doc.setFontSize(8);
-          doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, cy + cellSize / 2 - 0.5, { align: 'center' });
+          doc.setFontSize(8 * fontScale);
+          doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, cy + cellSize / 2 - 0.5 * fontScale, { align: 'center' });
 
           // Orb value below
           doc.setTextColor('#888888');
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(5);
-          doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, cy + cellSize / 2 + 3.5, { align: 'center' });
+          doc.setFontSize(5 * fontScale);
+          doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, cy + cellSize / 2 + 3.5 * fontScale, { align: 'center' });
         }
       }
     }
@@ -609,27 +638,16 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
  * Add transit planet positions table
  */
 function addTransitPlanetTable(doc: jsPDF, transitData: TransitResult, startY: number, fontLoaded: boolean = false): number {
-  const margin = 15;
-  let y = startY;
-
-  // Check if we need a new page
-  if (y > doc.internal.pageSize.height - 60) {
-    doc.addPage();
-    y = 20;
-  }
-
-  doc.setFontSize(FONTS.heading);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.accent);
-
   const transitDate = new Date(transitData.dateTimeUtc);
   const transitDateStr = transitDate.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
-  doc.text(`Transit Positions (${transitDateStr})`, margin, y);
-  y += 8;
+
+  // Add section title (breaks to a fresh page first if there isn't room for
+  // the heading plus at least the table header + first data row underneath it)
+  let y = startSection(doc, `Transit Positions (${transitDateStr})`, startY, MIN_TABLE_FIRST_ROW_HEIGHT, COLORS.accent);
 
   if (fontLoaded) {
     doc.setFont('DejaVuSans', 'normal');
@@ -712,21 +730,7 @@ function addTransitAspectGrid(
   startY: number,
   fontLoaded: boolean = false,
 ): number {
-  const margin = 15;
-  let y = startY;
-
-  // Check if we need a new page
-  if (y > doc.internal.pageSize.height - 80) {
-    doc.addPage();
-    y = 20;
-  }
-
-  // Section title
-  doc.setFontSize(FONTS.heading);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.accent);
-  doc.text('Natal-to-Transit Aspects', margin, y);
-  y += 8;
+  const margin = PAGE_MARGIN;
 
   // Build natal rows: planets + ASC + MC
   interface GridRow { key: string; glyph: string; longitude: number; isText: boolean }
@@ -774,15 +778,13 @@ function addTransitAspectGrid(
   const gridTotalW = rowHeaderW + nCols * cellSize;
   const gridTotalH = headerCellH + nRows * cellSize;
 
-  // Center the grid
+  // Center the grid, clamped within the shared page margins
   const pageWidth = doc.internal.pageSize.width;
-  const gridX = Math.max(margin, (pageWidth - gridTotalW) / 2);
+  const gridX = clampCenteredX(pageWidth, gridTotalW, margin);
 
-  // Check if grid fits on page
-  if (y + gridTotalH > doc.internal.pageSize.height - 20) {
-    doc.addPage();
-    y = 20;
-  }
+  // Section title (breaks to a fresh page first if the whole grid — heading
+  // included — won't fit on the current page)
+  let y = startSection(doc, 'Natal-to-Transit Aspects', startY, gridTotalH, COLORS.accent);
 
   // Draw column headers (transit planets)
   for (let c = 0; c < nCols; c++) {
@@ -960,20 +962,11 @@ function addReleasingSummary(
   startY: number,
   fontLoaded: boolean = false,
 ): number {
-  const margin = 15;
-  let y = startY;
+  const margin = PAGE_MARGIN;
 
-  // Check if we need a new page
-  if (y > doc.internal.pageSize.height - 80) {
-    doc.addPage();
-    y = 20;
-  }
-
-  doc.setFontSize(FONTS.heading);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(COLORS.darkGold);
-  doc.text('Zodiacal Releasing', margin, y);
-  y += 6;
+  // Add section title (breaks to a fresh page first if there isn't room for
+  // the heading plus the lot-info line and at least the first table row)
+  let y = startSection(doc, 'Zodiacal Releasing', startY, 6 + MIN_TABLE_FIRST_ROW_HEIGHT, COLORS.darkGold);
 
   // Lot info
   doc.setFontSize(FONTS.small);
