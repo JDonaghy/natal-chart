@@ -1,0 +1,61 @@
+name: CI
+
+# Runs on pull_request so that every PR reports a check.  This is load-bearing:
+# GitHub Actions workflows existing at all means "CI is expected", so a PR that
+# reports zero checks is treated as a failure to verify rather than as "no CI
+# configured" -- which blocks the merge.  Deploy.yml only fires on push/tags and
+# so never produces a PR check on its own.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Deliberately NOT the "pages" group used by deploy.yml -- sharing it would let a
+# PR run cancel an in-flight production deploy.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build & test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Must precede everything below: the downstream packages consume core's
+      # emitted .d.ts, and without it they fail with "Cannot find module
+      # '@natal-chart/core'" plus a cascade of bogus implicit-any errors.
+      - name: Build core
+        run: pnpm --filter @natal-chart/core build
+
+      # mobile is excluded on purpose -- it is a placeholder package with no
+      # tsconfig inputs, so `tsc --noEmit` there just prints its usage and fails.
+      - name: Typecheck
+        run: pnpm --filter @natal-chart/core --filter @natal-chart/web --filter @natal-chart/worker typecheck
+
+      # worker is excluded on purpose -- it currently ships no test files, and
+      # vitest treats that as an error.  Re-add it once it has tests.
+      - name: Test
+        run: pnpm --filter @natal-chart/core --filter @natal-chart/web test
+
+      # Catches a broken Pages build before merge; deploy.yml only builds after.
+      # No VITE_* secrets here -- they are injected at deploy time, and the build
+      # does not require them to succeed.
+      - name: Build web
+        run: pnpm --filter @natal-chart/web build
