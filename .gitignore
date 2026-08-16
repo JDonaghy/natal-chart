@@ -10,6 +10,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Tamagui generated build-cache config
+.tamagui/
+
 # Environment variables
 .env
 .env.local

@@ -149,6 +149,11 @@ function ensureSpace(doc: jsPDF, y: number, requiredHeight: number): number {
  * heading. Returns the y position for the section's content.
  */
 function startSection(doc: jsPDF, title: string, y: number, requiredHeight: number, color: string): number {
+  // The heading itself needs roughly 0.4x its font size in vertical space
+  // below the text baseline before the content starts (jsPDF draws text with
+  // `y` at the baseline, and startSection returns `y + 8` for the content —
+  // 0.4 * FONTS.heading (16pt) ≈ 6.4mm, comfortably under that 8mm step so
+  // the heading's descenders never crowd the first row of content).
   y = ensureSpace(doc, y, FONTS.heading * 0.4 + requiredHeight);
 
   doc.setFontSize(FONTS.heading);
@@ -769,17 +774,25 @@ function addTransitAspectGrid(
   }
 
   const useGlyphFont = fontLoaded;
-  const cellSize = 10; // mm
-  const headerCellH = 14; // mm - taller for sign+degree header
-  const rowHeaderW = 10; // mm
-
+  const maxCellSize = 10; // mm
+  const pageWidth = doc.internal.pageSize.width;
+  // Shrink the cells (rather than only clamping the x offset) so the grid's
+  // total width — row-header column plus one column per transit planet —
+  // never exceeds the same 15mm side margins used everywhere else. This
+  // mirrors the fix applied to the natal aspect grid in addAspectTable().
   const nRows = natalRows.length;
   const nCols = transitCols.length;
+  const cellSize = Math.min(maxCellSize, (pageWidth - 2 * margin) / (nCols + 1));
+  const rowHeaderW = cellSize;
+  const headerCellH = 14 * (cellSize / maxCellSize); // mm - taller for sign+degree header
+  // Scale glyph/orb/label font sizes down with the cell so text keeps clear
+  // of the (now possibly smaller) cell borders.
+  const fontScale = cellSize / maxCellSize;
+
   const gridTotalW = rowHeaderW + nCols * cellSize;
   const gridTotalH = headerCellH + nRows * cellSize;
 
   // Center the grid, clamped within the shared page margins
-  const pageWidth = doc.internal.pageSize.width;
   const gridX = clampCenteredX(pageWidth, gridTotalW, margin);
 
   // Section title (breaks to a fresh page first if the whole grid — heading
@@ -802,9 +815,9 @@ function addTransitAspectGrid(
     } else {
       doc.setFont('helvetica', 'bold');
     }
-    doc.setFontSize(7);
+    doc.setFontSize(7 * fontScale);
     doc.setTextColor(COLORS.text);
-    doc.text(col.glyph, cx + cellSize / 2, cy + 4.5, { align: 'center' });
+    doc.text(col.glyph, cx + cellSize / 2, cy + 4.5 * fontScale, { align: 'center' });
 
     // Sign glyph + degree
     if (useGlyphFont) {
@@ -812,12 +825,12 @@ function addTransitAspectGrid(
     } else {
       doc.setFont('helvetica', 'normal');
     }
-    doc.setFontSize(4.5);
+    doc.setFontSize(4.5 * fontScale);
     doc.setTextColor('#888888');
-    doc.text(col.signGlyph, cx + cellSize / 2, cy + 8, { align: 'center' });
+    doc.text(col.signGlyph, cx + cellSize / 2, cy + 8 * fontScale, { align: 'center' });
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(4);
-    doc.text(`${col.deg}°${col.min.toString().padStart(2, '0')}`, cx + cellSize / 2, cy + 11.5, { align: 'center' });
+    doc.setFontSize(4 * fontScale);
+    doc.text(`${col.deg}°${col.min.toString().padStart(2, '0')}`, cx + cellSize / 2, cy + 11.5 * fontScale, { align: 'center' });
   }
 
   // Empty corner cell
@@ -839,13 +852,13 @@ function addTransitAspectGrid(
 
     if (useGlyphFont && !row.isText) {
       doc.setFont('DejaVuSans', 'normal');
-      doc.setFontSize(7);
+      doc.setFontSize(7 * fontScale);
     } else {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(5.5);
+      doc.setFontSize(5.5 * fontScale);
     }
     doc.setTextColor(COLORS.text);
-    doc.text(row.glyph, gridX + rowHeaderW / 2, ry + cellSize / 2 + 1.5, { align: 'center' });
+    doc.text(row.glyph, gridX + rowHeaderW / 2, ry + cellSize / 2 + 1.5 * fontScale, { align: 'center' });
 
     // Aspect cells
     for (let c = 0; c < nCols; c++) {
@@ -870,14 +883,14 @@ function addTransitAspectGrid(
         } else {
           doc.setFont('helvetica', 'normal');
         }
-        doc.setFontSize(6);
-        doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, ry + cellSize / 2 - 0.5, { align: 'center' });
+        doc.setFontSize(6 * fontScale);
+        doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, ry + cellSize / 2 - 0.5 * fontScale, { align: 'center' });
 
         // Orb
         doc.setTextColor('#888888');
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(3.5);
-        doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, ry + cellSize / 2 + 3, { align: 'center' });
+        doc.setFontSize(3.5 * fontScale);
+        doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, ry + cellSize / 2 + 3 * fontScale, { align: 'center' });
       }
     }
   }
