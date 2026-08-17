@@ -1,15 +1,10 @@
 import React, { useContext } from 'react';
-import { getPlanetPath, getPlanetGlyphRotation, getSignPathByIndex, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { getPlanetPath, getPlanetGlyphRotation, getSignPathByIndex, DEFAULT_GLYPH_SET, SIGN_ORDER } from '../utils/astro-glyph-paths';
 import { ChartContext } from '../contexts/ChartContext';
 import { getPlanetGlyph, getSignGlyph, getPlanetGlyphScale } from '../utils/symbols';
 
 // Unicode glyphs render visually smaller than SVG paths at the same nominal size.
 const TEXT_FALLBACK_SCALE = 1.4;
-
-const SIGN_NAMES = [
-  'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
-  'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
-];
 
 
 function useGlyphPrefs(): { glyphSet: string; overrides: Record<string, string> } {
@@ -86,7 +81,7 @@ export const SignGlyphIcon: React.FC<{
 }> = ({ sign, size = '1em', color = 'currentColor', style, glyphSet }) => {
   const prefs = useGlyphPrefs();
   const activeSet = glyphSet ?? prefs.glyphSet;
-  const index = SIGN_NAMES.indexOf(sign);
+  const index = (SIGN_ORDER as readonly string[]).indexOf(sign);
   const pathData = index >= 0 ? getSignPathByIndex(index, activeSet, prefs.overrides) : undefined;
   if (pathData) {
     return (
