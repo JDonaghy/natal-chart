@@ -15,6 +15,7 @@ import {
   type SavedChartSummary,
   type SavedChart,
 } from '../services/savedCharts';
+import { formatLocationDisplay } from '../utils/formatLocation';
 import '../App.css';
 
 const WORKER_URL = import.meta.env.VITE_WORKER_API_URL || '';
@@ -321,7 +322,7 @@ export const SavedChartsView: React.FC = () => {
 
             {/* Meta row */}
             <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.5rem' }}>
-              {chart.city && <span>{chart.city} &middot; </span>}
+              {chart.city && <span>{formatLocationDisplay(chart.city)} &middot; </span>}
               {new Date(chart.savedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
             </div>
 
