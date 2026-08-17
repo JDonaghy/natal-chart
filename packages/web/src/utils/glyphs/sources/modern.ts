@@ -49,7 +49,14 @@ const planets: Record<string, GlyphPath> = {
   },
   chiron: {
     d: 'M259 9L259 9Q164 9 108-22Q51-52 51-100L51-100Q51-144 100-173Q149-202 231-208L231-208L231-727L287-727L287-581L394-688L430-652L287-510L430-368L394-332L287-438L287-208Q370-202 419-173Q467-143 467-100L467-100Q467-54 411-23Q354 9 259 9ZM259-47L259-47Q328-47 362-62L362-62Q397-77 397-100L397-100Q397-125 361-138L361-138Q322-152 259-152L259-152Q223-152 197-149Q171-145 154-137L154-137Q121-121 121-100L121-100Q121-77 156-62L156-62Q191-47 259-47Z',
-    viewBox: '51 -727 416 736',
+    // The path above tightly fills 51,-727 → 467,9 (416×736) with zero
+    // margin. GlyphIcon.tsx zooms in on planets with PLANET_GLYPH_SCALE > 1
+    // (chiron is 1.25) by shrinking the declared viewBox — with no margin to
+    // spare, that crops the glyph top and bottom everywhere GlyphIcon renders
+    // it (issue #32). Pad the declared box by exactly the 1.25 scale factor,
+    // centered on the tight bounds, so the post-shrink viewBox lands back on
+    // the tight fit instead of cropping into it.
+    viewBox: '-1 -819 520 920',
   },
 };
 
