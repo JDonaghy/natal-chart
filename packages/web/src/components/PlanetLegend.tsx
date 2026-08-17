@@ -82,7 +82,6 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
   const borderLight = `1px solid ${th.accent}33`;  // accent at ~20% opacity
   const borderMed = `1px solid ${th.accent}66`;    // accent at ~40% opacity
   const isTransit = !!transitData;
-  const houseSystemLabel = 'Placidus';
 
   if (isTransit) {
     return (
@@ -162,7 +161,7 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
 
         {/* Houses: angles with birth + transit */}
         <h4 style={{ ...headerStyle, marginTop: '0.5rem' }}>
-          Houses <span style={{ fontWeight: 'normal', fontSize: '0.72rem', color: '#888' }}>({houseSystemLabel})</span>
+          Houses
         </h4>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
@@ -229,7 +228,7 @@ export const PlanetLegend: React.FC<PlanetLegendProps> = ({
       </table>
 
       <h4 style={{ ...headerStyle, marginTop: '0.5rem' }}>
-        Houses <span style={{ fontWeight: 'normal', fontSize: '0.72rem', color: '#888' }}>({houseSystemLabel})</span>
+        Houses
       </h4>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '0.25rem' }}>
         <tbody>

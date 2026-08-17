@@ -178,3 +178,83 @@ describe('ChartWheel — angle degrees (issue #28)', () => {
     expect(texts.filter((t) => t === "7°15\u2032")).toHaveLength(2);
   });
 });
+
+// --- issue #32: round 2 fixes ------------------------------------------------
+
+describe('ChartWheel — angle degree text matches planet degree text (issue #32)', () => {
+  it('renders every angle degree line at the same font size and color', () => {
+    const { container } = render(<ChartWheel chartData={nodeChartData} size={400} />);
+    const degreeTexts = Array.from(container.querySelectorAll('text')).filter(
+      (el) => /^\d+°\d{2}\u2032$/.test(el.textContent ?? ''),
+    );
+    // ASC, DSC, MC, IC each render one degree line.
+    expect(degreeTexts).toHaveLength(4);
+
+    const fontSizes = new Set(degreeTexts.map((el) => el.getAttribute('font-size')));
+    const colors = new Set(degreeTexts.map((el) => el.getAttribute('fill')));
+    expect(fontSizes.size).toBe(1);
+    expect(colors.size).toBe(1);
+
+    // Matches the planet-band degree text's own size (not a fixed literal),
+    // computed the same way ChartWheel derives it for the planet band.
+    const bandH = 400 * 0.5 * 0.76 - 400 * 0.5 * 0.46; // R.planetOuter - R.planetInner at size=400
+    const expectedFontSize = Math.max(bandH * 0.156, 400 * 0.0264);
+    expect(Number(fontSizes.values().next().value)).toBeCloseTo(expectedFontSize, 5);
+  });
+});
+
+describe('ChartWheel — no center dot (issue #32)', () => {
+  it('does not render a lone center-dot circle', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} />);
+    const center = 200;
+    const dot = Array.from(container.querySelectorAll('circle')).find(
+      (el) =>
+        Number(el.getAttribute('cx')) === center &&
+        Number(el.getAttribute('cy')) === center &&
+        Number(el.getAttribute('r')) < 5,
+    );
+    expect(dot).toBeUndefined();
+  });
+});
+
+describe('ChartWheel — thicker, more vibrant planet glyphs (issue #32)', () => {
+  it('outlines every planet glyph path with a stroke matching its fill', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} />);
+    const sunPath = container.querySelector('path[data-planet="sun"]');
+    expect(sunPath).not.toBeNull();
+    expect(sunPath!.getAttribute('stroke')).toBe(sunPath!.getAttribute('fill'));
+    expect(Number(sunPath!.getAttribute('stroke-width'))).toBeGreaterThan(0);
+  });
+
+  it('darkens sun and moon at least as much as the reference Mars color', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} />);
+    const sunPath = container.querySelector('path[data-planet="sun"]')!;
+    const moonPath = container.querySelector('path[data-planet="moon"]')!;
+    // The old, too-light colors this issue replaces.
+    expect(sunPath.getAttribute('fill')).not.toBe('#DAA520');
+    expect(moonPath.getAttribute('fill')).not.toBe('#8C8C8C');
+  });
+});
+
+describe('ChartWheel — transit outer ring goes white (issue #32)', () => {
+  const transitData = {
+    planets: mockChartData.planets,
+    aspects: [],
+    dateTimeUtc: new Date('2024-01-01T00:00:00Z'),
+  };
+
+  it('keeps the natal wheel themed while whiting out the transit band', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} transitData={transitData} size={400} />);
+    const backgrounds = Array.from(container.querySelectorAll('[data-role="wheel-background"]'));
+    expect(backgrounds.length).toBeGreaterThanOrEqual(2);
+    const fills = backgrounds.map((el) => el.getAttribute('fill'));
+    expect(fills).toContain('#FFFFFF');
+  });
+
+  it('renders a single themed background circle when there is no transit data', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} />);
+    const backgrounds = Array.from(container.querySelectorAll('[data-role="wheel-background"]'));
+    const fills = backgrounds.map((el) => el.getAttribute('fill'));
+    expect(fills).not.toContain('#FFFFFF');
+  });
+});

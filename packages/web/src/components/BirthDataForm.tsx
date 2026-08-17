@@ -5,6 +5,7 @@ import { type GeocodeResult, isRealGeocodingAvailable, isCoordinateQuery, parseC
 import { CitySearch } from './CitySearch';
 import { convertToUTC, convertFromUTC } from '../services/timezone';
 import { useResponsive } from '../hooks/useResponsive';
+import { formatLocationDisplay } from '../utils/formatLocation';
 import '../App.css';
 
 // Get IANA timezone list from the runtime
@@ -396,7 +397,7 @@ export const BirthDataForm: React.FC = () => {
             {/* Selected coordinates */}
             <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.5rem' }}>
               Coordinates: {formatCoordinate(formData.latitude, true)}, {formatCoordinate(formData.longitude, false)}
-              {formData.city && !isCoordinatesInput && ` • ${formData.city}`}
+              {formData.city && !isCoordinatesInput && ` • ${formatLocationDisplay(formData.city)}`}
               <span style={{
                 display: 'inline-block',
                 marginLeft: '0.5rem',

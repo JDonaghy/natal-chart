@@ -11,6 +11,19 @@ const LABEL_FONT = "'Cormorant', serif";
 // smaller than SVG path glyphs (which fill sz×sz). Bump the font size to match.
 const TEXT_FALLBACK_SCALE = 1.4;
 
+// "Faux-bold" the planet glyphs: outline each filled path in its own fill
+// color so every planet reads at Mars's visual weight (issue #32) — Mars's
+// path already carries built-in geometric heft (packages/web/src/utils/
+// glyphs/sources/classic.ts), the rest don't, and there's no other
+// stroke-width knob on these filled paths to turn. `vector-effect:
+// non-scaling-stroke` keeps the stroke width in final screen units
+// regardless of the glyph's own transform/scale, so it stays proportional
+// to `sz` (the caller's requested render size) instead of the glyph's
+// internal viewBox units.
+const GLYPH_STROKE_FACTOR = 0.05;
+// Sun and Moon read thin/light next to Mars even with the base boost.
+const GLYPH_EXTRA_STROKE: Record<string, number> = { sun: 1.9, moon: 1.9 };
+
 /** Render a planet glyph as an SVG <path> (font-independent), falling back to <text> */
 function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAULT_GLYPH_SET, overrides }: {
   planet: string; x: number; y: number; sz: number; fill: string;
@@ -24,7 +37,15 @@ function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAU
   if (pathData) {
     const t = glyphTransform(pathData.viewBox, x, y, sz);
     const fullT = totalRotate ? `rotate(${totalRotate} ${x} ${y}) ${t}` : t;
-    return <path data-planet={planet} d={pathData.d} fill={fill} transform={fullT} fillOpacity={opacity} />;
+    const strokeWidth = sz * GLYPH_STROKE_FACTOR * (GLYPH_EXTRA_STROKE[planet] ?? 1);
+    return (
+      <path
+        data-planet={planet} d={pathData.d} fill={fill} fillOpacity={opacity}
+        stroke={fill} strokeOpacity={opacity} strokeWidth={strokeWidth}
+        strokeLinejoin="round" vectorEffect="non-scaling-stroke"
+        transform={fullT}
+      />
+    );
   }
   // Fallback to text for glyphs with no path data at all (Vertex's "Vx").
   // The per-planet scale factor applies here too, or the fallback renders a
@@ -63,10 +84,18 @@ function formatDegreeInSign(longitude: number): string {
   return `${deg}°${min.toString().padStart(2, '0')}′`;
 }
 
-/** An angle marker (ASC/DSC/MC/IC): its name, with its degree underneath. */
-function AngleLabel({ x, y, label, longitude, fontSize, color, fontWeight }: {
+/**
+ * An angle marker (ASC/DSC/MC/IC): its name, with its degree underneath.
+ *
+ * The degree line always renders at `degreeFontSize`/`degreeColor` — callers
+ * pass the same size/color used for the planet-band degree text so all four
+ * angles read exactly as legibly as the planets (issue #32). `fontSize`/
+ * `color`/`fontWeight` style only the name ("ASC" etc.) above it.
+ */
+function AngleLabel({ x, y, label, longitude, fontSize, color, fontWeight, degreeFontSize, degreeColor }: {
   x: number; y: number; label: string; longitude: number;
   fontSize: number; color: string; fontWeight: string;
+  degreeFontSize: number; degreeColor: string;
 }): React.ReactElement {
   return (
     <>
@@ -80,7 +109,7 @@ function AngleLabel({ x, y, label, longitude, fontSize, color, fontWeight }: {
       <text
         x={x} y={y + fontSize * 0.75}
         textAnchor="middle" dominantBaseline="middle"
-        fontSize={fontSize * 0.72} fill={color} fontFamily={LABEL_FONT}
+        fontSize={degreeFontSize} fill={degreeColor} fontFamily={LABEL_FONT}
       >
         {formatDegreeInSign(longitude)}
       </text>
@@ -159,25 +188,29 @@ const spreadLabels = (longitudes: number[], minSep: number): number[] => {
   return positions;
 };
 
-// Planet colors (traditional astrology associations)
+// Planet colors (traditional astrology associations).
+// Darkened/saturated across the board (issue #32) so every glyph reads at
+// Mars's (#CC4422) visual weight instead of looking thin and pale beside it.
+// Sun and Moon needed it doubliest — goldenrod and silver-gray were the two
+// lightest, least saturated entries in the old map.
 const PLANET_COLORS: Record<string, string> = {
-  sun: '#DAA520',     // goldenrod
-  moon: '#8C8C8C',    // silver
-  mercury: '#E0A030',  // bright amber
-  venus: '#5BAF4E',   // green
-  mars: '#CC4422',    // bright red-brown
-  jupiter: '#3D7AB8', // bright blue
-  saturn: '#888888',  // medium gray
-  uranus: '#2DB5B5',  // bright teal
-  neptune: '#4A6DD8', // bright blue
-  pluto: '#9055A2',   // bright purple
-  northNode: '#8868B8', // bright lavender
-  southNode: '#8868B8', // bright lavender (South Node mirrors the North)
-  chiron: '#C08030',  // bright bronze
-  lilith: '#4A3728',  // dark brown
+  sun: '#C9971A',     // deep saturated amber-gold (was goldenrod #DAA520)
+  moon: '#5C6B78',    // dark slate blue-gray (was flat silver #8C8C8C)
+  mercury: '#E0951C',  // amber
+  venus: '#3E9142',   // deep green
+  mars: '#CC4422',    // bright red-brown (reference weight)
+  jupiter: '#2B6CB0', // deep blue
+  saturn: '#5A5248',  // dark warm slate (was flat medium gray #888888)
+  uranus: '#1DA8A8',  // deep teal
+  neptune: '#3658C4', // deep blue
+  pluto: '#7D3F94',   // deep purple
+  northNode: '#6F4FA0', // deep lavender
+  southNode: '#6F4FA0', // deep lavender (South Node mirrors the North)
+  chiron: '#A8661C',  // deep bronze
+  lilith: '#3D2A1C',  // deep brown
   fortune: '#B8860B', // goldenrod
-  spirit: '#7B68EE',  // medium slate blue
-  vertex: '#4A6B8A',  // slate blue
+  spirit: '#5F4BC4',  // deep slate blue
+  vertex: '#33526E',  // deep slate blue
 };
 
 // Aspect colors — warm palette
@@ -282,16 +315,22 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
     const hasTransits = !!transitData;
 
     // Ring radii (as fractions of size/2)
-    // When transits active, shrink the inner chart to make room for an outer transit band
+    // When transits active, shrink the inner chart to make room for an outer transit band.
+    // The planet band (planetInner→planetOuter) is widened by moving planetInner/
+    // houseNumOuter inward and shrinking the blank center circle (houseNumInner) to
+    // make room — more radial space for the stacked degree/sign/minute text, at the
+    // cost of a bit of empty space at the chart's center (issue #32). planetOuter/
+    // zodiacInner/outer are left untouched so the planet band still seams cleanly
+    // against the zodiac ring.
     const R = hasTransits ? {
       transitOuter: center * 0.96,     // outermost transit planet labels
       transitInner: center * 0.78,     // inner edge of transit band (tick base)
       outer: center * 0.76,            // outer edge of zodiac ring
       zodiacInner: center * 0.62,      // inner edge of zodiac ring
       planetOuter: center * 0.62,      // natal planet band outer
-      planetInner: center * 0.42,      // natal planet band inner
-      houseNumOuter: center * 0.42,
-      houseNumInner: center * 0.36,
+      planetInner: center * 0.36,      // natal planet band inner (was 0.42)
+      houseNumOuter: center * 0.36,
+      houseNumInner: center * 0.28,    // was 0.36
       houseInner: center * 0.0,
     } : {
       transitOuter: center * 0.95,
@@ -299,22 +338,31 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       outer: center * 0.95,
       zodiacInner: center * 0.76,
       planetOuter: center * 0.76,
-      planetInner: center * 0.52,
-      houseNumOuter: center * 0.52,
-      houseNumInner: center * 0.44,
+      planetInner: center * 0.46,      // was 0.52
+      houseNumOuter: center * 0.46,
+      houseNumInner: center * 0.36,    // was 0.44
       houseInner: center * 0.0,
     };
     // Derived: tick zone on inner edge of merged ring, glyphs in outer portion
     const ringWidth = R.outer - R.zodiacInner;
     // When bounds/decans enabled, redistribute the zodiac ring:
-    //   30% sign glyphs | 25% ticks | 22.5% bounds | 22.5% decans
+    //   38% sign glyphs | 20% ticks | 21% bounds | 21% decans
+    // (was 30% | 25% | 22.5% | 22.5% — sign glyphs get more room so they
+    // shrink less in Bounds/Decans mode, issue #32; bounds/decans split the
+    // remainder evenly via boundsMid below, so only these two literals move)
     // Normal: 63% sign glyphs | 37% ticks
     const tickEdge = showBoundsDecans
-      ? R.outer - ringWidth * 0.30   // glyphs get top 30%
+      ? R.outer - ringWidth * 0.38   // glyphs get top 38%
       : R.zodiacInner + ringWidth * 0.37;
     const tickBase = showBoundsDecans
-      ? tickEdge - ringWidth * 0.25  // ticks get 25%
+      ? tickEdge - ringWidth * 0.20  // ticks get 20%
       : R.zodiacInner;
+
+    // Shared with the planet-band degree text below (same formula, same
+    // bandH) so ASC/DSC/MC/IC's degree line renders at an identical size
+    // (issue #32).
+    const planetBandH = R.planetOuter - R.planetInner;
+    const angleDegreeFontSize = Math.max(planetBandH * 0.156, size * 0.0264) * fontScale;
 
     // Convert ecliptic longitude to angle in SVG coordinate system
     // rotationAnchor at 9 o'clock (180°), counter-clockwise
@@ -446,7 +494,19 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           </defs>
 
           {/* === BACKGROUND === */}
-          <circle data-role="wheel-background" cx={center} cy={center} r={(hasTransits ? R.transitOuter : R.outer) + 4} fill={t.background} />
+          {/* The outermost ring (transiting planets) goes white for contrast
+              against them (issue #32) — only that band, not the whole wheel:
+              layer a white disc out to the transit band's outer edge, then
+              paint the themed background back over the natal wheel's area
+              on top of it. Natal-only charts keep the single themed circle. */}
+          {hasTransits ? (
+            <>
+              <circle data-role="wheel-background" cx={center} cy={center} r={R.transitOuter + 4} fill="#FFFFFF" />
+              <circle data-role="wheel-background" cx={center} cy={center} r={R.transitInner + 1} fill={t.background} />
+            </>
+          ) : (
+            <circle data-role="wheel-background" cx={center} cy={center} r={R.outer + 4} fill={t.background} />
+          )}
 
           {/* === ZODIAC SIGN SEGMENTS (alternating fills, merged ring) === */}
           {Array.from({ length: 12 }).map((_, i) => {
@@ -738,11 +798,13 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   x={ascLabel.x} y={ascLabel.y} label="ASC"
                   longitude={chartData.angles.ascendant}
                   fontSize={size * 0.022} color="#8B4513" fontWeight="bold"
+                  degreeFontSize={angleDegreeFontSize} degreeColor={t.text}
                 />
                 <AngleLabel
                   x={dscLabel.x} y={dscLabel.y} label="DSC"
                   longitude={chartData.angles.descendant}
-                  fontSize={size * 0.018} color="#a08060" fontWeight="500"
+                  fontSize={size * 0.022} color="#8B4513" fontWeight="bold"
+                  degreeFontSize={angleDegreeFontSize} degreeColor={t.text}
                 />
               </g>
             );
@@ -765,11 +827,13 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   x={mcLabel.x} y={mcLabel.y} label="MC"
                   longitude={chartData.angles.midheaven}
                   fontSize={size * 0.022} color="#4A6B8A" fontWeight="bold"
+                  degreeFontSize={angleDegreeFontSize} degreeColor={t.text}
                 />
                 <AngleLabel
                   x={icLabel.x} y={icLabel.y} label="IC"
                   longitude={chartData.angles.imumCoeli}
-                  fontSize={size * 0.018} color="#7A9AB0" fontWeight="500"
+                  fontSize={size * 0.022} color="#4A6B8A" fontWeight="bold"
+                  degreeFontSize={angleDegreeFontSize} degreeColor={t.text}
                 />
               </g>
             );
@@ -1070,9 +1134,6 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
               );
             });
           })()}
-
-          {/* Center dot */}
-          <circle cx={center} cy={center} r={size * 0.006} fill={t.wheelLines} />
         </svg>
       </div>
     );
