@@ -1,5 +1,10 @@
 name: Deploy to GitHub Pages
 
+# GitHub Pages is no longer where the app lives -- production moved to
+# Cloudflare Pages (JDonaghy/coord-portal#107) so PRs can get their own UAT
+# preview URLs, which GitHub Pages can't do. This workflow now just publishes
+# a redirect stub, so old bookmarks/links to the .github.io URL still land
+# somewhere useful instead of going dark or serving a stale build.
 on:
   push:
     branches: [main]
@@ -15,49 +20,40 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
+env:
+  CLOUDFLARE_PAGES_URL: https://natal-chart-3ew.pages.dev/
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 8
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-      
-      - name: Install dependencies
-        run: pnpm install
-      
-      - name: Build core package
-        run: pnpm --filter core build
-      
-      - name: Build web package
-        env:
-          VITE_GEOCODING_API_URL: ${{ secrets.VITE_GEOCODING_API_URL }}
-          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
-          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
-          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
-          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
-          VITE_WORKER_API_URL: ${{ secrets.VITE_WORKER_API_URL }}
-          VITE_FIREBASE_AUTH0_PROVIDER_ID: ${{ secrets.VITE_FIREBASE_AUTH0_PROVIDER_ID }}
-        run: pnpm --filter web build
-      
+      - name: Build redirect page
+        run: |
+          mkdir -p dist
+          cat > dist/index.html <<HTML
+          <!doctype html>
+          <html lang="en">
+            <head>
+              <meta charset="utf-8">
+              <title>Natal Chart</title>
+              <link rel="canonical" href="${CLOUDFLARE_PAGES_URL}">
+              <meta http-equiv="refresh" content="0; url=${CLOUDFLARE_PAGES_URL}">
+              <script>location.replace('${CLOUDFLARE_PAGES_URL}');</script>
+            </head>
+            <body>
+              <p>Natal Chart has moved. If you are not redirected, <a href="${CLOUDFLARE_PAGES_URL}">click here</a>.</p>
+            </body>
+          </html>
+          HTML
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './packages/web/dist'
-      
+          path: './dist'
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
