@@ -1,5 +1,24 @@
 import type { ChartResult, TransitResult } from '@natal-chart/core';
 
+/**
+ * Symbol/name helpers are re-exported from `./symbols`, which is the single
+ * shared symbol table used by both the screen and the PDF export. Do not
+ * redefine any of these maps here or anywhere else — see the module docstring
+ * in `./symbols.ts` for why (issue #28).
+ */
+export {
+  getPlanetGlyph,
+  getSignGlyph,
+  getAspectGlyph,
+  getAspectColor,
+  getPlanetGlyphScale,
+  formatPlanetName,
+  formatSignName,
+  formatAspectName,
+  PTOLEMAIC_ASPECTS,
+  PTOLEMAIC_ASPECT_SET,
+} from './symbols';
+
 const MODERN_PLANETS = new Set(['uranus', 'neptune', 'pluto', 'chiron', 'lilith', 'vertex', 'spirit']);
 
 export function filterTraditionalPlanets(chartData: ChartResult): ChartResult {
@@ -17,94 +36,4 @@ export function filterTraditionalTransits(transitData: TransitResult): TransitRe
     a => !MODERN_PLANETS.has(a.natalPlanet) && !MODERN_PLANETS.has(a.transitPlanet),
   );
   return { ...transitData, planets, aspects };
-}
-
-export function getPlanetGlyph(planet: string): string {
-  const glyphs: Record<string, string> = {
-    sun: '☉',
-    moon: '☽',
-    mercury: '☿',
-    venus: '♀',
-    mars: '♂',
-    jupiter: '♃',
-    saturn: '♄',
-    uranus: '♅',
-    neptune: '♆',
-    pluto: '⯓',
-    northNode: '☊',
-    chiron: '⚷',
-    lilith: '⚸',
-    fortune: '⊗',
-    spirit: 'Φ',
-    vertex: 'Vx',
-  };
-  return glyphs[planet] || '○';
-}
-
-export function getSignGlyph(sign: string): string {
-  const glyphs: Record<string, string> = {
-    aries: '♈',
-    taurus: '♉',
-    gemini: '♊',
-    cancer: '♋',
-    leo: '♌',
-    virgo: '♍',
-    libra: '♎',
-    scorpio: '♏',
-    sagittarius: '♐',
-    capricorn: '♑',
-    aquarius: '♒',
-    pisces: '♓',
-  };
-  return glyphs[sign] || '○';
-}
-
-export function formatPlanetName(planet: string): string {
-  const names: Record<string, string> = {
-    northNode: 'North Node',
-    lilith: 'Lilith',
-    fortune: 'Fortune',
-    spirit: 'Spirit',
-    vertex: 'Vertex',
-  };
-  if (names[planet]) return names[planet];
-  return planet.charAt(0).toUpperCase() + planet.slice(1).replace(/([A-Z])/g, ' $1');
-}
-
-export function formatSignName(sign: string): string {
-  return sign.charAt(0).toUpperCase() + sign.slice(1);
-}
-
-export function formatAspectName(aspect: string): string {
-  return aspect.charAt(0).toUpperCase() + aspect.slice(1);
-}
-
-export function getAspectGlyph(aspectType: string): string {
-  const glyphs: Record<string, string> = {
-    conjunction: '☌',
-    opposition: '☍',
-    trine: '△',
-    square: '□',
-    sextile: '⚹',
-    quincunx: '⚻',
-    semiSextile: '⚺',
-    parallel: '∥',
-    contraparallel: '⊥',
-  };
-  return glyphs[aspectType] || '•';
-}
-
-export function getAspectColor(aspectType: string): string {
-  const colors: Record<string, string> = {
-    conjunction: '#333333',
-    opposition: '#cc3333',
-    trine: '#3366cc',
-    square: '#cc6633',
-    sextile: '#33cc66',
-    quincunx: '#9966cc',
-    semiSextile: '#66cccc',
-    parallel: '#cc3399',
-    contraparallel: '#cc3399',
-  };
-  return colors[aspectType] || '#333333';
 }

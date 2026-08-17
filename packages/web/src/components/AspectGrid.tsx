@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ChartResult, Aspect, AspectType } from '@natal-chart/core';
-import { getAspectGlyph, getAspectColor } from '../utils/chart-helpers';
+import { getAspectGlyph, getAspectColor, PTOLEMAIC_ASPECT_SET } from '../utils/chart-helpers';
 import { PlanetGlyphIcon } from './GlyphIcon';
 import { useResponsive } from '../hooks/useResponsive';
 
@@ -20,8 +20,6 @@ const ASPECT_DEFS: { angle: number; orb: number; type: AspectType }[] = [
   { angle: 120, orb: 6, type: 'trine' },
   { angle: 90, orb: 6, type: 'square' },
   { angle: 60, orb: 4, type: 'sextile' },
-  { angle: 150, orb: 3, type: 'quincunx' },
-  { angle: 30, orb: 2, type: 'semiSextile' },
 ];
 
 /** Wider orbs for luminary (Sun/Moon) aspects */
@@ -31,20 +29,15 @@ const LUMINARY_ASPECT_DEFS: { angle: number; orb: number; type: AspectType }[] =
   { angle: 120, orb: 10, type: 'trine' },
   { angle: 90, orb: 10, type: 'square' },
   { angle: 60, orb: 6, type: 'sextile' },
-  { angle: 150, orb: 3, type: 'quincunx' },
-  { angle: 30, orb: 2, type: 'semiSextile' },
 ];
 
 const LUMINARIES = new Set(['sun', 'moon']);
 
-const PTOLEMAIC_TYPES = new Set<AspectType>(['conjunction', 'opposition', 'trine', 'square', 'sextile']);
-
 interface AspectGridProps {
   chartData: ChartResult;
-  ptolemaicOnly?: boolean | undefined;
 }
 
-/** Build a lookup: key "p1|p2" → array of aspects (longitude + parallel) */
+/** Build a lookup: key "p1|p2" → aspects for that pair (order-insensitive) */
 function buildAspectMap(aspects: Aspect[]): Map<string, Aspect[]> {
   const map = new Map<string, Aspect[]>();
   for (const a of aspects) {
@@ -79,7 +72,7 @@ interface CellAspect {
 const CELL_SIZE_DESKTOP = 34;
 const CELL_SIZE_MOBILE = 28;
 
-export const AspectGrid: React.FC<AspectGridProps> = ({ chartData, ptolemaicOnly = true }) => {
+export const AspectGrid: React.FC<AspectGridProps> = ({ chartData }) => {
   const { isMobile } = useResponsive();
   const CELL_SIZE = isMobile ? CELL_SIZE_MOBILE : CELL_SIZE_DESKTOP;
   // Build ordered list of grid points
@@ -104,26 +97,22 @@ export const AspectGrid: React.FC<AspectGridProps> = ({ chartData, ptolemaicOnly
     lonMap.set(pt.key, pt.longitude);
   }
 
-  /** Get all aspects between two grid points */
+  /** Get all aspects between two grid points (Ptolemaic only — see #28) */
   function getGridAspects(keyA: string, keyB: string): CellAspect[] {
-    let result: CellAspect[];
-    // Pre-computed aspects (includes longitude + parallel/contraparallel)
+    // Pre-computed planet-to-planet aspects
     const existing = aspectMap.get(`${keyA}|${keyB}`);
     if (existing && existing.length > 0) {
-      result = existing.map(a => ({ type: a.type, orb: a.orb }));
-    } else {
-      // Calculate for ASC/MC pairs (longitude only)
-      const lonA = lonMap.get(keyA);
-      const lonB = lonMap.get(keyB);
-      if (lonA === undefined || lonB === undefined) return [];
-      const isLuminary = LUMINARIES.has(keyA) || LUMINARIES.has(keyB);
-      const asp = findAspect(lonA, lonB, isLuminary);
-      result = asp ? [asp] : [];
+      return existing
+        .filter(a => PTOLEMAIC_ASPECT_SET.has(a.type))
+        .map(a => ({ type: a.type, orb: a.orb }));
     }
-    if (ptolemaicOnly) {
-      result = result.filter(a => PTOLEMAIC_TYPES.has(a.type));
-    }
-    return result;
+    // Calculate for ASC/MC pairs (longitude only)
+    const lonA = lonMap.get(keyA);
+    const lonB = lonMap.get(keyB);
+    if (lonA === undefined || lonB === undefined) return [];
+    const isLuminary = LUMINARIES.has(keyA) || LUMINARIES.has(keyB);
+    const asp = findAspect(lonA, lonB, isLuminary);
+    return asp ? [asp] : [];
   }
 
   const n = points.length;
@@ -282,11 +271,7 @@ export const AspectGrid: React.FC<AspectGridProps> = ({ chartData, ptolemaicOnly
           ['trine', 'Trine (120°)'],
           ['square', 'Square (90°)'],
           ['sextile', 'Sextile (60°)'],
-          ['quincunx', 'Quincunx (150°)'],
-          ['semiSextile', 'Semi-sextile (30°)'],
-          ['parallel', 'Parallel'],
-          ['contraparallel', 'Contraparallel'],
-        ] as const).filter(([key]) => !ptolemaicOnly || PTOLEMAIC_TYPES.has(key as AspectType)).map(([key, label]) => (
+        ] as const).map(([key, label]) => (
           <span key={key} style={{ whiteSpace: 'nowrap' }}>
             <span className="glyph" style={{ color: getAspectColor(key), fontSize: '0.95rem', marginRight: '0.2rem' }}>
               {getAspectGlyph(key)}

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { generateChartPdf } from './pdfExport';
+import * as pdfExport from './pdfExport';
+import * as chartHelpers from '../utils/chart-helpers';
 import type { ChartResult, BirthData, Planet } from '@natal-chart/core';
+import type { ExtendedBirthData } from '../contexts/ChartContext';
 
 // Track which "page" each recorded draw call landed on, so tests can assert
 // that a section heading and its content land together (issue #26).
@@ -92,6 +95,8 @@ const mockJsPDF = vi.fn(() => {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
+  mockGetFontList.mockReturnValue({});
   currentPage = 1;
   callLog = [];
   // Setup jsPDF constructor mock
@@ -114,6 +119,24 @@ beforeEach(() => {
   mockGetFontList.mockClear();
   mockExistsFileInVFS.mockClear();
 });
+
+/**
+ * Make `addFontToDoc()` succeed, so the export takes its glyph-bearing path:
+ * planet/sign symbols are only prefixed onto table cells when DejaVuSans
+ * actually loaded. Without this the tables render names with no symbols at all
+ * and any assertion about symbols is vacuous.
+ */
+function withGlyphFontLoaded(): void {
+  mockGetFontList.mockReturnValue({
+    DejaVuSans: ['normal', 'bold'],
+    Cormorant: ['normal', 'bold'],
+  });
+  vi.stubGlobal('fetch', vi.fn(async () => ({
+    ok: true,
+    status: 200,
+    blob: async () => new Blob([new Uint8Array([0, 1, 0, 0])], { type: 'font/ttf' }),
+  })));
+}
 
 describe('generateChartPdf', () => {
   const mockChartData: ChartResult = {
@@ -298,6 +321,146 @@ describe('generateChartPdf', () => {
     );
     expect(firstGridRect).toBeDefined();
     expect(firstGridRect!.page).toBe(aspectsHeadingCall!.page);
+  });
+
+  // -------------------------------------------------------------------------
+  // Issue #28: the PDF used to keep its own copy of the symbol maps, and the
+  // two drifted. These are the regression guards for that.
+  // -------------------------------------------------------------------------
+
+  it('resolves symbols through the same functions the screen uses', () => {
+    // Identity, not equality: if anyone reintroduces a PDF-local copy of these
+    // maps — even one that happens to agree today — this fails immediately.
+    expect(pdfExport.getPlanetGlyph).toBe(chartHelpers.getPlanetGlyph);
+    expect(pdfExport.getSignGlyph).toBe(chartHelpers.getSignGlyph);
+    expect(pdfExport.getAspectGlyph).toBe(chartHelpers.getAspectGlyph);
+    expect(pdfExport.getAspectColor).toBe(chartHelpers.getAspectColor);
+    expect(pdfExport.formatPlanetName).toBe(chartHelpers.formatPlanetName);
+    expect(pdfExport.formatSignName).toBe(chartHelpers.formatSignName);
+  });
+
+  it('agrees with the screen on every planet and sign symbol', () => {
+    const points = [...ALL_PLANETS, 'southNode'];
+    for (const planet of points) {
+      expect(pdfExport.getPlanetGlyph(planet), planet).toBe(chartHelpers.getPlanetGlyph(planet));
+    }
+    for (const sign of ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+      'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces']) {
+      expect(pdfExport.getSignGlyph(sign), sign).toBe(chartHelpers.getSignGlyph(sign));
+    }
+  });
+
+  it('draws Pluto in the aspect grid and on the positions page', async () => {
+    withGlyphFontLoaded();
+    await generateChartPdf(fullChartData, mockBirthData, mockSvgElement);
+
+    const plutoGlyph = chartHelpers.getPlanetGlyph('pluto');
+    expect(plutoGlyph).not.toBe('○');
+
+    // Positions page: the glyph is prefixed to the planet's name.
+    const planetTable = callLog.find(
+      (c) => c.method === 'autoTable' && (c.args[0] as AutoTableOptionsForTest | undefined)?.head?.[0]?.[0] === 'Planet'
+    );
+    const body = (planetTable!.args[0] as { body: string[][] }).body;
+    const plutoRow = body.find((row) => row[0]?.includes('Pluto'));
+    expect(plutoRow?.[0]).toBe(`${plutoGlyph} Pluto`);
+
+    // Aspect grid diagonal: Pluto sits between Neptune and the North Node.
+    const diagonalGlyphs = callLog
+      .filter((c) => c.method === 'text' && typeof c.args[0] === 'string')
+      .map((c) => c.args[0] as string);
+    const plutoAt = diagonalGlyphs.indexOf(plutoGlyph);
+    const neptuneAt = diagonalGlyphs.indexOf(chartHelpers.getPlanetGlyph('neptune'));
+    const nodeAt = diagonalGlyphs.indexOf(chartHelpers.getPlanetGlyph('northNode'));
+    expect(plutoAt).toBeGreaterThan(-1);
+    expect(neptuneAt).toBeLessThan(plutoAt);
+    expect(plutoAt).toBeLessThan(nodeAt);
+  });
+
+  it('draws the Lot of Spirit with its own symbol, not the unknown-point circle', async () => {
+    withGlyphFontLoaded();
+    await generateChartPdf(fullChartData, mockBirthData, mockSvgElement);
+
+    const planetTable = callLog.find(
+      (c) => c.method === 'autoTable' && (c.args[0] as AutoTableOptionsForTest | undefined)?.head?.[0]?.[0] === 'Planet'
+    );
+    const body = (planetTable!.args[0] as { body: string[][] }).body;
+    expect(body.find((row) => row[0]?.includes('Spirit'))?.[0]).toBe('Φ Spirit');
+    expect(body.find((row) => row[0]?.includes('Fortune'))?.[0]).toBe('⊗ Fortune');
+  });
+
+  it('gives the "House" and "Retro" columns room for a single-line header', async () => {
+    await generateChartPdf(fullChartData, mockBirthData, mockSvgElement);
+
+    const planetTable = callLog.find(
+      (c) => c.method === 'autoTable' && (c.args[0] as AutoTableOptionsForTest | undefined)?.head?.[0]?.[0] === 'Planet'
+    );
+    const options = planetTable!.args[0] as {
+      styles: { cellPadding: number };
+      columnStyles: Record<number, { cellWidth: number }>;
+    };
+
+    // "House" / "Retro" are 5 characters of 11pt bold Helvetica ≈ 11mm wide.
+    const HEADER_TEXT_MM = 11;
+    const padding = options.styles.cellPadding;
+    for (const col of [3, 4]) {
+      const textSpace = options.columnStyles[col]!.cellWidth - 2 * padding;
+      expect(textSpace, `column ${col}`).toBeGreaterThanOrEqual(HEADER_TEXT_MM);
+    }
+
+    // …and the table as a whole still fits inside the 15mm side margins.
+    const total = Object.values(options.columnStyles).reduce((sum, c) => sum + c.cellWidth, 0);
+    expect(total).toBeLessThanOrEqual(PAGE_SIZE_MM.width - 2 * 15);
+  });
+
+  it('prints the local birth time alongside UTC on the first page', async () => {
+    const withZone: ExtendedBirthData = {
+      ...mockBirthData,
+      timezone: 'America/New_York',
+    };
+    await generateChartPdf(mockChartData, withZone, mockSvgElement);
+
+    const birthLine = callLog.find(
+      (c) => c.method === 'text' && typeof c.args[0] === 'string' && (c.args[0] as string).startsWith('Birth:')
+    );
+    expect(birthLine).toBeDefined();
+    // 12:00 UTC on 1990-06-15 is 08:00 EDT.
+    expect(birthLine!.args[0]).toContain('08:00 AM local');
+    expect(birthLine!.args[0]).toContain('12:00 PM UTC');
+  });
+
+  it('falls back to UTC only when no birth timezone is known', async () => {
+    await generateChartPdf(mockChartData, mockBirthData, mockSvgElement);
+
+    const birthLine = callLog.find(
+      (c) => c.method === 'text' && typeof c.args[0] === 'string' && (c.args[0] as string).startsWith('Birth:')
+    );
+    expect(birthLine!.args[0]).toContain('12:00 PM UTC');
+    expect(birthLine!.args[0]).not.toContain('local');
+  });
+
+  it('prints the chart wheel on a white background with black house numbers', async () => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const background = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    background.setAttribute('data-role', 'wheel-background');
+    background.setAttribute('fill', 'url(#parchmentGradient)');
+    svg.appendChild(background);
+    const houseNumber = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    houseNumber.setAttribute('data-role', 'house-number');
+    houseNumber.setAttribute('fill', '#a09080');
+    svg.appendChild(houseNumber);
+    // A coloured element that must survive untouched — the wheel prints in
+    // colour, only the background and house numbers are forced.
+    const planet = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    planet.setAttribute('fill', '#DAA520');
+    svg.appendChild(planet);
+
+    await generateChartPdf(mockChartData, mockBirthData, svg);
+
+    const clone = mockSvg2pdf.mock.calls[0]![0] as SVGElement;
+    expect(clone.querySelector('[data-role="wheel-background"]')?.getAttribute('fill')).toBe('#ffffff');
+    expect(clone.querySelector('[data-role="house-number"]')?.getAttribute('fill')).toBe('#000000');
+    expect(clone.querySelector('path')?.getAttribute('fill')).toBe('#DAA520');
   });
 
   it('holds the natal aspect grid inside the 15mm side margins (issue #26 defect 2)', async () => {

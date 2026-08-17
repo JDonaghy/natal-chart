@@ -1,31 +1,20 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { ChartResult, TransitResult } from '@natal-chart/core';
-import { getPlanetPath, getSignPathByIndex, glyphTransform, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { getPlanetPath, getPlanetGlyphRotation, getSignPathByIndex, glyphTransform, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { getPlanetGlyph, getSignGlyph, getPlanetGlyphScale, PTOLEMAIC_ASPECT_SET } from '../utils/symbols';
 import { type ThemeColors, resolveTheme, signElementColors, DEFAULT_THEME_PREFERENCE } from '../utils/themes';
 import '../App.css';
 
-// Unicode astrological glyphs — fallback for glyphs without SVG path data
-const ZODIAC_UNICODE = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'];
-const PLANET_UNICODE: Record<string, string> = {
-  sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
-  jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '⯓',
-  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊗', spirit: 'Φ', vertex: 'Vx',
-};
+const SIGN_ORDER = [
+  'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
+  'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
+] as const;
+
 const GLYPH_FONT = "'DejaVuSans', sans-serif";
 const LABEL_FONT = "'Cormorant', serif";
 // Unicode text glyphs only fill ~70% of their em-box, so text fallbacks look
 // smaller than SVG path glyphs (which fill sz×sz). Bump the font size to match.
 const TEXT_FALLBACK_SCALE = 1.4;
-
-/** Per-planet visual scale factors to normalize apparent glyph sizes on the chart wheel.
- *  Glyphs with thin strokes or small visual weight get scaled up; compact ones scaled down. */
-const PLANET_GLYPH_SCALE: Record<string, number> = {
-  chiron: 1.25,
-  lilith: 1.2,
-  northNode: 1.15,
-  fortune: 1.1,
-  vertex: 0.65,
-};
 
 /** Render a planet glyph as an SVG <path> (font-independent), falling back to <text> */
 function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAULT_GLYPH_SET, overrides }: {
@@ -34,17 +23,22 @@ function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAU
   glyphSet?: string; overrides?: Record<string, string> | undefined;
 }): React.ReactElement {
   const pathData = getPlanetPath(planet, glyphSet, overrides);
+  // Derived glyphs (South Node = North Node turned 180°) carry their own
+  // rotation, on top of any rotation the caller asked for.
+  const totalRotate = (rotate ?? 0) + getPlanetGlyphRotation(planet);
   if (pathData) {
     const t = glyphTransform(pathData.viewBox, x, y, sz);
-    const fullT = rotate ? `rotate(${rotate} ${x} ${y}) ${t}` : t;
-    return <path d={pathData.d} fill={fill} transform={fullT} fillOpacity={opacity} />;
+    const fullT = totalRotate ? `rotate(${totalRotate} ${x} ${y}) ${t}` : t;
+    return <path data-planet={planet} d={pathData.d} fill={fill} transform={fullT} fillOpacity={opacity} />;
   }
-  // Fallback to text for glyphs without path data (lilith, fortune, spirit, vertex)
+  // Fallback to text for glyphs with no path data at all (Vertex's "Vx").
+  // The per-planet scale factor applies here too, or the fallback renders a
+  // full 1.4x larger than the path glyphs beside it (issue #28).
   return (
-    <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
+    <text data-planet={planet} x={x} y={y} textAnchor="middle" dominantBaseline="central"
       fontSize={sz * TEXT_FALLBACK_SCALE} fontFamily={GLYPH_FONT} fill={fill} fillOpacity={opacity}
-      transform={rotate ? `rotate(${rotate} ${x} ${y})` : undefined}>
-      {PLANET_UNICODE[planet] || '○'}
+      transform={totalRotate ? `rotate(${totalRotate} ${x} ${y})` : undefined}>
+      {getPlanetGlyph(planet)}
     </text>
   );
 }
@@ -61,8 +55,41 @@ function SignGlyph({ index, x, y, sz, fill, glyphSet = DEFAULT_GLYPH_SET, overri
   return (
     <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
       fontSize={sz} fontFamily={GLYPH_FONT} fill={fill}>
-      {ZODIAC_UNICODE[index]}
+      {getSignGlyph(SIGN_ORDER[index] ?? '')}
     </text>
+  );
+}
+
+/** Format an ecliptic longitude as degrees-and-minutes within its sign. */
+function formatDegreeInSign(longitude: number): string {
+  const inSign = ((longitude % 30) + 30) % 30;
+  const deg = Math.floor(inSign);
+  const min = Math.floor((inSign - deg) * 60);
+  return `${deg}°${min.toString().padStart(2, '0')}′`;
+}
+
+/** An angle marker (ASC/DSC/MC/IC): its name, with its degree underneath. */
+function AngleLabel({ x, y, label, longitude, fontSize, color, fontWeight }: {
+  x: number; y: number; label: string; longitude: number;
+  fontSize: number; color: string; fontWeight: string;
+}): React.ReactElement {
+  return (
+    <>
+      <text
+        x={x} y={y - fontSize * 0.35}
+        textAnchor="middle" dominantBaseline="middle"
+        fontSize={fontSize} fill={color} fontWeight={fontWeight}
+      >
+        {label}
+      </text>
+      <text
+        x={x} y={y + fontSize * 0.75}
+        textAnchor="middle" dominantBaseline="middle"
+        fontSize={fontSize * 0.72} fill={color} fontFamily={LABEL_FONT}
+      >
+        {formatDegreeInSign(longitude)}
+      </text>
+    </>
   );
 }
 
@@ -150,6 +177,7 @@ const PLANET_COLORS: Record<string, string> = {
   neptune: '#4A6DD8', // bright blue
   pluto: '#9055A2',   // bright purple
   northNode: '#8868B8', // bright lavender
+  southNode: '#8868B8', // bright lavender (South Node mirrors the North)
   chiron: '#C08030',  // bright bronze
   lilith: '#4A3728',  // dark brown
   fortune: '#B8860B', // goldenrod
@@ -164,12 +192,7 @@ const ASPECT_COLORS: Record<string, string> = {
   trine: '#3D7AB8',
   square: '#CC4422',
   sextile: '#3D7AB8',
-  quincunx: '#8868B8',
-  semiSextile: '#8868B8',
 };
-
-// Only Ptolemaic aspects shown on the chart wheel
-const PTOLEMAIC = new Set(['conjunction', 'opposition', 'trine', 'square', 'sextile']);
 
 // Default theme colors (used when no theme prop is provided)
 const DEFAULT_THEME = resolveTheme(DEFAULT_THEME_PREFERENCE);
@@ -208,6 +231,30 @@ const CHALDEAN_DECANS: [string, string, string][] = [
   /* Aquarius */    ['venus', 'mercury', 'moon'],
   /* Pisces */      ['saturn', 'jupiter', 'mars'],
 ];
+
+/** A point drawn in the wheel's planet band. Not every one is a calculated
+ *  body — the South Node is derived from the North Node. */
+interface WheelPoint {
+  planet: string;
+  longitude: number;
+  degree: number;
+  minute: number;
+  retrograde: boolean;
+}
+
+/** The South Node: the point exactly opposite the North Node. */
+function southNodeFrom(northNodeLongitude: number): WheelPoint {
+  const longitude = (northNodeLongitude + 180) % 360;
+  const inSign = longitude % 30;
+  const degree = Math.floor(inSign);
+  return {
+    planet: 'southNode',
+    longitude,
+    degree,
+    minute: Math.floor((inSign - degree) * 60),
+    retrograde: false,
+  };
+}
 
 interface ChartWheelProps {
   chartData: ChartResult;
@@ -314,7 +361,20 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
 
     // Collision avoidance for planet labels in the planet band
     const planetLayouts = React.useMemo(() => {
-      const sorted = [...chartData.planets].sort((a, b) => a.longitude - b.longitude);
+      const points: WheelPoint[] = chartData.planets.map(p => ({
+        planet: p.planet as string,
+        longitude: p.longitude,
+        degree: p.degree,
+        minute: p.minute,
+        retrograde: p.retrograde,
+      }));
+
+      // The South Node isn't a calculated body — it's the point exactly
+      // opposite the North Node, so derive and draw it here (issue #28).
+      const northNode = chartData.planets.find(p => p.planet === 'northNode');
+      if (northNode) points.push(southNodeFrom(northNode.longitude));
+
+      const sorted = points.sort((a, b) => a.longitude - b.longitude);
       if (sorted.length === 0) return [];
 
       const labelPositions = spreadLabels(sorted.map(p => p.longitude), 5);
@@ -391,7 +451,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           </defs>
 
           {/* === BACKGROUND === */}
-          <circle cx={center} cy={center} r={(hasTransits ? R.transitOuter : R.outer) + 4} fill={t.background} />
+          <circle data-role="wheel-background" cx={center} cy={center} r={(hasTransits ? R.transitOuter : R.outer) + 4} fill={t.background} />
 
           {/* === ZODIAC SIGN SEGMENTS (alternating fills, merged ring) === */}
           {Array.from({ length: 12 }).map((_, i) => {
@@ -468,7 +528,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           <circle cx={center} cy={center} r={R.outer} fill="none" stroke={t.wheelLines} strokeWidth={1.5} />
           <circle cx={center} cy={center} r={R.zodiacInner} fill="none" stroke={t.wheelLines} strokeWidth={1} />
           <circle cx={center} cy={center} r={R.houseNumOuter} fill="none" stroke={t.wheelLines} strokeWidth={1} />
-          <circle cx={center} cy={center} r={R.houseNumInner} fill="url(#parchmentGradient)" stroke={t.wheelLines} strokeWidth={1} />
+          <circle data-role="wheel-background" cx={center} cy={center} r={R.houseNumInner} fill="url(#parchmentGradient)" stroke={t.wheelLines} strokeWidth={1} />
 
           {/* === BOUNDS & DECANS RINGS (inside zodiac ring, below ticks) === */}
           {showBoundsDecans && (() => {
@@ -598,17 +658,20 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           })}
 
           {/* === HOUSE NUMBERS (in dedicated house number ring) === */}
+          {/* data-role lets the PDF exporter force these to black against the
+              white print background without touching the on-screen theme. */}
           {houseMiddles.map(({ house, longitude }) => {
             const pos = toPoint(longitude, (R.houseNumOuter + R.houseNumInner) / 2);
             return (
               <text
                 key={`house-num-${house}`}
+                data-role="house-number"
                 x={pos.x} y={pos.y}
                 textAnchor="middle"
                 dominantBaseline="middle"
                 fontSize={size * 0.022 * fontScale}
-                fill="#a09080"
-                fontWeight="500"
+                fill={t.text}
+                fontWeight="600"
                 fontFamily={LABEL_FONT}
               >
                 {house}
@@ -619,7 +682,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           {/* === ASPECT LINES (clipped to inner circle, Ptolemaic only, orb-weighted) === */}
           {showAspects && (
             <g clipPath="url(#aspectClip)">
-              {chartData.aspects.filter(a => PTOLEMAIC.has(a.type)).map((aspect, index) => {
+              {chartData.aspects.filter(a => PTOLEMAIC_ASPECT_SET.has(a.type)).map((aspect, index) => {
                 const p1 = chartData.planets.find(p => p.planet === aspect.planet1);
                 const p2 = chartData.planets.find(p => p.planet === aspect.planet2);
                 if (!p1 || !p2) return null;
@@ -661,6 +724,8 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
           )}
 
           {/* === ANGULAR AXES (ASC-DSC, MC-IC — clipped to exclude inner circle) === */}
+          {/* Each angle shows its degree underneath its name, the way the
+              planets in the planet band already do (issue #28). */}
           {/* ASC — DSC axis */}
           {(() => {
             const ascOuter = toPoint(chartData.angles.ascendant, R.planetOuter);
@@ -674,20 +739,16 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   x2={dscOuter.x} y2={dscOuter.y}
                   stroke="#8B4513" strokeWidth={3}
                 />
-                <text
-                  x={ascLabel.x} y={ascLabel.y}
-                  textAnchor="middle" dominantBaseline="middle"
-                  fontSize={size * 0.022} fill="#8B4513" fontWeight="bold"
-                >
-                  ASC
-                </text>
-                <text
-                  x={dscLabel.x} y={dscLabel.y}
-                  textAnchor="middle" dominantBaseline="middle"
-                  fontSize={size * 0.018} fill="#a08060" fontWeight="500"
-                >
-                  DSC
-                </text>
+                <AngleLabel
+                  x={ascLabel.x} y={ascLabel.y} label="ASC"
+                  longitude={chartData.angles.ascendant}
+                  fontSize={size * 0.022} color="#8B4513" fontWeight="bold"
+                />
+                <AngleLabel
+                  x={dscLabel.x} y={dscLabel.y} label="DSC"
+                  longitude={chartData.angles.descendant}
+                  fontSize={size * 0.018} color="#a08060" fontWeight="500"
+                />
               </g>
             );
           })()}
@@ -705,20 +766,16 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   x2={icOuter.x} y2={icOuter.y}
                   stroke="#4A6B8A" strokeWidth={3}
                 />
-                <text
-                  x={mcLabel.x} y={mcLabel.y}
-                  textAnchor="middle" dominantBaseline="middle"
-                  fontSize={size * 0.022} fill="#4A6B8A" fontWeight="bold"
-                >
-                  MC
-                </text>
-                <text
-                  x={icLabel.x} y={icLabel.y}
-                  textAnchor="middle" dominantBaseline="middle"
-                  fontSize={size * 0.018} fill="#7A9AB0" fontWeight="500"
-                >
-                  IC
-                </text>
+                <AngleLabel
+                  x={mcLabel.x} y={mcLabel.y} label="MC"
+                  longitude={chartData.angles.midheaven}
+                  fontSize={size * 0.022} color="#4A6B8A" fontWeight="bold"
+                />
+                <AngleLabel
+                  x={icLabel.x} y={icLabel.y} label="IC"
+                  longitude={chartData.angles.imumCoeli}
+                  fontSize={size * 0.018} color="#7A9AB0" fontWeight="500"
+                />
               </g>
             );
           })()}
@@ -768,7 +825,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 {/* Planet glyph */}
                 <PlanetGlyph
                   planet={planet.planet} x={glyphPos.x} y={glyphPos.y}
-                  sz={labelSz * (PLANET_GLYPH_SCALE[planet.planet] ?? 1)}
+                  sz={labelSz * getPlanetGlyphScale(planet.planet)}
                   fill={color}
                   glyphSet={glyphSet} overrides={glyphOverrides}
                 />
@@ -898,9 +955,8 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                     {/* Planet glyph */}
                     <PlanetGlyph
                       planet={planet.planet} x={glyphPos.x} y={glyphPos.y}
-                      sz={labelSz * (PLANET_GLYPH_SCALE[planet.planet] ?? 1)}
+                      sz={labelSz * getPlanetGlyphScale(planet.planet)}
                       fill={color}
-                      rotate={planet.planet === 'fortune' ? 45 : undefined}
                       glyphSet={glyphSet} overrides={glyphOverrides}
                     />
 
@@ -952,7 +1008,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
               {/* Transit aspect lines (natal-to-transit, Ptolemaic only, orb-weighted) */}
               {showAspects && (
                 <g clipPath="url(#aspectClip)">
-                  {transitData.aspects.filter(a => PTOLEMAIC.has(a.type)).map((aspect, index) => {
+                  {transitData.aspects.filter(a => PTOLEMAIC_ASPECT_SET.has(a.type)).map((aspect, index) => {
                     const natalP = chartData.planets.find(p => p.planet === aspect.natalPlanet);
                     const transitP = transitData.planets.find(p => p.planet === aspect.transitPlanet);
                     if (!natalP || !transitP) return null;

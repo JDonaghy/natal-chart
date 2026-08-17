@@ -36,15 +36,14 @@ const ZODIAC_SIGNS: ZodiacSign[] = [
   'sagittarius', 'capricorn', 'aquarius', 'pisces'
 ];
 
-// Aspect definitions: angle, orb (default), luminaryOrb (when Sun or Moon involved), type
+// Aspect definitions: angle, orb (default), luminaryOrb (when Sun or Moon involved), type.
+// Ptolemaic aspects only — see AspectType in types.ts (issue #28).
 const ASPECTS: { angle: number; orb: number; luminaryOrb: number; type: AspectType }[] = [
   { angle: 0, orb: 8, luminaryOrb: 10, type: 'conjunction' },
   { angle: 180, orb: 8, luminaryOrb: 10, type: 'opposition' },
   { angle: 120, orb: 6, luminaryOrb: 10, type: 'trine' },
   { angle: 90, orb: 6, luminaryOrb: 10, type: 'square' },
   { angle: 60, orb: 4, luminaryOrb: 6, type: 'sextile' },
-  { angle: 150, orb: 3, luminaryOrb: 3, type: 'quincunx' },
-  { angle: 30, orb: 2, luminaryOrb: 2, type: 'semiSextile' },
 ];
 
 const LUMINARIES: Set<Planet> = new Set(['sun', 'moon']);
@@ -63,9 +62,6 @@ function calcDeclination(longitude: number, latitude: number): number {
   );
   return decRad * 180 / Math.PI;
 }
-
-// Parallel/contraparallel orb (declination-based, 1° matches Astro-Seek default)
-const PARALLEL_ORB = 1.0;
 
 export async function calculateChart(data: BirthData): Promise<ChartResult> {
   console.log('calculateChart: starting calculation with data:', data);
@@ -515,41 +511,9 @@ export async function calculateChart(data: BirthData): Promise<ChartResult> {
     }
   }
 
-  // Calculate parallel/contraparallel aspects (declination-based)
-  for (let i = 0; i < planets.length; i++) {
-    for (let j = i + 1; j < planets.length; j++) {
-      const p1 = planets[i]!;
-      const p2 = planets[j]!;
-      // Skip calculated points without meaningful declination
-      if (p1.planet === 'fortune' || p2.planet === 'fortune' || p1.planet === 'spirit' || p2.planet === 'spirit') continue;
-      if (p1.planet === 'vertex' || p2.planet === 'vertex') continue;
-
-      const decDiff = Math.abs(p1.declination - p2.declination);
-      const decSum = Math.abs(p1.declination + p2.declination);
-
-      if (decDiff <= PARALLEL_ORB) {
-        aspects.push({
-          planet1: p1.planet,
-          planet2: p2.planet,
-          type: 'parallel',
-          angle: 0,
-          orb: decDiff,
-          applying: false,
-          exact: decDiff < 0.1,
-        });
-      } else if (decSum <= PARALLEL_ORB) {
-        aspects.push({
-          planet1: p1.planet,
-          planet2: p2.planet,
-          type: 'contraparallel',
-          angle: 180,
-          orb: decSum,
-          applying: false,
-          exact: decSum < 0.1,
-        });
-      }
-    }
-  }
+  // Parallel/contraparallel (declination-based) aspects were removed in issue
+  // #28 — the app displays the five Ptolemaic aspects only. `declination` is
+  // still calculated and returned on each PlanetPosition for other consumers.
 
   console.log('calculateChart: calculation complete, planets:', planets.length, 'aspects:', aspects.length, 'skipped:', skippedPlanets.length);
   return {
@@ -568,8 +532,6 @@ const TRANSIT_ASPECTS: { angle: number; orb: number; type: AspectType }[] = [
   { angle: 120, orb: 4, type: 'trine' },
   { angle: 90, orb: 4, type: 'square' },
   { angle: 60, orb: 3, type: 'sextile' },
-  { angle: 150, orb: 2, type: 'quincunx' },
-  { angle: 30, orb: 1.5, type: 'semiSextile' },
 ];
 
 interface SwissEphInstance {

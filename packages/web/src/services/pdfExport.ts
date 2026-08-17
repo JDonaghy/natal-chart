@@ -6,6 +6,29 @@ import type { ChartResult, TransitResult, ZRTimeline, LotResult } from '@natal-c
 import type { ExtendedBirthData, TransitLocation } from '../contexts/ChartContext';
 import { getSignPathByIndex, getPlanetPath, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
 import { type ThemeColors } from '../utils/themes';
+/**
+ * Symbols come from the one shared table the screen also uses. This file used
+ * to keep its own copy, and the two drifted (issue #28) — do not reintroduce a
+ * PDF-local symbol map. The re-export below is what `pdfExport.test.ts` uses
+ * to assert the PDF and the screen resolve symbols through the same functions.
+ */
+import {
+  getPlanetGlyph,
+  getSignGlyph,
+  getAspectGlyph,
+  getAspectColor,
+  formatPlanetName,
+  formatSignName,
+} from '../utils/symbols';
+
+export {
+  getPlanetGlyph,
+  getSignGlyph,
+  getAspectGlyph,
+  getAspectColor,
+  formatPlanetName,
+  formatSignName,
+};
 
 type JsPDFWithAutoTable = jsPDF & { lastAutoTable: { finalY: number } };
 
@@ -257,6 +280,26 @@ export async function generateChartPdf(
 }
 
 /**
+ * Format a date as a `{ date, time }` pair in the given IANA timezone,
+ * falling back to UTC when the zone is missing or not recognised by the
+ * runtime's Intl data.
+ */
+function formatInZone(date: Date, timeZone: string | undefined): { date: string; time: string } {
+  const zone = timeZone || 'UTC';
+  try {
+    return {
+      date: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: zone }),
+      time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: zone }),
+    };
+  } catch {
+    return {
+      date: date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }),
+      time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }),
+    };
+  }
+}
+
+/**
  * Add header with birth data summary
  */
 function addHeader(doc: jsPDF, birthData: ExtendedBirthData, transitData?: TransitResult | undefined, transitLocation?: TransitLocation | undefined): number {
@@ -280,16 +323,15 @@ function addHeader(doc: jsPDF, birthData: ExtendedBirthData, transitData?: Trans
   doc.setTextColor(COLORS.text);
 
   const birthDate = new Date(birthData.dateTimeUtc);
-  const dateStr = birthDate.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-  const timeStr = birthDate.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC',
-  }) + ' UTC';
+  // Show the local birth time alongside UTC (issue #28). The calendar date is
+  // rendered in the birth timezone too, so a birth that crosses midnight in
+  // UTC doesn't print a date that contradicts the local time beside it.
+  const local = formatInZone(birthDate, birthData.timezone);
+  const utcTime = formatInZone(birthDate, 'UTC').time;
+  const dateStr = local.date;
+  const timeStr = local.time && local.time !== utcTime
+    ? `${local.time} local (${utcTime} UTC)`
+    : `${utcTime} UTC`;
 
   doc.text(`Birth: ${dateStr} at ${timeStr}`, margin, 35);
 
@@ -369,6 +411,10 @@ async function addChartWheel(
     // Replace Unicode glyph <text> elements with SVG <path> elements
     // so svg2pdf renders them as native vectors (no font dependency).
     replaceGlyphTextWithPaths(svgClone, glyphSet);
+
+    // Print the wheel in colour on a white background with black house
+    // numbers (issue #28).
+    applyPrintColors(svgClone);
 
     // Normalize font-family on remaining text elements so svg2pdf can
     // match them to jsPDF-registered fonts (strip CSS quotes and fallbacks).
@@ -472,16 +518,20 @@ function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number, font
       fillColor: '#f9f5eb',
     },
     styles: {
-      cellPadding: 4,
+      cellPadding: 3,
       lineWidth: 0.5,
       lineColor: COLORS.gold,
     },
+    // "House" and "Retro" need ~11mm of text width at the 11pt header size;
+    // at the old 15mm width minus 2x4mm padding they only had 7mm and wrapped
+    // onto two lines (issue #28). Widened to 20mm with 3mm padding so each
+    // header sits on one line. Total 138mm still clears the 180mm content box.
     columnStyles: {
-      0: { cellWidth: 30, fontStyle: 'bold' },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: 15, halign: 'center' },
-      4: { cellWidth: 15, halign: 'center' },
+      0: { cellWidth: 36, fontStyle: 'bold' },
+      1: { cellWidth: 34 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 20, halign: 'center' },
+      4: { cellWidth: 20, halign: 'center' },
     },
   });
   
@@ -490,15 +540,34 @@ function addPlanetTable(doc: jsPDF, chartData: ChartResult, startY: number, font
   return y;
 }
 
-/** Aspect definitions for ASC/MC grid calculations */
+/**
+ * Aspect-grid type sizes, in points at the full 12mm cell size (they are
+ * multiplied by `fontScale = cellSize / maxCellSize` when the grid shrinks).
+ *
+ * These were sized to fill their boxes in issue #28 — the symbols previously
+ * floated in the middle of a mostly-empty cell. A 12mm cell is ~34pt tall, so
+ * a 14pt glyph with a ~10pt cap height uses roughly 60% of the cell height and
+ * still leaves room for the orb value underneath.
+ */
+const GRID_ASPECT_GLYPH_PT = 14;
+const GRID_ORB_PT = 6;
+const GRID_DIAGONAL_GLYPH_PT = 13;
+const GRID_DIAGONAL_TEXT_PT = 9;
+
+/** Same sizes for the narrower (10mm) natal-to-transit grid cells. */
+const TRANSIT_GRID_ASPECT_GLYPH_PT = 11;
+const TRANSIT_GRID_ORB_PT = 4.5;
+const TRANSIT_GRID_HEADER_GLYPH_PT = 9;
+const TRANSIT_GRID_HEADER_TEXT_PT = 7;
+
+/** Aspect definitions for ASC/MC grid calculations.
+ *  Ptolemaic aspects only — see AspectType in core/types.ts (issue #28). */
 const ASPECT_DEFS: { angle: number; orb: number; type: string }[] = [
   { angle: 0, orb: 8, type: 'conjunction' },
   { angle: 180, orb: 8, type: 'opposition' },
   { angle: 120, orb: 6, type: 'trine' },
   { angle: 90, orb: 6, type: 'square' },
   { angle: 60, orb: 4, type: 'sextile' },
-  { angle: 150, orb: 3, type: 'quincunx' },
-  { angle: 30, orb: 2, type: 'semiSextile' },
 ];
 
 const LUMINARY_ASPECT_DEFS: { angle: number; orb: number; type: string }[] = [
@@ -507,8 +576,6 @@ const LUMINARY_ASPECT_DEFS: { angle: number; orb: number; type: string }[] = [
   { angle: 120, orb: 10, type: 'trine' },
   { angle: 90, orb: 10, type: 'square' },
   { angle: 60, orb: 6, type: 'sextile' },
-  { angle: 150, orb: 3, type: 'quincunx' },
-  { angle: 30, orb: 2, type: 'semiSextile' },
 ];
 
 const PDF_LUMINARIES = new Set(['sun', 'moon']);
@@ -594,10 +661,10 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
 
         if (useGlyphFont && points[row]!.key !== 'asc' && points[row]!.key !== 'mc') {
           doc.setFont('DejaVuSans', 'normal');
-          doc.setFontSize(9 * fontScale);
+          doc.setFontSize(GRID_DIAGONAL_GLYPH_PT * fontScale);
         } else {
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(7 * fontScale);
+          doc.setFontSize(GRID_DIAGONAL_TEXT_PT * fontScale);
         }
         doc.setTextColor(COLORS.text);
         doc.text(points[row]!.glyph, cx + cellSize / 2, cy + cellSize / 2 + 1.5 * fontScale, { align: 'center' });
@@ -622,14 +689,14 @@ function addAspectTable(doc: jsPDF, chartData: ChartResult, startY: number, font
           } else {
             doc.setFont('helvetica', 'normal');
           }
-          doc.setFontSize(8 * fontScale);
-          doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, cy + cellSize / 2 - 0.5 * fontScale, { align: 'center' });
+          doc.setFontSize(GRID_ASPECT_GLYPH_PT * fontScale);
+          doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, cy + cellSize / 2 - 0.8 * fontScale, { align: 'center' });
 
           // Orb value below
           doc.setTextColor('#888888');
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(5 * fontScale);
-          doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, cy + cellSize / 2 + 3.5 * fontScale, { align: 'center' });
+          doc.setFontSize(GRID_ORB_PT * fontScale);
+          doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, cy + cellSize / 2 + 3.8 * fontScale, { align: 'center' });
         }
       }
     }
@@ -687,15 +754,15 @@ function addTransitPlanetTable(doc: jsPDF, transitData: TransitResult, startY: n
       fillColor: '#f0f7ff',
     },
     styles: {
-      cellPadding: 4,
+      cellPadding: 3,
       lineWidth: 0.5,
       lineColor: COLORS.accent,
     },
     columnStyles: {
-      0: { cellWidth: 30, fontStyle: 'bold' },
-      1: { cellWidth: 30 },
-      2: { cellWidth: 25 },
-      3: { cellWidth: 15, halign: 'center' },
+      0: { cellWidth: 36, fontStyle: 'bold' },
+      1: { cellWidth: 34 },
+      2: { cellWidth: 28 },
+      3: { cellWidth: 20, halign: 'center' },
     },
   });
 
@@ -703,15 +770,14 @@ function addTransitPlanetTable(doc: jsPDF, transitData: TransitResult, startY: n
   return y;
 }
 
-/** Transit aspect definitions (tighter orbs, matching calculator.ts) */
+/** Transit aspect definitions (tighter orbs, matching calculator.ts).
+ *  Ptolemaic aspects only — see AspectType in core/types.ts (issue #28). */
 const TRANSIT_ASPECT_DEFS_PDF: { angle: number; orb: number; type: string }[] = [
   { angle: 0, orb: 6, type: 'conjunction' },
   { angle: 180, orb: 6, type: 'opposition' },
   { angle: 120, orb: 4, type: 'trine' },
   { angle: 90, orb: 4, type: 'square' },
   { angle: 60, orb: 3, type: 'sextile' },
-  { angle: 150, orb: 2, type: 'quincunx' },
-  { angle: 30, orb: 1.5, type: 'semiSextile' },
 ];
 
 function findTransitAspectByLon(natalLon: number, transitLon: number): { type: string; orb: number } | null {
@@ -815,7 +881,7 @@ function addTransitAspectGrid(
     } else {
       doc.setFont('helvetica', 'bold');
     }
-    doc.setFontSize(7 * fontScale);
+    doc.setFontSize(TRANSIT_GRID_HEADER_GLYPH_PT * fontScale);
     doc.setTextColor(COLORS.text);
     doc.text(col.glyph, cx + cellSize / 2, cy + 4.5 * fontScale, { align: 'center' });
 
@@ -852,10 +918,10 @@ function addTransitAspectGrid(
 
     if (useGlyphFont && !row.isText) {
       doc.setFont('DejaVuSans', 'normal');
-      doc.setFontSize(7 * fontScale);
+      doc.setFontSize(TRANSIT_GRID_HEADER_GLYPH_PT * fontScale);
     } else {
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(5.5 * fontScale);
+      doc.setFontSize(TRANSIT_GRID_HEADER_TEXT_PT * fontScale);
     }
     doc.setTextColor(COLORS.text);
     doc.text(row.glyph, gridX + rowHeaderW / 2, ry + cellSize / 2 + 1.5 * fontScale, { align: 'center' });
@@ -883,20 +949,51 @@ function addTransitAspectGrid(
         } else {
           doc.setFont('helvetica', 'normal');
         }
-        doc.setFontSize(6 * fontScale);
-        doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, ry + cellSize / 2 - 0.5 * fontScale, { align: 'center' });
+        doc.setFontSize(TRANSIT_GRID_ASPECT_GLYPH_PT * fontScale);
+        doc.text(getAspectGlyph(asp.type), cx + cellSize / 2, ry + cellSize / 2 - 0.6 * fontScale, { align: 'center' });
 
         // Orb
         doc.setTextColor('#888888');
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(3.5 * fontScale);
-        doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, ry + cellSize / 2 + 3 * fontScale, { align: 'center' });
+        doc.setFontSize(TRANSIT_GRID_ORB_PT * fontScale);
+        doc.text(`${asp.orb.toFixed(1)}°`, cx + cellSize / 2, ry + cellSize / 2 + 3.2 * fontScale, { align: 'center' });
       }
     }
   }
 
   y = bodyY + nRows * cellSize + 10;
   return y;
+}
+
+/** Wheel background colour in the PDF. See applyPrintColors(). */
+const PRINT_BACKGROUND = '#ffffff';
+/** House-number colour in the PDF. See applyPrintColors(). */
+const PRINT_HOUSE_NUMBER = '#000000';
+
+/**
+ * Recolour the *cloned* wheel for print (issue #28).
+ *
+ * Everything else keeps its on-screen colour — planets, aspect lines, sign
+ * glyphs and zodiac segments all print in colour. Only two things change:
+ *
+ *  1. The background discs are flattened to solid white. On screen the inner
+ *     disc is filled with `url(#parchmentGradient)`; svg2pdf's gradient
+ *     support is unreliable and that is the most likely source of the
+ *     washed-out grey wheel the customer reported.
+ *  2. House numbers are forced to black, which the theme's body text colour
+ *     is not guaranteed to be (and definitely isn't under a dark theme).
+ *
+ * ASSUMPTION (issue #28, open question): the customer's note about the wheel
+ * background stops mid-sentence. We implement white background + black house
+ * numbers; if that's wrong, the two constants above are the whole change.
+ */
+function applyPrintColors(svg: SVGElement): void {
+  svg.querySelectorAll('[data-role="wheel-background"]').forEach((el) => {
+    el.setAttribute('fill', PRINT_BACKGROUND);
+  });
+  svg.querySelectorAll('[data-role="house-number"]').forEach((el) => {
+    el.setAttribute('fill', PRINT_HOUSE_NUMBER);
+  });
 }
 
 /**
@@ -1090,87 +1187,3 @@ function addFooter(doc: jsPDF): void {
   }
 }
 
-// Helper functions for formatting
-function getPlanetGlyph(planet: string): string {
-  const glyphs: Record<string, string> = {
-    sun: '☉',
-    moon: '☽',
-    mercury: '☿',
-    venus: '♀',
-    mars: '♂',
-    jupiter: '♃',
-    saturn: '♄',
-    uranus: '♅',
-    neptune: '♆',
-    pluto: '⯓',
-    northNode: '☊',
-    chiron: '⚷',
-    lilith: '⚸',
-    fortune: '⊕',
-    vertex: 'Vx',
-  };
-  return glyphs[planet] || '○';
-}
-
-function getSignGlyph(sign: string): string {
-  const glyphs: Record<string, string> = {
-    aries: '♈',
-    taurus: '♉',
-    gemini: '♊',
-    cancer: '♋',
-    leo: '♌',
-    virgo: '♍',
-    libra: '♎',
-    scorpio: '♏',
-    sagittarius: '♐',
-    capricorn: '♑',
-    aquarius: '♒',
-    pisces: '♓',
-  };
-  return glyphs[sign] || '○';
-}
-
-function formatPlanetName(planet: string): string {
-  const names: Record<string, string> = {
-    northNode: 'North Node',
-    lilith: 'Lilith',
-    fortune: 'Fortune',
-    vertex: 'Vertex',
-  };
-  if (names[planet]) return names[planet];
-  return planet.charAt(0).toUpperCase() + planet.slice(1).replace(/([A-Z])/g, ' $1');
-}
-
-function formatSignName(sign: string): string {
-  return sign.charAt(0).toUpperCase() + sign.slice(1);
-}
-
-function getAspectGlyph(aspectType: string): string {
-  const glyphs: Record<string, string> = {
-    conjunction: '☌',
-    opposition: '☍',
-    trine: '△',
-    square: '□',
-    sextile: '⚹',
-    quincunx: '⚻',
-    semiSextile: '⚺',
-    parallel: '∥',
-    contraparallel: '⊥',
-  };
-  return glyphs[aspectType] || '•';
-}
-
-function getAspectColor(aspectType: string): string {
-  const colors: Record<string, string> = {
-    conjunction: '#333333',
-    opposition: '#cc3333',
-    trine: '#3366cc',
-    square: '#cc6633',
-    sextile: '#33cc66',
-    quincunx: '#9966cc',
-    semiSextile: '#66cccc',
-    parallel: '#cc3399',
-    contraparallel: '#cc3399',
-  };
-  return colors[aspectType] || '#333333';
-}
