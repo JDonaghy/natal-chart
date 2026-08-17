@@ -707,8 +707,8 @@ export const BirthDataForm: React.FC = () => {
           fontSize: '0.9rem'
         }}>
           <p style={{ margin: 0 }}>
-            <strong>Privacy Note:</strong> All calculations are performed entirely in your browser using WebAssembly. 
-            Your birth data never leaves your device. City searches use mock data for now.
+            <strong>Privacy Note:</strong> All calculations are performed entirely in your browser using WebAssembly.
+            Your birth data never leaves your device.
           </p>
         </div>
         
