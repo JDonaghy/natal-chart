@@ -63,7 +63,7 @@ export const PlanetGlyphIcon: React.FC<{
       ? size * textScale
       : `calc(${size} * ${textScale})`;
   return (
-    <span style={{ fontFamily: "'DejaVuSans', sans-serif", fontSize: fallbackSize, lineHeight: 1, ...style }}>
+    <span style={{ fontFamily: "'DejaVuSans', sans-serif", fontSize: fallbackSize, lineHeight: 1, color, ...style }}>
       {getPlanetGlyph(planet)}
     </span>
   );
@@ -95,7 +95,7 @@ export const SignGlyphIcon: React.FC<{
     );
   }
   return (
-    <span style={{ fontFamily: "'DejaVuSans', sans-serif", ...style }}>
+    <span style={{ fontFamily: "'DejaVuSans', sans-serif", color, ...style }}>
       {getSignGlyph(sign)}
     </span>
   );

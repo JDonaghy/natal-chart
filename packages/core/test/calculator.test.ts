@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateChart } from '../src/calculator';
+import { calculateChart, calculateTransitPositions } from '../src/calculator';
 import type { BirthData, HouseSystem } from '../src/types';
 
 describe('calculateChart', () => {
@@ -110,5 +110,72 @@ describe('calculateChart', () => {
     expect(chart.houses).toHaveLength(12);
     // In whole sign system, each house should span exactly 30°
     // We'll just verify the structure
+  });
+});
+
+// --- issue #36: the transit planet-positions list and transit ring on the
+// chart wheel were missing Fortune, Spirit, and Vertex. calculateTransitPositions
+// only populated `planets` from the real ephemeris bodies and never added the
+// derived points the way calculateChart does for the natal chart. Both
+// PlanetLegend (transit list) and ChartWheel (transit ring) key off
+// TransitResult.planets directly with no allowlist, so once the derived
+// points are present here they should surface with no downstream changes. --
+describe('calculateTransitPositions (issue #36)', () => {
+  it('includes Fortune, Spirit, and Vertex when a location is provided', async () => {
+    const birthData: BirthData = {
+      dateTimeUtc: new Date('1990-06-15T12:00:00Z'),
+      latitude: 51.5, // London
+      longitude: -0.1,
+      houseSystem: 'P' as HouseSystem,
+    };
+    const natalChart = await calculateChart(birthData);
+
+    const transitDate = new Date('2024-03-20T12:00:00Z');
+    const transit = await calculateTransitPositions(transitDate, natalChart.planets, {
+      latitude: 51.5,
+      longitude: -0.1,
+      houseSystem: 'P' as HouseSystem,
+    });
+
+    const names = transit.planets.map(p => p.planet);
+    expect(names).toContain('fortune');
+    expect(names).toContain('spirit');
+    expect(names).toContain('vertex');
+
+    for (const derived of ['fortune', 'spirit', 'vertex'] as const) {
+      const point = transit.planets.find(p => p.planet === derived)!;
+      expect(point).toBeDefined();
+      expect(point.longitude).toBeGreaterThanOrEqual(0);
+      expect(point.longitude).toBeLessThan(360);
+      expect(point.house).toBeGreaterThanOrEqual(1);
+      expect(point.house).toBeLessThanOrEqual(12);
+      // Calculated points have no real ephemeris distance.
+      expect(point.distance).toBe(0);
+    }
+
+    // Fortune and Spirit are reflections of each other across the ASC/DESC
+    // axis (Day = ASC + Moon - Sun vs Day = ASC + Sun - Moon), so they must
+    // differ from one another whenever Sun and Moon aren't conjunct/opposed
+    // to the point of collapsing the two formulas onto the same longitude.
+    const fortune = transit.planets.find(p => p.planet === 'fortune')!;
+    const spirit = transit.planets.find(p => p.planet === 'spirit')!;
+    expect(fortune.longitude).not.toBeCloseTo(spirit.longitude, 5);
+  });
+
+  it('omits the derived points when no location is provided', async () => {
+    const birthData: BirthData = {
+      dateTimeUtc: new Date('1990-06-15T12:00:00Z'),
+      latitude: 51.5,
+      longitude: -0.1,
+      houseSystem: 'P' as HouseSystem,
+    };
+    const natalChart = await calculateChart(birthData);
+
+    const transit = await calculateTransitPositions(new Date('2024-03-20T12:00:00Z'), natalChart.planets);
+
+    const names = transit.planets.map(p => p.planet);
+    expect(names).not.toContain('fortune');
+    expect(names).not.toContain('spirit');
+    expect(names).not.toContain('vertex');
   });
 });

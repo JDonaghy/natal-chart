@@ -19,7 +19,7 @@ export {
   PTOLEMAIC_ASPECT_SET,
 } from './symbols';
 
-const MODERN_PLANETS = new Set(['uranus', 'neptune', 'pluto', 'chiron', 'lilith', 'vertex', 'spirit']);
+const MODERN_PLANETS = new Set(['uranus', 'neptune', 'pluto', 'chiron', 'lilith', 'vertex']);
 
 export function filterTraditionalPlanets(chartData: ChartResult): ChartResult {
   const planets = chartData.planets.filter(p => !MODERN_PLANETS.has(p.planet));

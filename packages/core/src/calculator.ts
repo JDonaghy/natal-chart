@@ -788,6 +788,81 @@ export async function calculateTransitPositions(
         }
       }
     }
+
+    // Add derived points: Part of Fortune, Part of Spirit, and Vertex, mirroring
+    // the natal derived-points block above but using the transiting Sun/Moon and
+    // the transiting Ascendant/Descendant (issue #36).
+    const sunPos = planets.find(p => p.planet === 'sun');
+    const moonPos = planets.find(p => p.planet === 'moon');
+    if (sunPos && moonPos) {
+      const descendant = (ascendant + 180) % 360;
+      const isSunAboveHorizon = (() => {
+        const sunLon = ((sunPos.longitude % 360) + 360) % 360;
+        const ascLon = ((ascendant % 360) + 360) % 360;
+        const descLon = ((descendant % 360) + 360) % 360;
+        if (ascLon < descLon) {
+          return sunLon >= descLon || sunLon < ascLon;
+        }
+        return sunLon >= descLon && sunLon < ascLon;
+      })();
+
+      // Part of Fortune: Day = ASC + Moon - Sun, Night = ASC + Sun - Moon
+      const fortuneLon = isSunAboveHorizon
+        ? ((ascendant + moonPos.longitude - sunPos.longitude) % 360 + 360) % 360
+        : ((ascendant + sunPos.longitude - moonPos.longitude) % 360 + 360) % 360;
+      const fortuneSignDMS = longitudeToSignAndDMS(fortuneLon);
+      planets.push({
+        planet: 'fortune',
+        longitude: fortuneLon,
+        latitude: 0,
+        declination: calcDeclination(fortuneLon, 0),
+        distance: 0,
+        speed: 0,
+        sign: fortuneSignDMS.sign,
+        degree: fortuneSignDMS.degree,
+        minute: fortuneSignDMS.minute,
+        house: findHouse(fortuneLon, cusps, location.houseSystem, ascendant),
+        retrograde: false,
+      });
+
+      // Part of Spirit: inverse of Fortune (Day = ASC + Sun - Moon, Night = ASC + Moon - Sun)
+      const spiritLon = isSunAboveHorizon
+        ? ((ascendant + sunPos.longitude - moonPos.longitude) % 360 + 360) % 360
+        : ((ascendant + moonPos.longitude - sunPos.longitude) % 360 + 360) % 360;
+      const spiritSignDMS = longitudeToSignAndDMS(spiritLon);
+      planets.push({
+        planet: 'spirit',
+        longitude: spiritLon,
+        latitude: 0,
+        declination: calcDeclination(spiritLon, 0),
+        distance: 0,
+        speed: 0,
+        sign: spiritSignDMS.sign,
+        degree: spiritSignDMS.degree,
+        minute: spiritSignDMS.minute,
+        house: findHouse(spiritLon, cusps, location.houseSystem, ascendant),
+        retrograde: false,
+      });
+    }
+
+    // Vertex from ascmc[3]
+    const vertexLon = ascmc[3] ?? 0;
+    if (vertexLon !== 0) {
+      const vertexSignDMS = longitudeToSignAndDMS(vertexLon);
+      planets.push({
+        planet: 'vertex',
+        longitude: vertexLon,
+        latitude: 0,
+        declination: calcDeclination(vertexLon, 0),
+        distance: 0,
+        speed: 0,
+        sign: vertexSignDMS.sign,
+        degree: vertexSignDMS.degree,
+        minute: vertexSignDMS.minute,
+        house: findHouse(vertexLon, cusps, location.houseSystem, ascendant),
+        retrograde: false,
+      });
+    }
   }
 
   const aspects = calculateAspectsBetween(natalPlanets, planets, TRANSIT_ASPECTS);
