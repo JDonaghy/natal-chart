@@ -1,14 +1,9 @@
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
 import { ChartResult, TransitResult } from '@natal-chart/core';
-import { getPlanetPath, getPlanetGlyphRotation, getSignPathByIndex, glyphTransform, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { getPlanetPath, getPlanetGlyphRotation, getSignPathByIndex, glyphTransform, DEFAULT_GLYPH_SET, SIGN_ORDER } from '../utils/astro-glyph-paths';
 import { getPlanetGlyph, getSignGlyph, getPlanetGlyphScale, PTOLEMAIC_ASPECT_SET } from '../utils/symbols';
 import { type ThemeColors, resolveTheme, signElementColors, DEFAULT_THEME_PREFERENCE } from '../utils/themes';
 import '../App.css';
-
-const SIGN_ORDER = [
-  'aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo',
-  'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
-] as const;
 
 const GLYPH_FONT = "'DejaVuSans', sans-serif";
 const LABEL_FONT = "'Cormorant', serif";

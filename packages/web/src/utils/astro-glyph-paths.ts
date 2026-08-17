@@ -8,6 +8,7 @@ export {
   GLYPH_SETS,
   GLYPH_SET_NAMES,
   SIGN_ABBREVIATIONS,
+  SIGN_ORDER,
   getPlanetPath,
   getPlanetGlyphRotation,
   getSignPathByIndex,
