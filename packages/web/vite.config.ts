@@ -47,7 +47,10 @@ export default defineConfig({
       components: ['tamagui'],
     }),
   ],
-  base: '/natal-chart/',
+  // GitHub Pages serves this app from a /natal-chart/ subpath; Cloudflare
+  // Pages serves it from the root of its own (sub)domain -- DEPLOY_BASE lets
+  // each deploy workflow pick the right one without forking this config.
+  base: process.env.DEPLOY_BASE ?? '/natal-chart/',
   define: {
     '__APP_VERSION__': JSON.stringify(buildInfo.commitHash),
     '__APP_SEMVER__': JSON.stringify(pkg.version),

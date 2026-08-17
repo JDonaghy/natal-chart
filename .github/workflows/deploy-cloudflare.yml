@@ -1,0 +1,68 @@
+name: Deploy to Cloudflare Pages
+
+# Runs on every PR (a preview deploy with its own URL -- for UAT / customer
+# sign-off before merge) and on push to main (production). This builds the
+# exact same way as deploy.yml/ci.yml, so what a customer previews on a PR
+# is the same build that CI already typechecked and tested, not a separate
+# ad-hoc one. See JDonaghy/coord-portal#107.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+
+# Deliberately its own group, distinct from deploy.yml's "pages" -- a PR
+# preview build must never cancel an in-flight production deploy.
+concurrency:
+  group: cloudflare-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build core package
+        run: pnpm --filter core build
+
+      - name: Build web package
+        env:
+          DEPLOY_BASE: '/'
+          VITE_GEOCODING_API_URL: ${{ secrets.VITE_GEOCODING_API_URL }}
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          VITE_WORKER_API_URL: ${{ secrets.VITE_WORKER_API_URL }}
+          VITE_FIREBASE_AUTH0_PROVIDER_ID: ${{ secrets.VITE_FIREBASE_AUTH0_PROVIDER_ID }}
+        run: pnpm --filter web build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: natal-chart
+          directory: packages/web/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
