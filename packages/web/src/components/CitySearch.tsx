@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { geocodeCity, type GeocodeResult } from '../services/geocoding';
+import { formatLocationDisplay } from '../utils/formatLocation';
 
 interface CitySearchProps {
   onSelect: (result: GeocodeResult) => void;
@@ -174,11 +175,11 @@ export const CitySearch: React.FC<CitySearchProps> = ({
             >
               {!compact && result.name && (
                 <div style={{ fontWeight: 'bold', color: '#333' }}>
-                  {result.name}, {result.country}
+                  {result.name}, {formatLocationDisplay(result.country)}
                 </div>
               )}
               <div style={{ color: compact ? '#333' : '#666', fontSize: compact ? undefined : '0.9rem' }}>
-                {result.formatted}
+                {formatLocationDisplay(result.formatted)}
               </div>
               <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '0.25rem' }}>
                 {formatCoord(result.lat, true)}, {formatCoord(result.lng, false)}

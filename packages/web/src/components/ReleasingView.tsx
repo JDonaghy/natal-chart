@@ -9,6 +9,7 @@ import {
 import type { ZRTimeline, ZRPeriod, LotResult } from '@natal-chart/core';
 import '../App.css';
 import { SIGN_SYMBOLS as SIGN_GLYPHS } from '../utils/symbols';
+import { formatLocationDisplay } from '../utils/formatLocation';
 
 
 export const ReleasingView: React.FC = () => {
@@ -74,7 +75,7 @@ export const ReleasingView: React.FC = () => {
         borderBottom: '1px solid #e8e0d0',
         marginBottom: '0.5rem',
       }}>
-        {birthData.city && <span>{birthData.city}</span>}
+        {birthData.city && <span>{formatLocationDisplay(birthData.city)}</span>}
         <span>{new Date(birthData.dateTimeUtc).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
         <span>{new Date(birthData.dateTimeUtc).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC</span>
         <span>{birthData.latitude.toFixed(2)}°, {birthData.longitude.toFixed(2)}°</span>

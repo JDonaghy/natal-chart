@@ -5,6 +5,7 @@ import { ChartWheel } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
 import { useChart, type ExtendedBirthData } from '../contexts/ChartContext';
 import { useResponsive } from '../hooks/useResponsive';
+import { formatLocationDisplay } from '../utils/formatLocation';
 import '../App.css';
 
 const BirthDataSummary: React.FC<{ birthData: ExtendedBirthData }> = ({ birthData }) => (
@@ -17,7 +18,7 @@ const BirthDataSummary: React.FC<{ birthData: ExtendedBirthData }> = ({ birthDat
     lineHeight: 1.6,
   }}>
     <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-      {birthData.city && <span>{birthData.city} &middot; </span>}
+      {birthData.city && <span>{formatLocationDisplay(birthData.city)} &middot; </span>}
       <span>{birthData.latitude.toFixed(2)}, {birthData.longitude.toFixed(2)}</span>
       {birthData.timezone && <span> &middot; {birthData.timezone}</span>}
     </div>
