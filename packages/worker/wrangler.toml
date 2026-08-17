@@ -5,8 +5,13 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 # Environment variables will be set via wrangler secrets
-# Comma-separated list of allowed origins for CORS
-ALLOWED_ORIGIN = "http://localhost:3000,http://localhost:3001,http://192.168.1.109:3000,https://jdonaghy.github.io"  # Update with your GitHub Pages URL
+# Comma-separated list of allowed origins for CORS, matched exactly.
+ALLOWED_ORIGIN = "http://localhost:3000,http://localhost:3001,http://192.168.1.109:3000,https://jdonaghy.github.io,https://natal-chart-3ew.pages.dev"
+# Every Cloudflare Pages PR preview gets its own unique hash-prefixed origin
+# (e.g. https://f752b11d.natal-chart-3ew.pages.dev), so a static ALLOWED_ORIGIN
+# list can never enumerate them. Matched as a hostname suffix instead -- see
+# getAllowedOrigin() in src/index.ts.
+ALLOWED_ORIGIN_SUFFIX = ".natal-chart-3ew.pages.dev"
 
 [triggers]
 crons = []

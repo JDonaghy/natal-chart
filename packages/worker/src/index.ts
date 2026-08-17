@@ -6,6 +6,7 @@ export interface Env {
   GEOCODING_CACHE: KVNamespace;
   DB: D1Database;
   ALLOWED_ORIGIN?: string;
+  ALLOWED_ORIGIN_SUFFIX?: string;
   FIREBASE_PROJECT_ID?: string;
 }
 
@@ -38,7 +39,7 @@ export default {
 
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
-      return handleCors(env.ALLOWED_ORIGIN, request);
+      return handleCors(env, request);
     }
 
     // --- Geocoding (existing) ---
@@ -60,11 +61,11 @@ export default {
         console.error('API error:', error);
         return jsonResponse({
           error: 'Internal server error',
-        }, 500, env.ALLOWED_ORIGIN, request);
+        }, 500, env, request);
       }
     }
 
-    return jsonResponse({ error: 'Not Found' }, 404, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Not Found' }, 404, env, request);
   },
 };
 
@@ -77,12 +78,12 @@ async function handleAuthenticatedRoute(
 ): Promise<Response> {
   const projectId = env.FIREBASE_PROJECT_ID;
   if (!projectId) {
-    return jsonResponse({ error: 'Authentication not configured' }, 503, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Authentication not configured' }, 503, env, request);
   }
 
   const authHeader = request.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    return jsonResponse({ error: 'Missing authorization token' }, 401, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Missing authorization token' }, 401, env, request);
   }
 
   let user: AuthUser;
@@ -90,7 +91,7 @@ async function handleAuthenticatedRoute(
     user = await verifyFirebaseToken(authHeader.slice(7), projectId);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Invalid token';
-    return jsonResponse({ error: message }, 401, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: message }, 401, env, request);
   }
 
   // Route dispatch
@@ -139,7 +140,7 @@ async function handleAuthenticatedRoute(
     if (method === 'DELETE') return handleRevokeShareToken(user, chartId, env, request);
   }
 
-  return jsonResponse({ error: 'Not Found' }, 404, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ error: 'Not Found' }, 404, env, request);
 }
 
 // ─── User ───────────────────────────────────────────────────────────────────
@@ -156,7 +157,7 @@ async function handleUpsertUser(
     .bind(user.uid, user.email ?? null, user.displayName ?? null)
     .run();
 
-  return jsonResponse({ ok: true }, 200, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ ok: true }, 200, env, request);
 }
 
 async function handleDeleteUser(
@@ -169,7 +170,7 @@ async function handleDeleteUser(
   await env.DB.prepare('DELETE FROM preferences WHERE user_id = ?').bind(user.uid).run();
   await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(user.uid).run();
 
-  return jsonResponse({ ok: true }, 200, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ ok: true }, 200, env, request);
 }
 
 // ─── Preferences ────────────────────────────────────────────────────────────
@@ -184,10 +185,10 @@ async function handleGetPreferences(
     .first<{ data: string; updated_at: string }>();
 
   if (!row) {
-    return jsonResponse({ data: null }, 200, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ data: null }, 200, env, request);
   }
 
-  return jsonResponse({ data: JSON.parse(row.data), updatedAt: row.updated_at }, 200, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ data: JSON.parse(row.data), updatedAt: row.updated_at }, 200, env, request);
 }
 
 async function handlePutPreferences(
@@ -197,12 +198,12 @@ async function handlePutPreferences(
 ): Promise<Response> {
   const contentLength = parseInt(request.headers.get('Content-Length') || '0');
   if (contentLength > 10_000) { // 10KB max for preferences
-    return jsonResponse({ error: 'Payload too large' }, 413, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Payload too large' }, 413, env, request);
   }
 
   const body = await request.json<{ data: Record<string, unknown> }>();
   if (!body.data || typeof body.data !== 'object') {
-    return jsonResponse({ error: 'Invalid preferences data' }, 400, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Invalid preferences data' }, 400, env, request);
   }
 
   await env.DB.prepare(
@@ -212,7 +213,7 @@ async function handlePutPreferences(
     .bind(user.uid, JSON.stringify(body.data))
     .run();
 
-  return jsonResponse({ ok: true }, 200, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ ok: true }, 200, env, request);
 }
 
 // ─── Charts ─────────────────────────────────────────────────────────────────
@@ -228,7 +229,7 @@ async function handleListCharts(
     .bind(user.uid)
     .all<{ id: string; name: string; created_at: string; updated_at: string; share_token: string | null }>();
 
-  return jsonResponse({ charts: results }, 200, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ charts: results }, 200, env, request);
 }
 
 async function handleCreateChart(
@@ -245,11 +246,11 @@ async function handleCreateChart(
 
   const contentLength = parseInt(request.headers.get('Content-Length') || '0');
   if (contentLength > 50_000) { // 50KB max for chart data
-    return jsonResponse({ error: 'Payload too large' }, 413, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Payload too large' }, 413, env, request);
   }
 
   if (!body.name || !body.birthData) {
-    return jsonResponse({ error: 'name and birthData are required' }, 400, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'name and birthData are required' }, 400, env, request);
   }
 
   // Limit charts per user
@@ -257,7 +258,7 @@ async function handleCreateChart(
     .bind(user.uid)
     .first<{ cnt: number }>();
   if (countRow && countRow.cnt >= 500) {
-    return jsonResponse({ error: 'Chart limit reached (500)' }, 400, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Chart limit reached (500)' }, 400, env, request);
   }
 
   const id = crypto.randomUUID();
@@ -276,7 +277,7 @@ async function handleCreateChart(
     )
     .run();
 
-  return jsonResponse({ id, name: body.name }, 201, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ id, name: body.name }, 201, env, request);
 }
 
 async function handleGetChart(
@@ -292,7 +293,7 @@ async function handleGetChart(
     .first<{ id: string; name: string; birth_data: string; view_flags: string | null; transit_data: string | null; share_token: string | null; created_at: string; updated_at: string }>();
 
   if (!row) {
-    return jsonResponse({ error: 'Chart not found' }, 404, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Chart not found' }, 404, env, request);
   }
 
   return jsonResponse({
@@ -304,7 +305,7 @@ async function handleGetChart(
     shareToken: row.share_token,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-  }, 200, env.ALLOWED_ORIGIN, request);
+  }, 200, env, request);
 }
 
 async function handleUpdateChart(
@@ -326,7 +327,7 @@ async function handleUpdateChart(
     .first();
 
   if (!existing) {
-    return jsonResponse({ error: 'Chart not found' }, 404, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Chart not found' }, 404, env, request);
   }
 
   // Build dynamic update
@@ -356,7 +357,7 @@ async function handleUpdateChart(
     .bind(...values)
     .run();
 
-  return jsonResponse({ ok: true }, 200, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ ok: true }, 200, env, request);
 }
 
 async function handleDeleteChart(
@@ -370,10 +371,10 @@ async function handleDeleteChart(
     .run();
 
   if (!result.meta.changes) {
-    return jsonResponse({ error: 'Chart not found' }, 404, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Chart not found' }, 404, env, request);
   }
 
-  return jsonResponse({ ok: true }, 200, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ ok: true }, 200, env, request);
 }
 
 // ─── Chart Sharing ──────────────────────────────────────────────────────────
@@ -399,11 +400,11 @@ async function handleCreateShareToken(
     .first<{ share_token: string | null }>();
 
   if (!existing) {
-    return jsonResponse({ error: 'Chart not found' }, 404, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Chart not found' }, 404, env, request);
   }
 
   if (existing.share_token) {
-    return jsonResponse({ shareToken: existing.share_token }, 200, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ shareToken: existing.share_token }, 200, env, request);
   }
 
   const token = generateShareToken();
@@ -411,7 +412,7 @@ async function handleCreateShareToken(
     .bind(token, chartId)
     .run();
 
-  return jsonResponse({ shareToken: token }, 201, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ shareToken: token }, 201, env, request);
 }
 
 async function handleRevokeShareToken(
@@ -427,10 +428,10 @@ async function handleRevokeShareToken(
     .run();
 
   if (!result.meta.changes) {
-    return jsonResponse({ error: 'Chart not found' }, 404, env.ALLOWED_ORIGIN, request);
+    return jsonResponse({ error: 'Chart not found' }, 404, env, request);
   }
 
-  return jsonResponse({ ok: true }, 200, env.ALLOWED_ORIGIN, request);
+  return jsonResponse({ ok: true }, 200, env, request);
 }
 
 // ─── Public Shared Chart ────────────────────────────────────────────────────
@@ -441,7 +442,7 @@ async function handleSharedChart(
 ): Promise<Response> {
   const token = url.pathname.replace('/shared/', '');
   if (!token || token.length > 20 || !/^[A-Za-z0-9_-]+$/.test(token)) {
-    return jsonResponse({ error: 'Invalid share token' }, 400, env.ALLOWED_ORIGIN);
+    return jsonResponse({ error: 'Invalid share token' }, 400, env);
   }
 
   const row = await env.DB.prepare(
@@ -451,7 +452,7 @@ async function handleSharedChart(
     .first<{ name: string; birth_data: string; view_flags: string | null; transit_data: string | null }>();
 
   if (!row) {
-    return jsonResponse({ error: 'Shared chart not found' }, 404, env.ALLOWED_ORIGIN);
+    return jsonResponse({ error: 'Shared chart not found' }, 404, env);
   }
 
   return jsonResponse({
@@ -459,7 +460,7 @@ async function handleSharedChart(
     birthData: JSON.parse(row.birth_data),
     viewFlags: row.view_flags ? JSON.parse(row.view_flags) : null,
     transitData: row.transit_data ? JSON.parse(row.transit_data) : null,
-  }, 200, env.ALLOWED_ORIGIN);
+  }, 200, env);
 }
 
 // ─── Geocoding (existing logic, unchanged) ──────────────────────────────────
@@ -472,30 +473,30 @@ async function handleGeocode(request: Request, env: Env): Promise<Response> {
 
     const rateLimitOk = await checkRateLimit(clientIp, env.GEOCODING_CACHE);
     if (!rateLimitOk) {
-      return jsonResponse({ error: 'Rate limit exceeded. Please try again later.' }, 429, env.ALLOWED_ORIGIN);
+      return jsonResponse({ error: 'Rate limit exceeded. Please try again later.' }, 429, env);
     }
 
     const body = await request.json<GeocodeRequest>();
     const query = body.query.trim();
     console.log('Geocoding request:', query);
     if (!query || typeof query !== 'string') {
-      return jsonResponse({ error: 'Invalid query.' }, 400, env.ALLOWED_ORIGIN, request);
+      return jsonResponse({ error: 'Invalid query.' }, 400, env, request);
     }
 
     const isCoordinates = isCoordinateQuery(query);
     console.log('Is coordinate query:', isCoordinates, 'query:', query);
 
     if (!isCoordinates && query.length < 2) {
-      return jsonResponse({ error: 'Invalid query. Must be at least 2 characters.' }, 400, env.ALLOWED_ORIGIN, request);
+      return jsonResponse({ error: 'Invalid query. Must be at least 2 characters.' }, 400, env, request);
     }
 
     if (env.TURNSTILE_SECRET) {
       if (!body.token) {
-        return jsonResponse({ error: 'Turnstile token required' }, 401, env.ALLOWED_ORIGIN, request);
+        return jsonResponse({ error: 'Turnstile token required' }, 401, env, request);
       }
       const isValidToken = await validateTurnstileToken(body.token, env.TURNSTILE_SECRET);
       if (!isValidToken) {
-        return jsonResponse({ error: 'Invalid Turnstile token' }, 401, env.ALLOWED_ORIGIN, request);
+        return jsonResponse({ error: 'Invalid Turnstile token' }, 401, env, request);
       }
     } else {
       console.warn('Turnstile validation disabled (TURNSTILE_SECRET not set)');
@@ -506,7 +507,7 @@ async function handleGeocode(request: Request, env: Env): Promise<Response> {
 
     if (cached) {
       console.log(`Cache hit for: ${query}`);
-      return jsonResponse(JSON.parse(cached), 200, env.ALLOWED_ORIGIN, request);
+      return jsonResponse(JSON.parse(cached), 200, env, request);
     }
 
     console.log(`Cache miss for: ${query}, fetching from OpenCage`);
@@ -515,7 +516,7 @@ async function handleGeocode(request: Request, env: Env): Promise<Response> {
     if (isCoordinates) {
       const coords = parseCoordinates(query);
       if (!coords) {
-        return jsonResponse({ error: 'Invalid coordinate format. Use "latitude,longitude" (e.g., 51.5074,-0.1278).' }, 400, env.ALLOWED_ORIGIN, request);
+        return jsonResponse({ error: 'Invalid coordinate format. Use "latitude,longitude" (e.g., 51.5074,-0.1278).' }, 400, env, request);
       }
       geocodingResults = await reverseGeocode(coords.lat, coords.lng, env.OPENCAGE_API_KEY);
     } else {
@@ -530,13 +531,13 @@ async function handleGeocode(request: Request, env: Env): Promise<Response> {
       );
     }
 
-    return jsonResponse(geocodingResults, 200, env.ALLOWED_ORIGIN, request);
+    return jsonResponse(geocodingResults, 200, env, request);
   } catch (error) {
     console.error('Geocoding error:', error);
     return jsonResponse({
       error: 'Internal server error',
       details: env.ALLOWED_ORIGIN?.includes('localhost') ? (error as Error).message : undefined,
-    }, 500, env.ALLOWED_ORIGIN, request);
+    }, 500, env, request);
   }
 }
 
@@ -644,9 +645,9 @@ async function reverseGeocode(lat: number, lng: number, apiKey: string): Promise
 
 // ─── Response Helpers ───────────────────────────────────────────────────────
 
-function getAllowedOrigin(request: Request, allowedOrigin?: string): string {
+function getAllowedOrigin(request: Request, env: Env): string {
   const defaultOrigin = 'https://jdonaghy.github.io';
-  const allowedOrigins = allowedOrigin ? allowedOrigin.split(',').map(o => o.trim()) : [defaultOrigin];
+  const allowedOrigins = env.ALLOWED_ORIGIN ? env.ALLOWED_ORIGIN.split(',').map(o => o.trim()) : [defaultOrigin];
   const requestOrigin = request.headers.get('Origin');
 
   if (requestOrigin) {
@@ -655,13 +656,31 @@ function getAllowedOrigin(request: Request, allowedOrigin?: string): string {
         return requestOrigin;
       }
     }
+
+    // Cloudflare Pages PR previews each mint their own unique hash-prefixed
+    // origin, so no static list can enumerate them -- matched by hostname
+    // suffix instead. `.endsWith()` on a leading-dot suffix is anchored at
+    // the real end of the string, so it can't be fooled by a hostname that
+    // merely contains the suffix midway through (e.g. an attacker-controlled
+    // domain with the suffix stitched into a longer label).
+    const suffix = env.ALLOWED_ORIGIN_SUFFIX;
+    if (suffix) {
+      try {
+        const { protocol, hostname } = new URL(requestOrigin);
+        if (protocol === 'https:' && hostname.toLowerCase().endsWith(suffix.toLowerCase())) {
+          return requestOrigin;
+        }
+      } catch {
+        // Malformed Origin header -- fall through to the default below.
+      }
+    }
   }
 
   return allowedOrigins[0] || defaultOrigin;
 }
 
-function jsonResponse(data: unknown, status = 200, allowedOrigin?: string, request?: Request): Response {
-  const origin = request ? getAllowedOrigin(request, allowedOrigin) : (allowedOrigin || 'https://jdonaghy.github.io');
+function jsonResponse(data: unknown, status = 200, env?: Env, request?: Request): Response {
+  const origin = request && env ? getAllowedOrigin(request, env) : (env?.ALLOWED_ORIGIN || 'https://jdonaghy.github.io');
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -673,8 +692,8 @@ function jsonResponse(data: unknown, status = 200, allowedOrigin?: string, reque
   });
 }
 
-function handleCors(allowedOrigin?: string, request?: Request): Response {
-  const origin = request ? getAllowedOrigin(request, allowedOrigin) : (allowedOrigin || 'https://jdonaghy.github.io');
+function handleCors(env?: Env, request?: Request): Response {
+  const origin = request && env ? getAllowedOrigin(request, env) : (env?.ALLOWED_ORIGIN || 'https://jdonaghy.github.io');
   return new Response(null, {
     headers: {
       'Access-Control-Allow-Origin': origin,
