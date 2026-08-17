@@ -24,6 +24,17 @@ const GLYPH_STROKE_FACTOR = 0.05;
 // Sun and Moon read thin/light next to Mars even with the base boost.
 const GLYPH_EXTRA_STROKE: Record<string, number> = { sun: 1.9, moon: 1.9 };
 
+/**
+ * Shared degree-label font-size formula: a floor of `size * 0.0264` (so text
+ * stays legible even in a thin band) that otherwise scales with the band's
+ * own height. Used for the planet-position degree text, the outer-wheel
+ * planet-degree labels, and the ASC/DSC/MC/IC angle-degree text — kept in
+ * one place so all of them stay in sync (issue #32).
+ */
+function degreeLabelFontSize(bandH: number, size: number, fontScale: number): number {
+  return Math.max(bandH * 0.156, size * 0.0264) * fontScale;
+}
+
 /** Render a planet glyph as an SVG <path> (font-independent), falling back to <text> */
 function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAULT_GLYPH_SET, overrides }: {
   planet: string; x: number; y: number; sz: number; fill: string;
@@ -362,7 +373,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
     // bandH) so ASC/DSC/MC/IC's degree line renders at an identical size
     // (issue #32).
     const planetBandH = R.planetOuter - R.planetInner;
-    const angleDegreeFontSize = Math.max(planetBandH * 0.156, size * 0.0264) * fontScale;
+    const angleDegreeFontSize = degreeLabelFontSize(planetBandH, size, fontScale);
 
     // Convert ecliptic longitude to angle in SVG coordinate system
     // rotationAnchor at 9 o'clock (180°), counter-clockwise
@@ -862,7 +873,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
               ? toPoint(labelLongitude, topR - labelStep * 2.5)
               : toPoint(labelLongitude, topR - labelStep * 3);
 
-            const labelSz = Math.max(bandH * 0.156, size * 0.0264) * fontScale;
+            const labelSz = degreeLabelFontSize(bandH, size, fontScale);
             const signIndex = Math.floor(planet.longitude / 30) % 12;
             const signColor = elementColors[signIndex];
 
@@ -992,7 +1003,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                   ? toPoint(labelLongitude, topR - labelStep * 2)
                   : toPoint(labelLongitude, topR - labelStep * 3);
 
-                const labelSz = Math.max(bandWidth * 0.156, size * 0.0264) * fontScale;
+                const labelSz = degreeLabelFontSize(bandWidth, size, fontScale);
                 const signIndex = Math.floor(planet.longitude / 30) % 12;
                 const signColor = elementColors[signIndex];
 

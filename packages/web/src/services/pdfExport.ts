@@ -6,6 +6,7 @@ import type { ChartResult, TransitResult, ZRTimeline, LotResult } from '@natal-c
 import type { ExtendedBirthData, TransitLocation } from '../contexts/ChartContext';
 import { getSignPathByIndex, getPlanetPath, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
 import { type ThemeColors } from '../utils/themes';
+import { formatLocationDisplay } from '../utils/formatLocation';
 /**
  * Symbols come from the one shared table the screen also uses. This file used
  * to keep its own copy, and the two drifted (issue #28) — do not reintroduce a
@@ -242,7 +243,7 @@ export async function generateChartPdf(
     title: docTitle,
     subject: 'Astrological birth chart',
     creator: 'Natal Chart Calculator',
-    author: birthData.city || 'Unknown location',
+    author: (birthData.city && formatLocationDisplay(birthData.city)) || 'Unknown location',
   });
 
   // Add header with title and birth info
@@ -336,7 +337,7 @@ function addHeader(doc: jsPDF, birthData: ExtendedBirthData, transitData?: Trans
   doc.text(`Birth: ${dateStr} at ${timeStr}`, margin, 35);
 
   // Location and house system
-  const locationText = `Location: ${birthData.city || `${birthData.latitude.toFixed(4)}°, ${birthData.longitude.toFixed(4)}°`}`;
+  const locationText = `Location: ${birthData.city ? formatLocationDisplay(birthData.city) : `${birthData.latitude.toFixed(4)}°, ${birthData.longitude.toFixed(4)}°`}`;
   const timezoneText = birthData.timezone ? `Timezone: ${birthData.timezone}` : '';
   const houseSystemText = `House System: ${
     birthData.houseSystem === 'P' ? 'Placidus' : 'Whole Sign'
@@ -368,7 +369,7 @@ function addHeader(doc: jsPDF, birthData: ExtendedBirthData, transitData?: Trans
       minute: '2-digit',
     });
     doc.setTextColor(COLORS.accent);
-    const transitCityStr = transitLocation ? ` — ${transitLocation.city}` : '';
+    const transitCityStr = transitLocation ? ` — ${formatLocationDisplay(transitLocation.city)}` : '';
     doc.text(`Transits: ${transitDateStr} at ${transitTimeStr}${transitCityStr}`, margin, nextY);
     nextY += 5;
   }
