@@ -1,12 +1,8 @@
 import React, { useContext } from 'react';
-import { getPlanetPath, getSignPathByIndex, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
+import { getPlanetPath, getPlanetGlyphRotation, getSignPathByIndex, DEFAULT_GLYPH_SET } from '../utils/astro-glyph-paths';
 import { ChartContext } from '../contexts/ChartContext';
+import { getPlanetGlyph, getSignGlyph, getPlanetGlyphScale } from '../utils/symbols';
 
-const PLANET_UNICODE: Record<string, string> = {
-  sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂',
-  jupiter: '♃', saturn: '♄', uranus: '♅', neptune: '♆', pluto: '⯓',
-  northNode: '☊', chiron: '⚷', lilith: '⚸', fortune: '⊗', spirit: 'Φ', vertex: 'Vx',
-};
 // Unicode glyphs render visually smaller than SVG paths at the same nominal size.
 const TEXT_FALLBACK_SCALE = 1.4;
 
@@ -15,19 +11,6 @@ const SIGN_NAMES = [
   'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces',
 ];
 
-const SIGN_UNICODE: Record<string, string> = {
-  aries: '♈', taurus: '♉', gemini: '♊', cancer: '♋', leo: '♌', virgo: '♍',
-  libra: '♎', scorpio: '♏', sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
-};
-
-/** Per-planet visual scale factors to normalize apparent glyph sizes in inline contexts. */
-const PLANET_GLYPH_SCALE: Record<string, number> = {
-  chiron: 1.25,
-  lilith: 1.2,
-  northNode: 1.15,
-  fortune: 1.1,
-  vertex: 0.65,
-};
 
 function useGlyphPrefs(): { glyphSet: string; overrides: Record<string, string> } {
   const ctx = useContext(ChartContext);
@@ -51,8 +34,9 @@ export const PlanetGlyphIcon: React.FC<{
   const prefs = useGlyphPrefs();
   const activeSet = glyphSet ?? prefs.glyphSet;
   const pathData = getPlanetPath(planet, activeSet, prefs.overrides);
+  const scaleFactor = getPlanetGlyphScale(planet);
   if (pathData) {
-    const scaleFactor = PLANET_GLYPH_SCALE[planet] ?? 1;
+    const rotation = getPlanetGlyphRotation(planet);
     // Pad the viewBox to shrink the glyph (scale < 1) or grow it (scale > 1)
     const vbParts = pathData.viewBox.split(' ').map(Number);
     const [vbX, vbY, vbW, vbH] = [vbParts[0] ?? 0, vbParts[1] ?? 0, vbParts[2] ?? 100, vbParts[3] ?? 100];
@@ -67,17 +51,25 @@ export const PlanetGlyphIcon: React.FC<{
         style={{ display: 'inline-block', verticalAlign: '-0.15em', ...style }}
         aria-label={planet}
       >
-        <path d={pathData.d} fill={color} />
+        <path
+          d={pathData.d}
+          fill={color}
+          transform={rotation ? `rotate(${rotation} ${newX + newW / 2} ${newY + newH / 2})` : undefined}
+        />
       </svg>
     );
   }
+  // Text fallback. The per-planet scale factor has to be applied here too,
+  // otherwise text-fallback glyphs (Vertex's "Vx") render a full 1.4x larger
+  // than the path glyphs they sit beside in the positions list (issue #28).
+  const textScale = TEXT_FALLBACK_SCALE * scaleFactor;
   const fallbackSize =
     typeof size === 'number'
-      ? size * TEXT_FALLBACK_SCALE
-      : `calc(${size} * ${TEXT_FALLBACK_SCALE})`;
+      ? size * textScale
+      : `calc(${size} * ${textScale})`;
   return (
     <span style={{ fontFamily: "'DejaVuSans', sans-serif", fontSize: fallbackSize, lineHeight: 1, ...style }}>
-      {PLANET_UNICODE[planet] || '○'}
+      {getPlanetGlyph(planet)}
     </span>
   );
 };
@@ -109,7 +101,7 @@ export const SignGlyphIcon: React.FC<{
   }
   return (
     <span style={{ fontFamily: "'DejaVuSans', sans-serif", ...style }}>
-      {SIGN_UNICODE[sign] || '○'}
+      {getSignGlyph(sign)}
     </span>
   );
 };

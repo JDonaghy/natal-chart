@@ -1,18 +1,17 @@
 import React from 'react';
 import type { ChartResult, TransitResult, AspectType, ZodiacSign } from '@natal-chart/core';
-import { getAspectGlyph, getAspectColor } from '../utils/chart-helpers';
+import { getAspectGlyph, getAspectColor, PTOLEMAIC_ASPECT_SET } from '../utils/chart-helpers';
 import { PlanetGlyphIcon, SignGlyphIcon } from './GlyphIcon';
 import { useResponsive } from '../hooks/useResponsive';
 
-/** Transit aspect orbs (tighter than natal, matching calculator.ts) */
+/** Transit aspect orbs (tighter than natal, matching calculator.ts).
+ *  Ptolemaic aspects only — see AspectType in core/types.ts (issue #28). */
 const TRANSIT_ASPECT_DEFS: { angle: number; orb: number; type: AspectType }[] = [
   { angle: 0, orb: 6, type: 'conjunction' },
   { angle: 180, orb: 6, type: 'opposition' },
   { angle: 120, orb: 4, type: 'trine' },
   { angle: 90, orb: 4, type: 'square' },
   { angle: 60, orb: 3, type: 'sextile' },
-  { angle: 150, orb: 2, type: 'quincunx' },
-  { angle: 30, orb: 1.5, type: 'semiSextile' },
 ];
 
 const SIGN_ELEMENT_COLORS: Record<string, string> = {
@@ -63,18 +62,15 @@ function findTransitAspect(natalLon: number, transitLon: number): CellAspect | n
   return null;
 }
 
-const PTOLEMAIC_TYPES = new Set<AspectType>(['conjunction', 'opposition', 'trine', 'square', 'sextile']);
-
 interface TransitAspectGridProps {
   chartData: ChartResult;
   transitData: TransitResult;
-  ptolemaicOnly?: boolean | undefined;
 }
 
 const CELL_SIZE_DESKTOP = 34;
 const CELL_SIZE_MOBILE = 28;
 
-export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData, transitData, ptolemaicOnly = true }) => {
+export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData, transitData }) => {
   const { isMobile } = useResponsive();
   const CELL_SIZE = isMobile ? CELL_SIZE_MOBILE : CELL_SIZE_DESKTOP;
   // Build natal rows: all planets + ASC + MC
@@ -111,11 +107,11 @@ export const TransitAspectGrid: React.FC<TransitAspectGridProps> = ({ chartData,
     aspectMap.set(`${a.natalPlanet}|${a.transitPlanet}`, { type: a.type, orb: a.orb });
   }
 
-  /** Get aspect between a natal point and transit planet */
+  /** Get aspect between a natal point and transit planet (Ptolemaic only) */
   function getAspect(natalKey: string, transitKey: string, natalLon: number, transitLon: number): CellAspect | null {
     const existing = aspectMap.get(`${natalKey}|${transitKey}`);
     const result = existing ?? findTransitAspect(natalLon, transitLon);
-    if (result && ptolemaicOnly && !PTOLEMAIC_TYPES.has(result.type)) return null;
+    if (result && !PTOLEMAIC_ASPECT_SET.has(result.type)) return null;
     return result;
   }
 

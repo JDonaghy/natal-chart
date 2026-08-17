@@ -9,6 +9,7 @@ export {
   GLYPH_SET_NAMES,
   SIGN_ABBREVIATIONS,
   getPlanetPath,
+  getPlanetGlyphRotation,
   getSignPathByIndex,
   glyphTransform,
 } from './glyphs/index';

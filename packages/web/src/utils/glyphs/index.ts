@@ -16,8 +16,10 @@ import './sources/astronomicon';
 export type { GlyphPath, GlyphSource } from './types';
 export type { GlyphVariant } from './registry';
 export { getSource, getAllSources, getVariantsForPlanet, getVariantsForSign } from './registry';
+export { DERIVED_PLANET_PATHS, DERIVED_ROTATIONS, getPlanetGlyphRotation } from './derived';
 
 import { getSource } from './registry';
+import { DERIVED_PLANET_PATHS, DERIVED_ROTATIONS } from './derived';
 import type { GlyphPath } from './types';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -69,18 +71,33 @@ function resolveSource(glyphSet: string) {
 
 /**
  * Get SVG path data for a planet glyph.
- * Resolution: overrides[planet] → glyphSet → classic fallback.
+ *
+ * Resolution: derived rotation base (South Node → North Node) → overrides
+ * [planet] → glyphSet → classic → hand-drawn derived path.
+ *
+ * The classic and derived fallbacks matter: no font source carries the Lot of
+ * Fortune / Lot of Spirit for every set, and without them those points fell
+ * back to Unicode <text> in a different font at a different stroke weight
+ * (issue #28). Callers that draw a derived planet must also apply
+ * {@link getPlanetGlyphRotation}.
  */
 export function getPlanetPath(
   planet: string,
   glyphSet: string = DEFAULT_GLYPH_SET,
   overrides?: Record<string, string>,
 ): GlyphPath | undefined {
-  if (overrides?.[planet]) {
-    const src = getSource(overrides[planet]);
-    if (src?.planets[planet]) return src.planets[planet];
+  // South Node etc. are drawn from another planet's glyph under a rotation.
+  const key = DERIVED_ROTATIONS[planet]?.from ?? planet;
+
+  if (overrides?.[key]) {
+    const src = getSource(overrides[key]);
+    if (src?.planets[key]) return src.planets[key];
   }
-  return resolveSource(glyphSet).planets[planet];
+  return (
+    resolveSource(glyphSet).planets[key] ??
+    getSource(DEFAULT_GLYPH_SET)?.planets[key] ??
+    DERIVED_PLANET_PATHS[key]
+  );
 }
 
 /**

@@ -23,7 +23,6 @@ export const TransitView: React.FC = () => {
   const navigate = useNavigate();
   const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation, showAspects, setShowAspects, traditionalPlanets, setTraditionalPlanets, glyphSet, setGlyphSet, glyphOverrides, ascHorizontal, resolvedTheme } = useChart();
   const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
-  const [showAllAspects, setShowAllAspects] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -595,15 +594,11 @@ export const TransitView: React.FC = () => {
 
         {/* Aspects Tab */}
         <div style={{ display: activeTab === 'aspects' ? 'block' : 'none' }}>
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', marginBottom: '0.5rem', cursor: 'pointer' }}>
-            <input type="checkbox" checked={showAllAspects} onChange={(e) => setShowAllAspects(e.target.checked)} />
-            Show all aspects (including minor)
-          </label>
           {/* Natal Aspect Grid */}
           <div className="card">
             <h3>Natal Aspects</h3>
             {displayData!.aspects.length > 0 ? (
-              <AspectGrid chartData={displayData!} ptolemaicOnly={!showAllAspects} />
+              <AspectGrid chartData={displayData!} />
             ) : (
               <p>No natal aspects found within orb limits.</p>
             )}
@@ -613,7 +608,7 @@ export const TransitView: React.FC = () => {
           {displayTransit && (
             <div className="card" style={{ marginTop: '1rem' }}>
               <h3>Natal-to-Transit Aspects</h3>
-              <TransitAspectGrid chartData={displayData!} transitData={displayTransit} ptolemaicOnly={!showAllAspects} />
+              <TransitAspectGrid chartData={displayData!} transitData={displayTransit} />
             </div>
           )}
         </div>

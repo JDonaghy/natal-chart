@@ -100,3 +100,81 @@ describe('ChartWheel', () => {
     expect(containerSvg).toBe(svgElement);
   });
 });
+
+// --- issue #28: chart wheel additions ---------------------------------------
+
+/** mockChartData plus a North Node, and angles at four distinct degrees. */
+const nodeChartData: ChartResult = {
+  ...mockChartData,
+  planets: [
+    ...mockChartData.planets,
+    {
+      planet: 'northNode',
+      longitude: 40.5, // 10°30' Taurus
+      latitude: 0,
+      declination: 0,
+      distance: 1,
+      speed: -1,
+      sign: 'taurus',
+      degree: 10,
+      minute: 30,
+      house: 12,
+      retrograde: true,
+    },
+  ],
+  angles: {
+    ascendant: 95.0,   //  5°00' Cancer
+    midheaven: 7.25,   //  7°15' Aries
+    descendant: 275.0, //  5°00' Capricorn
+    imumCoeli: 187.25, //  7°15' Libra
+  },
+};
+
+describe('ChartWheel — South Node (issue #28)', () => {
+  it('draws a South Node opposite the North Node', () => {
+    const { container } = render(<ChartWheel chartData={nodeChartData} size={400} />);
+
+    const north = container.querySelector('[data-planet="northNode"]');
+    const south = container.querySelector('[data-planet="southNode"]');
+    expect(north).not.toBeNull();
+    expect(south).not.toBeNull();
+  });
+
+  it('draws the South Node as the North Node glyph turned 180°', () => {
+    const { container } = render(<ChartWheel chartData={nodeChartData} size={400} />);
+
+    const north = container.querySelector('[data-planet="northNode"]')!;
+    const south = container.querySelector('[data-planet="southNode"]')!;
+    // Same outline, distinct orientation — so it can never silently render as
+    // a second, identical North Node.
+    expect(south.getAttribute('d')).toBe(north.getAttribute('d'));
+    expect(south.getAttribute('transform')).toMatch(/^rotate\(180 /);
+    expect(north.getAttribute('transform')).not.toMatch(/^rotate\(180 /);
+  });
+
+  it('draws no South Node when the chart has no North Node', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} />);
+    expect(container.querySelector('[data-planet="southNode"]')).toBeNull();
+  });
+
+  it("labels the South Node's own degree and minute", () => {
+    const { container } = render(<ChartWheel chartData={nodeChartData} size={400} />);
+    // North Node 10°30' Taurus → South Node 10°30' Scorpio.
+    const text = container.textContent ?? '';
+    expect(text).toContain('30′');
+  });
+});
+
+describe('ChartWheel — angle degrees (issue #28)', () => {
+  it('shows a degree beside every one of ASC, DSC, MC and IC', () => {
+    const { container } = render(<ChartWheel chartData={nodeChartData} size={400} />);
+    const texts = Array.from(container.querySelectorAll('text')).map((t) => t.textContent);
+
+    for (const label of ['ASC', 'DSC', 'MC', 'IC']) {
+      expect(texts, label).toContain(label);
+    }
+    // ASC/DSC sit at 5°00', MC/IC at 7°15'.
+    expect(texts.filter((t) => t === "5°00\u2032")).toHaveLength(2);
+    expect(texts.filter((t) => t === "7°15\u2032")).toHaveLength(2);
+  });
+});

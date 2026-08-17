@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ZRTimeline, ZRPeriod } from '@natal-chart/core';
 import '../App.css';
+import { SIGN_SYMBOLS as SIGN_GLYPHS } from '../utils/symbols';
 
 // Element colors matching the chart wheel aesthetic
 const ELEMENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -10,11 +11,6 @@ const ELEMENT_COLORS: Record<string, { bg: string; text: string; border: string 
   water: { bg: '#e8f0ff', text: '#3366CC', border: '#3366CC' },
 };
 
-const SIGN_GLYPHS: Record<string, string> = {
-  aries: '♈', taurus: '♉', gemini: '♊', cancer: '♋',
-  leo: '♌', virgo: '♍', libra: '♎', scorpio: '♏',
-  sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
-};
 
 interface ReleasingTimelineProps {
   timeline: ZRTimeline;

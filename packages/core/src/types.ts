@@ -68,16 +68,17 @@ export interface Angles {
   imumCoeli: number;
 }
 
+/**
+ * The five Ptolemaic aspects. Minor aspects (quincunx, semi-sextile) and the
+ * declination-based parallel/contraparallel were removed in issue #28 — the
+ * app deliberately calculates and displays only these five everywhere.
+ */
 export type AspectType =
   | 'conjunction'
   | 'opposition'
   | 'trine'
   | 'square'
-  | 'sextile'
-  | 'quincunx'
-  | 'semiSextile'
-  | 'parallel'
-  | 'contraparallel';
+  | 'sextile';
 
 export interface Aspect {
   planet1: Planet;

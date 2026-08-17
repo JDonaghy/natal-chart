@@ -8,12 +8,8 @@ import {
 } from '@natal-chart/core';
 import type { ZRTimeline, ZRPeriod, LotResult } from '@natal-chart/core';
 import '../App.css';
+import { SIGN_SYMBOLS as SIGN_GLYPHS } from '../utils/symbols';
 
-const SIGN_GLYPHS: Record<string, string> = {
-  aries: '♈', taurus: '♉', gemini: '♊', cancer: '♋',
-  leo: '♌', virgo: '♍', libra: '♎', scorpio: '♏',
-  sagittarius: '♐', capricorn: '♑', aquarius: '♒', pisces: '♓',
-};
 
 export const ReleasingView: React.FC = () => {
   const { chartData, birthData } = useChart();
