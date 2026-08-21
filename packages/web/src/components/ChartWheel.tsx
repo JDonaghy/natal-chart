@@ -307,6 +307,10 @@ interface ChartWheelProps {
   glyphSet?: string | undefined;
   glyphOverrides?: Record<string, string> | undefined;
   theme?: ThemeColors | undefined;
+  /** Whole-sign house number (1-12) to highlight, e.g. the annual-profections
+   *  activated house — drawn as a bold triangle from center to the outer rim. */
+  highlightHouse?: number | undefined;
+  highlightColor?: string | undefined;
 }
 
 export interface ChartWheelHandle {
@@ -314,7 +318,7 @@ export interface ChartWheelHandle {
 }
 
 export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
-  ({ chartData, transitData, size = 800, ascHorizontal = true, showAspects = true, showBoundsDecans = false, hideSignGlyphs = false, fixedAnchor, glyphSet = DEFAULT_GLYPH_SET, glyphOverrides, theme: themeProp }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
+  ({ chartData, transitData, size = 800, ascHorizontal = true, showAspects = true, showBoundsDecans = false, hideSignGlyphs = false, fixedAnchor, glyphSet = DEFAULT_GLYPH_SET, glyphOverrides, theme: themeProp, highlightHouse, highlightColor = '#b8860b' }: ChartWheelProps, ref: React.ForwardedRef<ChartWheelHandle>): React.JSX.Element => {
     const t = themeProp || DEFAULT_THEME;
     const elementColors = React.useMemo(() => signElementColors(t), [t]);
     // Scale glyph/label sizes by font size preference (1.3rem = 1.0x baseline)
@@ -1144,6 +1148,30 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
                 </g>
               );
             });
+          })()}
+
+          {/* === ANNUAL PROFECTIONS HIGHLIGHT (bold triangle around the activated house) === */}
+          {/* Spans from the wheel's center to its outermost ring, so with a
+              transit overlay active it cuts through both the natal and
+              transit bands together. */}
+          {highlightHouse != null && (() => {
+            const startHouse = chartData.houses.find(h => h.house === highlightHouse);
+            const endHouse = chartData.houses.find(h => h.house === (highlightHouse % 12) + 1);
+            if (!startHouse || !endHouse) return null;
+            const outerR = hasTransits ? R.transitOuter : R.outer;
+            const p1 = toPoint(startHouse.longitude, outerR);
+            const p2 = toPoint(endHouse.longitude, outerR);
+            return (
+              <path
+                data-role="profection-highlight"
+                d={`M ${center} ${center} L ${p1.x} ${p1.y} L ${p2.x} ${p2.y} Z`}
+                fill={highlightColor}
+                fillOpacity={0.1}
+                stroke={highlightColor}
+                strokeWidth={4}
+                strokeLinejoin="round"
+              />
+            );
           })()}
         </svg>
       </div>
