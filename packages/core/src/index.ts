@@ -12,3 +12,5 @@ export {
   ZR_SIGN_MODALITY,
   ZR_TOTAL_CYCLE_YEARS,
 } from './zodiacal-releasing';
+export { calculateAnnualProfection } from './annual-profections';
+export type { AnnualProfection } from './annual-profections';

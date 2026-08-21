@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import type { AnnualProfection } from '@natal-chart/core';
 import { useChart, type TransitLocation } from '../contexts/ChartContext';
 import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
 import { PlanetLegend } from './PlanetLegend';
@@ -29,6 +30,8 @@ export const TransitView: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [transitCityQuery, setTransitCityQuery] = useState(transitLocation?.city || birthData?.city || '');
+  const [showProfections, setShowProfections] = useState(false);
+  const [profection, setProfection] = useState<AnnualProfection | null>(null);
   const chartWheelRef = useRef<ChartWheelHandle>(null);
   const initialized = useRef(false);
   const [animPlaying, setAnimPlaying] = useState(false);
@@ -62,6 +65,27 @@ export const TransitView: React.FC = () => {
       calculateTransits(new Date(transitDateStr));
     }
   }, [chartData, transitDateStr, transitData, setTransitDateStr, calculateTransits]);
+
+  // Annual profections: recomputed from the client's age as of the
+  // currently-selected transit date, so moving that date also moves the
+  // activated house.
+  useEffect(() => {
+    if (!showProfections || !birthData || !chartData || !transitDateStr) {
+      setProfection(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { calculateAnnualProfection } = await import('@natal-chart/core');
+      const result = calculateAnnualProfection(
+        new Date(birthData.dateTimeUtc),
+        new Date(transitDateStr),
+        chartData.angles.ascendant,
+      );
+      if (!cancelled) setProfection(result);
+    })();
+    return () => { cancelled = true; };
+  }, [showProfections, birthData, chartData, transitDateStr]);
 
   const handleSelectTransitCity = (result: GeocodeResult) => {
     const loc: TransitLocation = {
@@ -521,8 +545,41 @@ export const TransitView: React.FC = () => {
                 <input type="checkbox" checked={traditionalPlanets} onChange={(e) => setTraditionalPlanets(e.target.checked)} />
                 Traditional planets
               </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.85rem', color: '#666' }} title="Mock-up: highlights the whole-sign house activated by the client's age this year">
+                <input type="checkbox" checked={showProfections} onChange={(e) => setShowProfections(e.target.checked)} />
+                Annual profections (mock-up)
+              </label>
             </div>
-            <ChartWheel ref={chartWheelRef} chartData={displayData!} transitData={displayTransit ?? undefined} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} hideSignGlyphs glyphSet={glyphSet} glyphOverrides={glyphOverrides} theme={resolvedTheme} />
+            {profection && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                flexWrap: 'wrap',
+                padding: '0.5rem 0.75rem',
+                marginBottom: '0.5rem',
+                backgroundColor: '#fdf6e3',
+                border: '1px solid #b8860b',
+                borderRadius: '4px',
+                fontSize: '0.85rem',
+                color: '#5d4a1f',
+              }}>
+                <strong>Annual Profections:</strong>
+                <span>Age {profection.age}</span>
+                <span>&middot;</span>
+                <span>House {profection.house} activated</span>
+                <span>
+                  (<SignGlyphIcon sign={profection.sign} style={{ marginRight: '0.2rem' }} />
+                  {formatSignName(profection.sign)})
+                </span>
+                <span>&middot;</span>
+                <span>
+                  Time Lord: <PlanetGlyphIcon planet={profection.timeLord} style={{ marginRight: '0.2rem' }} />
+                  {formatPlanetName(profection.timeLord)}
+                </span>
+              </div>
+            )}
+            <ChartWheel ref={chartWheelRef} chartData={displayData!} transitData={displayTransit ?? undefined} size={chartSize} ascHorizontal={ascHorizontal} showAspects={showAspects} hideSignGlyphs glyphSet={glyphSet} glyphOverrides={glyphOverrides} theme={resolvedTheme} highlightHouse={profection?.house} />
           </div>
           <div style={{ width: isMobile ? '100%' : '240px', flexShrink: 0 }}>
             <PlanetLegend

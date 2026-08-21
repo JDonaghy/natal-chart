@@ -258,3 +258,37 @@ describe('ChartWheel — transit outer ring goes white (issue #32)', () => {
     expect(fills).not.toContain('#FFFFFF');
   });
 });
+
+describe('ChartWheel — annual profections highlight', () => {
+  it('draws no highlight when highlightHouse is not set', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} />);
+    expect(container.querySelector('[data-role="profection-highlight"]')).toBeNull();
+  });
+
+  it('draws a bold triangle from center to the outer rim around the given house', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} highlightHouse={2} />);
+    const highlight = container.querySelector('[data-role="profection-highlight"]');
+    expect(highlight).not.toBeNull();
+
+    // Apex at the wheel's center (size/2, size/2).
+    const d = highlight!.getAttribute('d')!;
+    expect(d.startsWith('M 200 200 L')).toBe(true);
+    expect(highlight!.getAttribute('stroke-width')).toBe('4');
+  });
+
+  it('reaches the outer transit ring, not just the natal wheel, when transits are shown', () => {
+    const transitData = { planets: mockChartData.planets, aspects: [], dateTimeUtc: new Date('2024-01-01T00:00:00Z') };
+    const withTransit = render(<ChartWheel chartData={mockChartData} transitData={transitData} size={400} highlightHouse={2} />);
+    const withoutTransit = render(<ChartWheel chartData={mockChartData} size={400} highlightHouse={2} />);
+
+    const dWith = withTransit.container.querySelector('[data-role="profection-highlight"]')!.getAttribute('d')!;
+    const dWithout = withoutTransit.container.querySelector('[data-role="profection-highlight"]')!.getAttribute('d')!;
+    // Same house, different outer radius (transitOuter > outer) -> different endpoints.
+    expect(dWith).not.toBe(dWithout);
+  });
+
+  it('ignores an out-of-range house number rather than crashing', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} highlightHouse={13} />);
+    expect(container.querySelector('[data-role="profection-highlight"]')).toBeNull();
+  });
+});
