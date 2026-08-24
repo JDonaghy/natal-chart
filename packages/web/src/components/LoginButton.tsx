@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { getAuthErrorCode, mapAuthError } from '../services/auth';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -71,9 +72,13 @@ export const LoginButton: React.FC = () => {
       else await signInAuth0({ signup: authMode === 'signup' });
       setAuthMode(null);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Sign in failed';
-      if (!message.includes('popup-closed')) {
-        setError(message);
+      const code = getAuthErrorCode(err);
+      const isPopupClosed =
+        code === 'auth/popup-closed-by-user' ||
+        code === 'auth/cancelled-popup-request' ||
+        (err instanceof Error && err.message.includes('popup-closed'));
+      if (!isPopupClosed) {
+        setError(mapAuthError(err));
       }
     } finally {
       setSubmitting(false);
