@@ -6,7 +6,7 @@ This document provides essential information for AI coding agents working on thi
 
 **Type**: Monorepo natal chart calculation and visualization application  
 **Architecture**: Serverless-first, browser-based calculations using WebAssembly  
-**Deployment**: GitHub Pages (web), Cloudflare Workers (geocoding proxy)  
+**Deployment**: Cloudflare Pages (web, with per-PR preview deploys), Cloudflare Workers (geocoding proxy). GitHub Pages was the original web deploy target; as of #31 (2026-08-17) it publishes a redirect stub to the Cloudflare Pages URL instead.  
 **Package Manager**: pnpm with workspaces
 
 ### Monorepo Structure
@@ -49,6 +49,12 @@ pnpm --filter web test
 # Run single test file (adjust based on test framework)
 pnpm --filter core test -- path/to/test.spec.ts
 pnpm --filter web test -- --run path/to/component.test.tsx
+
+# Visual regression (Playwright) -- screenshot baselines for the natal
+# chart wheel, planet positions table, and ZR tab (see packages/web/e2e/).
+# One-time setup: pnpm --filter web exec playwright install chromium
+# Also runs automatically as part of `pnpm --filter web test` / `pnpm -r test`.
+pnpm --filter web test:e2e
 ```
 
 ### Building & Deployment
@@ -59,8 +65,9 @@ pnpm build
 # Build specific package
 pnpm --filter web build
 
-# Deploy to GitHub Pages (automated via CI)
-pnpm deploy
+# Deploy: pushing to main triggers Cloudflare Pages (production) and a
+# GitHub Pages redirect-stub publish via CI; PRs get their own Cloudflare
+# Pages preview deploy automatically.
 ```
 
 ### Linting & Formatting

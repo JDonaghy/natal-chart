@@ -49,6 +49,12 @@ jobs:
       - name: Typecheck
         run: pnpm --filter @natal-chart/core --filter @natal-chart/web --filter @natal-chart/worker typecheck
 
+      # web's "test" script now runs the Playwright visual-regression suite
+      # (issue #47) after vitest, so the browser binary has to exist before
+      # that step runs -- pnpm install alone does not download it.
+      - name: Install Playwright Chromium
+        run: pnpm --filter @natal-chart/web exec playwright install --with-deps chromium
+
       # worker is excluded on purpose -- it currently ships no test files, and
       # vitest treats that as an error.  Re-add it once it has tests.
       - name: Test

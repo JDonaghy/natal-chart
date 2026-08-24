@@ -38,6 +38,13 @@ lerna-debug.log*
 # Testing
 coverage/
 
+# Playwright (baseline images under packages/web/e2e/*-snapshots/ ARE committed;
+# only run artifacts are ignored)
+packages/web/e2e/.test-results/
+packages/web/playwright-report/
+packages/web/blob-report/
+packages/web/test-results/
+
 # Cloudflare
 .wrangler/
 wrangler.toml.local
