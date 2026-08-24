@@ -184,7 +184,7 @@ CREATE TABLE saved_charts (
 
 **Settings** (Firebase Console > Authentication > Settings):
 - **User account linking**: "Create multiple accounts for each identity provider" (each provider creates a separate Firebase UID, even with the same email)
-- **Authorized domains**: `jdonaghy.github.io`, `localhost`, `192.168.1.109` (LAN dev)
+- **Authorized domains**: `natal-chart-3ew.pages.dev`, `localhost`, `192.168.1.109` (LAN dev). `jdonaghy.github.io` is stale — production moved to Cloudflare Pages in #31 (see #51). Note: per-PR preview deploys mint hash-prefixed origins (e.g. `f752b11d.natal-chart-3ew.pages.dev`) that Firebase's authorized-domains list has no wildcard/suffix mechanism for, so sign-in may not work on preview URLs (tracked separately, see #51).
 
 **How it works:**
 1. User clicks Sign In → Firebase SDK opens provider popup (Google, GitHub, or Auth0)
@@ -467,9 +467,9 @@ This creates KV namespace, D1 database, applies migrations, sets secrets, and de
    - Enable Google sign-in provider
    - Add GitHub sign-in (see section 4a above for OAuth App setup)
    - Add Auth0 OIDC provider (see section 4b above for full setup)
-   - Add `jdonaghy.github.io` to authorized domains
+   - Add `natal-chart-3ew.pages.dev` to authorized domains (not `jdonaghy.github.io` — that's a redirect stub as of #31)
    - Set user account linking to "Create multiple accounts for each identity provider"
-5. **GitHub Pages**: Push to `main` or `gh workflow run deploy.yml --ref main`
+5. **Cloudflare Pages**: Push to `main` (auto-deploys) or trigger a manual deploy from the Cloudflare dashboard
 6. **Verify**: Sign in, check preferences sync, save/load a chart
 7. **Re-enable cron backup**: `crontab -e`, add the backup cron entry
 
