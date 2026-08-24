@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ZRTimeline, ZRPeriod } from '@natal-chart/core';
 import '../App.css';
-import { SIGN_SYMBOLS as SIGN_GLYPHS } from '../utils/symbols';
+import { SignGlyphIcon } from './GlyphIcon';
 
 // Element colors matching the chart wheel aesthetic
 const ELEMENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -61,7 +61,7 @@ export const ReleasingTimeline: React.FC<ReleasingTimelineProps> = ({
                 overflow: 'hidden',
               }}
             >
-              <span className="glyph">{SIGN_GLYPHS[period.sign]}</span>
+              <SignGlyphIcon sign={period.sign} size={widthPct > 5 ? '1rem' : '0.7rem'} color={colors.text} />
               {isActive && (
                 <div style={{
                   position: 'absolute',
@@ -178,16 +178,12 @@ const PeriodRow: React.FC<PeriodRowProps> = ({ period, currentDate, depth }) => 
           )}
         </td>
         <td style={{ padding: '0.5rem', paddingLeft: `${0.5 + depth * 1.5}rem` }}>
-          <span
-            className="glyph"
-            style={{
-              marginRight: '0.5rem',
-              color: colors.text,
-              fontSize: depth === 0 ? '1.2rem' : '1rem',
-            }}
-          >
-            {SIGN_GLYPHS[period.sign]}
-          </span>
+          <SignGlyphIcon
+            sign={period.sign}
+            size={depth === 0 ? '1.2rem' : '1rem'}
+            color={colors.text}
+            style={{ marginRight: '0.5rem' }}
+          />
           <span style={{
             fontWeight: depth === 0 ? 'bold' : 'normal',
             color: colors.text,

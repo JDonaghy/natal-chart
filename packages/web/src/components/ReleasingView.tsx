@@ -8,7 +8,7 @@ import {
 } from '@natal-chart/core';
 import type { ZRTimeline, ZRPeriod, LotResult } from '@natal-chart/core';
 import '../App.css';
-import { SIGN_SYMBOLS as SIGN_GLYPHS } from '../utils/symbols';
+import { SignGlyphIcon } from './GlyphIcon';
 import { formatLocationDisplay } from '../utils/formatLocation';
 
 
@@ -170,9 +170,7 @@ export const ReleasingView: React.FC = () => {
                   L{period.level}
                 </div>
                 <div style={{ fontWeight: 'bold', color: getElementColor(period.element).text }}>
-                  <span className="glyph" style={{ marginRight: '0.4rem' }}>
-                    {SIGN_GLYPHS[period.sign]}
-                  </span>
+                  <SignGlyphIcon sign={period.sign} style={{ marginRight: '0.4rem' }} />
                   {formatSign(period.sign)}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: '#666', marginTop: '0.25rem' }}>
@@ -207,7 +205,7 @@ export const ReleasingView: React.FC = () => {
       <div className="card" style={{ padding: '1rem 1.5rem' }}>
         <h3 style={{ margin: '0 0 0.75rem 0', fontSize: '1.2rem' }}>
           Releasing from Lot of {lot === 'fortune' ? 'Fortune' : 'Spirit'} in{' '}
-          <span className="glyph">{SIGN_GLYPHS[timeline.lotSign]}</span>{' '}
+          <SignGlyphIcon sign={timeline.lotSign} />{' '}
           {formatSign(timeline.lotSign)}
         </h3>
         <ReleasingTimeline timeline={timeline} currentDate={currentDate} />
@@ -257,12 +255,12 @@ const LotSummary: React.FC<LotSummaryProps> = ({ lots }) => {
       </span>
       <span>
         Lot of Fortune:{' '}
-        <span className="glyph">{SIGN_GLYPHS[lots.fortuneSign]}</span>{' '}
+        <SignGlyphIcon sign={lots.fortuneSign} />{' '}
         {formatSign(lots.fortuneSign)} ({lots.fortune.toFixed(1)}°)
       </span>
       <span>
         Lot of Spirit:{' '}
-        <span className="glyph">{SIGN_GLYPHS[lots.spiritSign]}</span>{' '}
+        <SignGlyphIcon sign={lots.spiritSign} />{' '}
         {formatSign(lots.spiritSign)} ({lots.spirit.toFixed(1)}°)
       </span>
     </div>
