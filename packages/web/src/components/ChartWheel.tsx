@@ -485,6 +485,7 @@ export const ChartWheel = forwardRef<ChartWheelHandle, ChartWheelProps>(
       <div style={{ width: '100%', aspectRatio: '1 / 1', maxWidth: `${size}px`, margin: '0 auto', touchAction: 'manipulation' }}>
         <svg
           ref={svgRef}
+          data-testid="chart-wheel"
           width="100%"
           height="100%"
           viewBox={`0 0 ${size} ${size}`}
