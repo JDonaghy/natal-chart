@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig, configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { tamaguiPlugin } from '@tamagui/vite-plugin';
 import { execSync } from 'child_process';
@@ -123,5 +123,11 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
+    // e2e/ holds Playwright specs (issue #47).  They also match vitest's
+    // default `**/*.spec.ts` include, and importing @playwright/test outside
+    // the Playwright runner throws "Playwright Test did not expect
+    // test.describe() to be called here" -- so keep vitest out of e2e/.
+    // `pnpm --filter web test:e2e` runs them with the right runner.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 });
