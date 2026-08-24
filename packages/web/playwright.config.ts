@@ -62,7 +62,7 @@ export default defineConfig({
   // Builds and serves the production bundle (not `vite dev`) so what gets
   // screenshotted is the same artifact a real deploy ships.
   webServer: {
-    command: 'npm run build && npm run preview -- --port 4173 --strictPort',
+    command: 'pnpm run build && pnpm run preview -- --port 4173 --strictPort',
     url: 'http://localhost:4173/natal-chart/',
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

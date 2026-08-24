@@ -61,9 +61,14 @@ export function chartShareUrl(): string {
 export async function gotoChart(page: Page): Promise<void> {
   await page.clock.setFixedTime(FROZEN_NOW);
   await page.goto(chartShareUrl());
-  // The planet-positions table only renders once calculateChart() resolves;
-  // waiting for a known planet name is a more reliable "chart is ready"
-  // signal than a fixed timeout.
-  await page.getByText('Sun', { exact: true }).first().waitFor({ timeout: 20_000 });
+  // `/#/chart` lands on the Chart Wheel tab by default (ChartView's
+  // `activeTab` initial state) -- the Planet Positions table (where the
+  // literal text "Sun" is rendered) lives on the Planets tab and is
+  // `display: none` until a spec explicitly clicks it. So wait for the
+  // chart-wheel SVG itself (data-testid="chart-wheel" in ChartWheel.tsx),
+  // which is always visible on navigation and only renders once
+  // calculateChart() resolves -- a reliable "chart is ready" signal
+  // regardless of which tab a given spec ends up on.
+  await page.getByTestId('chart-wheel').waitFor({ timeout: 20_000 });
   await page.evaluate(() => document.fonts.ready);
 }
