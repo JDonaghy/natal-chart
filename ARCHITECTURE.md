@@ -184,7 +184,7 @@ CREATE TABLE saved_charts (
 
 **Settings** (Firebase Console > Authentication > Settings):
 - **User account linking**: "Create multiple accounts for each identity provider" (each provider creates a separate Firebase UID, even with the same email)
-- **Authorized domains**: `natal-chart-3ew.pages.dev`, `localhost`, `192.168.1.109` (LAN dev). `jdonaghy.github.io` is stale — production moved to Cloudflare Pages in #31 (see #51). Note: per-PR preview deploys mint hash-prefixed origins (e.g. `f752b11d.natal-chart-3ew.pages.dev`) that Firebase's authorized-domains list has no wildcard/suffix mechanism for, so sign-in may not work on preview URLs (tracked separately, see #51).
+- **Authorized domains**: `natal-chart-3ew.pages.dev`, `localhost`, `192.168.1.109` (LAN dev). `jdonaghy.github.io` is stale — production moved to Cloudflare Pages in #31 (see #51). Note: per-PR preview deploys mint hash-prefixed origins (e.g. `f752b11d.natal-chart-3ew.pages.dev`), but these do NOT need separate authorized-domains entries: Firebase Auth's client-side origin check (`matchDomain()` in `@firebase/auth`) matches an authorized-domains entry against the request origin **and any subdomain** of it (`domain.com = *.domain.com OR domain.com`), so the single `natal-chart-3ew.pages.dev` entry already covers every hash-prefixed preview origin as well as production. This is unlike the Worker's CORS allowlist (#34), which has no equivalent subdomain rule and genuinely needs `ALLOWED_ORIGIN_SUFFIX`. (Confirmed working in production 2026-08-24; see #53. Not verified: whether Firebase's server-side redirect-URI check agrees with this client-side rule.)
 
 **How it works:**
 1. User clicks Sign In → Firebase SDK opens provider popup (Google, GitHub, or Auth0)
