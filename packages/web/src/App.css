@@ -1,20 +1,12 @@
-/* DejaVu Sans — loaded locally for astrological Unicode glyphs (♈♉♊♋♌♍ etc.) */
-@font-face {
-  font-family: 'DejaVuSans';
-  src: url('/natal-chart/fonts/DejaVuSans.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Cormorant — local copy for PDF export (svg2pdf needs it registered, not from Google CDN) */
-@font-face {
-  font-family: 'Cormorant';
-  src: url('/natal-chart/fonts/Cormorant-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/*
+ * DejaVu Sans (astrological Unicode glyph fallback) and Cormorant (local
+ * copy for PDF export — svg2pdf needs it registered, not CDN-loaded) used to
+ * be declared here as @font-face rules with a hardcoded GitHub-Pages-only
+ * subpath baked into the url(), which 404d on Cloudflare Pages once
+ * DEPLOY_BASE pointed at the domain root (issue #43). They're now
+ * registered at runtime via `loadLocalFonts()` in App.tsx, which builds the
+ * URL from import.meta.env.BASE_URL so it's correct on either deploy target.
+ */
 
 /* Main app styles - traditional parchment aesthetic */
 
