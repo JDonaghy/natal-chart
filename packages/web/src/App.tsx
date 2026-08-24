@@ -7,7 +7,13 @@ import { Layout } from './components/Layout';
 import { AuthProvider } from './contexts/AuthContext';
 import { SyncProvider } from './contexts/SyncContext';
 import { ChartProvider } from './contexts/ChartContext';
+import { loadLocalFonts } from './utils/loadFonts';
 import './App.css';
+
+// Self-hosted webfonts (DejaVuSans, Cormorant) are registered here rather
+// than via a static @font-face in App.css so their URLs respect DEPLOY_BASE
+// on both GitHub Pages and Cloudflare Pages — see loadFonts.ts (issue #43).
+loadLocalFonts();
 
 const BirthDataForm = React.lazy(() => import('./components/BirthDataForm').then(m => ({ default: m.BirthDataForm })));
 const ChartView = React.lazy(() => import('./components/ChartView').then(m => ({ default: m.ChartView })));
