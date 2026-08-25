@@ -12,7 +12,6 @@ import { useSyncedCharts } from '../hooks/useSyncedCharts';
 import { SaveChartDialog } from './SaveChartDialog';
 import { type GeocodeResult } from '../services/geocoding';
 import { CitySearch } from './CitySearch';
-import { AspectGrid } from './AspectGrid';
 import { TransitAspectGrid } from './TransitAspectGrid';
 import { formatPlanetName, formatSignName, filterTraditionalPlanets, filterTraditionalTransits } from '../utils/chart-helpers';
 import { formatLocationDisplay } from '../utils/formatLocation';
@@ -24,7 +23,7 @@ import '../App.css';
 export const TransitView: React.FC = () => {
   const navigate = useNavigate();
   const { chartData, birthData, loading, error, loadChart, transitData, transitLoading, calculateTransits, clearTransits, transitDateStr, setTransitDateStr, transitLocation, setTransitLocation, showAspects, setShowAspects, traditionalPlanets, setTraditionalPlanets, glyphSet, setGlyphSet, glyphOverrides, ascHorizontal, resolvedTheme } = useChart();
-  const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>('chart');
+  const [activeTab, setActiveTab] = useState<'chart' | 'aspects'>('chart');
   const [pdfLoading, setPdfLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -490,22 +489,6 @@ export const TransitView: React.FC = () => {
           Chart Wheel
         </button>
         <button
-          onClick={() => setActiveTab('planets')}
-          style={{
-            padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
-            backgroundColor: activeTab === 'planets' ? '#b8860b' : 'transparent',
-            color: activeTab === 'planets' ? 'white' : '#333',
-            border: 'none',
-            borderBottom: activeTab === 'planets' ? '2px solid #b8860b' : '2px solid transparent',
-            cursor: 'pointer',
-            fontSize: isMobile ? '0.9rem' : '1rem',
-            fontWeight: activeTab === 'planets' ? 'bold' : 'normal',
-            transition: 'all 0.2s',
-          }}
-        >
-          Planets
-        </button>
-        <button
           onClick={() => setActiveTab('aspects')}
           style={{
             padding: isMobile ? '0.5rem 1rem' : '0.75rem 1.5rem',
@@ -592,76 +575,8 @@ export const TransitView: React.FC = () => {
           </div>
         </div>
 
-        {/* Planet Positions Tab */}
-        <div style={{ display: activeTab === 'planets' ? 'block' : 'none' }}>
-          <div className="card">
-            <h3>Planet Positions</h3>
-            <div style={{ maxHeight: '500px', overflowY: 'auto', overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid #b8860b' }}>
-                    <th style={{ textAlign: 'left', padding: '0.5rem' }}>Planet</th>
-                    <th style={{ textAlign: 'left', padding: '0.5rem' }}>Sign</th>
-                    <th style={{ textAlign: 'left', padding: '0.5rem' }}>Degree</th>
-                    <th style={{ textAlign: 'left', padding: '0.5rem' }}>House</th>
-                    <th style={{ textAlign: 'left', padding: '0.5rem' }}>Retrograde</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {displayData!.planets.map((planet, index) => (
-                    <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '0.5rem' }}>
-                        <PlanetGlyphIcon planet={planet.planet} style={{ marginRight: '0.5rem' }} />
-                        {formatPlanetName(planet.planet)}
-                      </td>
-                      <td style={{ padding: '0.5rem' }}>
-                        <SignGlyphIcon sign={planet.sign} style={{ marginRight: '0.5rem' }} />
-                        {formatSignName(planet.sign)}
-                      </td>
-                      <td style={{ padding: '0.5rem' }}>
-                        {planet.degree}° {planet.minute}′
-                      </td>
-                      <td style={{ padding: '0.5rem' }}>
-                        {planet.house}
-                      </td>
-                      <td style={{ padding: '0.5rem', color: planet.retrograde ? '#cc3333' : '#666' }}>
-                        {planet.retrograde ? 'R' : ''}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {chartData.skippedPlanets && chartData.skippedPlanets.length > 0 && (
-              <div style={{
-                marginTop: '1rem',
-                padding: '0.75rem',
-                backgroundColor: '#fff8e1',
-                border: '1px solid #ffd54f',
-                borderRadius: '4px',
-                fontSize: '0.9rem',
-                color: '#5d4037'
-              }}>
-                <strong>Note:</strong> The following positions could not be calculated: {' '}
-                {chartData.skippedPlanets.map(p => formatPlanetName(p)).join(', ')}.
-                {chartData.skippedPlanets.includes('chiron') && ' Chiron requires asteroid ephemeris files.'}
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Aspects Tab */}
         <div style={{ display: activeTab === 'aspects' ? 'block' : 'none' }}>
-          {/* Natal Aspect Grid */}
-          <div className="card">
-            <h3>Natal Aspects</h3>
-            {displayData!.aspects.length > 0 ? (
-              <AspectGrid chartData={displayData!} />
-            ) : (
-              <p>No natal aspects found within orb limits.</p>
-            )}
-          </div>
-
           {/* Transit Aspect Grid */}
           {displayTransit && (
             <div className="card" style={{ marginTop: '1rem' }}>
