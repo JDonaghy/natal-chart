@@ -20,7 +20,17 @@ const TEXT_FALLBACK_SCALE = 1.4;
 // regardless of the glyph's own transform/scale, so it stays proportional
 // to `sz` (the caller's requested render size) instead of the glyph's
 // internal viewBox units.
-const GLYPH_STROKE_FACTOR = 0.05;
+//
+// issue #57: the #32 boost read as too heavy/bold on small mobile screens.
+// Scaled the base factor down (0.05 -> 0.03, ~40% thinner) while leaving
+// GLYPH_EXTRA_STROKE's multiplier untouched, so sun/moon keep the same
+// *relative* boost over the other planets that #32 established (still at
+// least Mars's weight) — only the absolute stroke weight app-wide drops.
+// Because stroke straddles the path edge, thinning it also pulls the
+// glyph's outer edge slightly inward, so this makes glyphs marginally
+// smaller if anything, never larger — safe for the "don't change
+// size/position" constraint.
+const GLYPH_STROKE_FACTOR = 0.03;
 // Sun and Moon read thin/light next to Mars even with the base boost.
 const GLYPH_EXTRA_STROKE: Record<string, number> = { sun: 1.9, moon: 1.9 };
 

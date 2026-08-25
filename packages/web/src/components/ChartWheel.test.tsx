@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
 import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
+import { getPlanetPath } from '../utils/astro-glyph-paths';
 import type { ChartResult } from '@natal-chart/core';
 
 // Mock chart data
@@ -233,6 +234,49 @@ describe('ChartWheel — thicker, more vibrant planet glyphs (issue #32)', () =>
     // The old, too-light colors this issue replaces.
     expect(sunPath.getAttribute('fill')).not.toBe('#DAA520');
     expect(moonPath.getAttribute('fill')).not.toBe('#8C8C8C');
+  });
+});
+
+describe('ChartWheel — glyphs less bold on mobile (issue #57)', () => {
+  // Derive the glyph's actual rendered size (`sz`) from its own transform
+  // attribute — `glyphTransform` embeds `scale(sz / maxDim(viewBox))` — so
+  // this doesn't need to duplicate ChartWheel's internal band-height/
+  // font-scale geometry to know what stroke-width to expect.
+  function renderedGlyphSz(path: Element, planet: string): number {
+    const transform = path.getAttribute('transform') ?? '';
+    const match = transform.match(/scale\(([-\d.]+)\)/);
+    expect(match).not.toBeNull();
+    const scale = Number(match![1]);
+    const pathData = getPlanetPath(planet, 'classic', {})!;
+    const [, , vbW, vbH] = pathData.viewBox.split(' ').map(Number);
+    return scale * Math.max(vbW!, vbH!);
+  }
+
+  it('thins the #32 faux-bold stroke from factor 0.05 to 0.03', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} />);
+    const sunPath = container.querySelector('path[data-planet="sun"]')!;
+    const sz = renderedGlyphSz(sunPath, 'sun');
+    const strokeWidth = Number(sunPath.getAttribute('stroke-width'));
+    // Sun carries the 1.9x GLYPH_EXTRA_STROKE multiplier, unchanged by #57.
+    expect(strokeWidth).toBeCloseTo(sz * 0.03 * 1.9, 5);
+    // Would be sz * 0.05 * 1.9 under the pre-#57 factor — confirm we're
+    // meaningfully below that, not just at a coincidentally close value.
+    expect(strokeWidth).toBeLessThan(sz * 0.05 * 1.9 * 0.9);
+  });
+
+  it('keeps sun and moon boosted at the same relative ratio over an unboosted planet', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} />);
+    const sunPath = container.querySelector('path[data-planet="sun"]')!;
+    const moonPath = container.querySelector('path[data-planet="moon"]')!;
+    const sunWidth = Number(sunPath.getAttribute('stroke-width'));
+    const moonWidth = Number(moonPath.getAttribute('stroke-width'));
+    const sunSz = renderedGlyphSz(sunPath, 'sun');
+    const moonSz = renderedGlyphSz(moonPath, 'moon');
+    // Both should reduce to the same base factor once normalized by their
+    // own rendered size — i.e. the 1.9x relative boost #32 established for
+    // sun/moon survives #57's across-the-board thinning unchanged.
+    expect(sunWidth / sunSz).toBeCloseTo(moonWidth / moonSz, 5);
+    expect(sunWidth / sunSz).toBeCloseTo(0.03 * 1.9, 5);
   });
 });
 
