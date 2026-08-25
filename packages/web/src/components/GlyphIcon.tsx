@@ -6,6 +6,29 @@ import { getPlanetGlyph, getSignGlyph, getPlanetGlyphScale } from '../utils/symb
 // Unicode glyphs render visually smaller than SVG paths at the same nominal size.
 const TEXT_FALLBACK_SCALE = 1.4;
 
+// issue #57: glyphs here are plain filled paths with no stroke, so — unlike
+// ChartWheel's planet glyphs (which issue #32 gave a same-color stroke to
+// bolden, and #57 thins via GLYPH_STROKE_FACTOR) — there's no stroke-weight
+// knob to dial down directly. A background-colored "erosion" stroke was
+// considered and rejected: these icons render on inconsistent surfaces
+// (page background, card background, and hardcoded-color badges/chips) and
+// under 8 theme presets including several dark ones, so a stroke tuned to
+// one surface/theme would look wrong on the others. Instead, shrink the
+// rendered glyph slightly — less filled area reads as visually lighter
+// without changing its center position, which is the "reduce scale
+// slightly" option the issue explicitly flagged as acceptable if noted
+// (this is that note: it changes size, not stroke weight).
+const GLYPH_BOLDNESS_SCALE = 0.94;
+// Text-fallback glyphs (lilith, fortune, spirit, vertex) render via the one
+// DejaVuSans-regular face bundled in public/fonts — there's no lighter
+// weight file to select, and browsers don't synthesize a thinner face the
+// way some synthesize faux-bold, so this is a best-effort/no-op with the
+// current font bundle rather than a real fix. Set it anyway (harmless, and
+// takes effect for free if the bundle ever gains a lighter weight or a
+// system DejaVu Sans covers the fallback); GLYPH_BOLDNESS_SCALE below is
+// the mechanism that actually has a visible effect on these today.
+const TEXT_FALLBACK_WEIGHT = 300;
+
 
 function useGlyphPrefs(): { glyphSet: string; overrides: Record<string, string> } {
   const ctx = useContext(ChartContext);
@@ -29,7 +52,10 @@ export const PlanetGlyphIcon: React.FC<{
   const prefs = useGlyphPrefs();
   const activeSet = glyphSet ?? prefs.glyphSet;
   const pathData = getPlanetPath(planet, activeSet, prefs.overrides);
-  const scaleFactor = getPlanetGlyphScale(planet);
+  // GLYPH_BOLDNESS_SCALE folds into the per-planet scale factor uniformly —
+  // it shrinks every planet's rendered size by the same ~6% regardless of
+  // its individual weight-normalization value (issue #57).
+  const scaleFactor = getPlanetGlyphScale(planet) * GLYPH_BOLDNESS_SCALE;
   if (pathData) {
     const rotation = getPlanetGlyphRotation(planet);
     // Pad the viewBox to shrink the glyph (scale < 1) or grow it (scale > 1)
@@ -63,7 +89,7 @@ export const PlanetGlyphIcon: React.FC<{
       ? size * textScale
       : `calc(${size} * ${textScale})`;
   return (
-    <span style={{ fontFamily: "'DejaVuSans', sans-serif", fontSize: fallbackSize, lineHeight: 1, color, ...style }}>
+    <span style={{ fontFamily: "'DejaVuSans', sans-serif", fontWeight: TEXT_FALLBACK_WEIGHT, fontSize: fallbackSize, lineHeight: 1, color, ...style }}>
       {getPlanetGlyph(planet)}
     </span>
   );
@@ -84,9 +110,19 @@ export const SignGlyphIcon: React.FC<{
   const index = (SIGN_ORDER as readonly string[]).indexOf(sign);
   const pathData = index >= 0 ? getSignPathByIndex(index, activeSet, prefs.overrides) : undefined;
   if (pathData) {
+    // Pad the viewBox to shrink the glyph slightly (issue #57) — same
+    // technique PlanetGlyphIcon uses for its per-planet scale factor above,
+    // just with a single shared shrink instead of a per-sign one.
+    const vbParts = pathData.viewBox.split(' ').map(Number);
+    const [vbX, vbY, vbW, vbH] = [vbParts[0] ?? 0, vbParts[1] ?? 0, vbParts[2] ?? 100, vbParts[3] ?? 100];
+    const newW = vbW / GLYPH_BOLDNESS_SCALE;
+    const newH = vbH / GLYPH_BOLDNESS_SCALE;
+    const newX = vbX - (newW - vbW) / 2;
+    const newY = vbY - (newH - vbH) / 2;
+    const adjustedViewBox = `${newX} ${newY} ${newW} ${newH}`;
     return (
       <svg
-        width={size} height={size} viewBox={pathData.viewBox}
+        width={size} height={size} viewBox={adjustedViewBox}
         style={{ display: 'inline-block', verticalAlign: '-0.15em', ...style }}
         aria-label={sign}
       >
@@ -95,7 +131,7 @@ export const SignGlyphIcon: React.FC<{
     );
   }
   return (
-    <span style={{ fontFamily: "'DejaVuSans', sans-serif", color, ...style }}>
+    <span style={{ fontFamily: "'DejaVuSans', sans-serif", fontWeight: TEXT_FALLBACK_WEIGHT, fontSize: `${GLYPH_BOLDNESS_SCALE}em`, color, ...style }}>
       {getSignGlyph(sign)}
     </span>
   );

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
 import { ChartWheel, type ChartWheelHandle } from './ChartWheel';
-import { getPlanetPath } from '../utils/astro-glyph-paths';
+import { getPlanetPath, getSignPathByIndex } from '../utils/astro-glyph-paths';
 import type { ChartResult } from '@natal-chart/core';
 
 // Mock chart data
@@ -277,6 +277,78 @@ describe('ChartWheel — glyphs less bold on mobile (issue #57)', () => {
     // sun/moon survives #57's across-the-board thinning unchanged.
     expect(sunWidth / sunSz).toBeCloseTo(moonWidth / moonSz, 5);
     expect(sunWidth / sunSz).toBeCloseTo(0.03 * 1.9, 5);
+  });
+
+  // Round 2 (review): the initial #57 fix only thinned PlanetGlyph's SVG
+  // path stroke inside the wheel. Sign glyphs (SignGlyph) are plain filled
+  // paths with no stroke at all — GLYPH_STROKE_FACTOR never applied to them
+  // — so they need their own boldness knob: GLYPH_BOLDNESS_SCALE shrinks
+  // the glyph slightly instead. --------------------------------------------
+  it('shrinks the sign glyph relative to the co-located planet glyph by GLYPH_BOLDNESS_SCALE', () => {
+    const { container } = render(<ChartWheel chartData={mockChartData} size={400} />);
+    // Sun's <g> wraps exactly one PlanetGlyph (sun) and one SignGlyph, both
+    // sourced from the same `labelSz` — the sign glyph is requested at
+    // `labelSz * 0.8` before GLYPH_BOLDNESS_SCALE is applied, so isolating
+    // this pair avoids ambiguity with the 12 zodiac-ring sign glyphs (which
+    // use unrelated ring geometry, not labelSz). ChartWheel derives the sign
+    // from the planet's longitude (95.5°), not the mock's `sign: 'gemini'`
+    // field, which lands in cancer's 90–120° span (SIGN_ORDER index 3).
+    const sunPath = container.querySelector('path[data-planet="sun"]')!;
+    const sunGroup = sunPath.closest('g')!;
+    const signPath = sunGroup.querySelector('path[data-sign="cancer"]')!;
+    expect(signPath).not.toBeNull();
+
+    const sunSz = renderedGlyphSz(sunPath, 'sun'); // == labelSz (sun has no per-planet scale factor)
+
+    const signTransform = signPath.getAttribute('transform') ?? '';
+    const signMatch = signTransform.match(/scale\(([-\d.]+)\)/);
+    expect(signMatch).not.toBeNull();
+    const signPathData = getSignPathByIndex(3, 'classic', {})!; // 3 == cancer in SIGN_ORDER
+    const [, , vbW, vbH] = signPathData.viewBox.split(' ').map(Number);
+    const signSz = Number(signMatch![1]) * Math.max(vbW!, vbH!);
+
+    // Expected: signSz == sunSz * 0.8 * GLYPH_BOLDNESS_SCALE (0.8 * 0.94 = 0.752).
+    expect(signSz / sunSz).toBeCloseTo(0.8 * 0.94, 5);
+  });
+
+  it('renders the text-fallback planet glyph (no SVG path data) at reduced weight and size', () => {
+    const chartWithVertex: ChartResult = {
+      ...mockChartData,
+      planets: [
+        ...mockChartData.planets,
+        {
+          planet: 'vertex',
+          longitude: 200,
+          latitude: 0,
+          declination: 0,
+          distance: 1,
+          speed: 0,
+          sign: 'libra',
+          degree: 20,
+          minute: 0,
+          house: 4,
+          retrograde: false,
+        },
+      ],
+    };
+    const { container } = render(<ChartWheel chartData={chartWithVertex} size={400} />);
+    const sunPath = container.querySelector('path[data-planet="sun"]')!;
+    const labelSz = renderedGlyphSz(sunPath, 'sun'); // sun has no per-planet scale factor, so this == labelSz
+
+    const vertexText = container.querySelector('text[data-planet="vertex"]');
+    expect(vertexText).not.toBeNull();
+    // Best-effort weight knob (issue #57) — see GlyphIcon.tsx's
+    // TEXT_FALLBACK_WEIGHT comment for why this alone may not visibly
+    // thin DejaVuSans given only one bundled weight.
+    expect(vertexText!.getAttribute('font-weight')).toBe('300');
+    // font-size carries the mechanism that does have a visible effect:
+    // fontSize = labelSz * vertexScale(0.65) * TEXT_FALLBACK_SCALE(1.4) *
+    // GLYPH_BOLDNESS_SCALE(0.94) — precisely below the pre-#57 value that
+    // dropped the last factor.
+    const fontSize = Number(vertexText!.getAttribute('font-size'));
+    const expectedUnscaled = labelSz * 0.65 * 1.4;
+    expect(fontSize).toBeCloseTo(expectedUnscaled * 0.94, 5);
+    expect(fontSize).toBeLessThan(expectedUnscaled * 0.99);
   });
 });
 
