@@ -34,6 +34,20 @@ const GLYPH_STROKE_FACTOR = 0.03;
 // Sun and Moon read thin/light next to Mars even with the base boost.
 const GLYPH_EXTRA_STROKE: Record<string, number> = { sun: 1.9, moon: 1.9 };
 
+// issue #57: sign glyphs (SignGlyph below) never got the #32 stroke boost —
+// they're plain filled paths, same as GlyphIcon.tsx's SignGlyphIcon — so
+// GLYPH_STROKE_FACTOR doesn't apply to them and there's no boldness knob to
+// dial down directly. Same fix as GlyphIcon.tsx: shrink slightly, which
+// reads as visually lighter (less filled area) without materially moving
+// the glyph, since glyphTransform keeps it centered on (x, y) for any sz.
+// Also applied to both PlanetGlyph's and SignGlyph's text-<text> fallback
+// branches below, alongside GLYPH_EXTRA_STROKE's sibling constant
+// TEXT_FALLBACK_WEIGHT, for the same reason GlyphIcon.tsx sets it: the
+// bundled DejaVuSans has only one weight, so font-weight alone can't thin
+// those, but the size reduction can.
+const GLYPH_BOLDNESS_SCALE = 0.94;
+const TEXT_FALLBACK_WEIGHT = 300;
+
 /**
  * Shared degree-label font-size formula: a floor of `size * 0.0264` (so text
  * stays legible even in a thin band) that otherwise scales with the band's
@@ -73,7 +87,8 @@ function PlanetGlyph({ planet, x, y, sz, fill, rotate, opacity, glyphSet = DEFAU
   // full 1.4x larger than the path glyphs beside it (issue #28).
   return (
     <text data-planet={planet} x={x} y={y} textAnchor="middle" dominantBaseline="central"
-      fontSize={sz * TEXT_FALLBACK_SCALE} fontFamily={GLYPH_FONT} fill={fill} fillOpacity={opacity}
+      fontSize={sz * TEXT_FALLBACK_SCALE * GLYPH_BOLDNESS_SCALE} fontWeight={TEXT_FALLBACK_WEIGHT}
+      fontFamily={GLYPH_FONT} fill={fill} fillOpacity={opacity}
       transform={totalRotate ? `rotate(${totalRotate} ${x} ${y})` : undefined}>
       {getPlanetGlyph(planet)}
     </text>
@@ -86,13 +101,17 @@ function SignGlyph({ index, x, y, sz, fill, glyphSet = DEFAULT_GLYPH_SET, overri
   glyphSet?: string; overrides?: Record<string, string> | undefined;
 }): React.ReactElement {
   const pathData = getSignPathByIndex(index, glyphSet, overrides);
+  const sign = SIGN_ORDER[index] ?? '';
   if (pathData) {
-    return <path d={pathData.d} fill={fill} transform={glyphTransform(pathData.viewBox, x, y, sz)} />;
+    return (
+      <path data-sign={sign} d={pathData.d} fill={fill}
+        transform={glyphTransform(pathData.viewBox, x, y, sz * GLYPH_BOLDNESS_SCALE)} />
+    );
   }
   return (
-    <text x={x} y={y} textAnchor="middle" dominantBaseline="central"
-      fontSize={sz} fontFamily={GLYPH_FONT} fill={fill}>
-      {getSignGlyph(SIGN_ORDER[index] ?? '')}
+    <text data-sign={sign} x={x} y={y} textAnchor="middle" dominantBaseline="central"
+      fontSize={sz * GLYPH_BOLDNESS_SCALE} fontWeight={TEXT_FALLBACK_WEIGHT} fontFamily={GLYPH_FONT} fill={fill}>
+      {getSignGlyph(sign)}
     </text>
   );
 }

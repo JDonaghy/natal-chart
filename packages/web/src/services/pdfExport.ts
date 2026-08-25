@@ -220,6 +220,15 @@ export async function generateChartPdf(
     compress: true,
   });
 
+  // issue #57 scope decision: PDF export's glyphs (DejaVuSans, always
+  // 'normal' weight below) are left unchanged. The customer's "less bold on
+  // a cell phone screen" ask is about the on-screen web app; this PDF is a
+  // desktop/print artifact rendered via jsPDF's own embedded font instance,
+  // separate from the browser DOM entirely, so the on-screen fix (see
+  // ChartWheel.tsx's GLYPH_STROKE_FACTOR/GLYPH_BOLDNESS_SCALE and
+  // GlyphIcon.tsx's GLYPH_BOLDNESS_SCALE) doesn't reach it and wasn't
+  // extended here. Revisit if the customer confirms "entire app" was meant
+  // to include exported PDFs too.
   // Load fonts: DejaVuSans for astrological glyphs, Cormorant for degree/minute labels
   let fontLoaded: boolean;
   try {
