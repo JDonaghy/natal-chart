@@ -13,6 +13,7 @@ import { SaveChartDialog } from './SaveChartDialog';
 import { type GeocodeResult } from '../services/geocoding';
 import { CitySearch } from './CitySearch';
 import { TransitAspectGrid } from './TransitAspectGrid';
+import { TransitAspectList } from './TransitAspectList';
 import { formatPlanetName, formatSignName, filterTraditionalPlanets, filterTraditionalTransits } from '../utils/chart-helpers';
 import { formatLocationDisplay } from '../utils/formatLocation';
 import { PlanetGlyphIcon, SignGlyphIcon } from './GlyphIcon';
@@ -577,6 +578,8 @@ export const TransitView: React.FC = () => {
 
         {/* Aspects Tab */}
         <div style={{ display: activeTab === 'aspects' ? 'block' : 'none' }}>
+          {/* Astroseek-style natal-to-transit aspect list (issue #56) */}
+          {displayTransit && <TransitAspectList transitData={displayTransit} />}
           {/* Transit Aspect Grid */}
           {displayTransit && (
             <div className="card" style={{ marginTop: '1rem' }}>
