@@ -2,6 +2,7 @@ import React from 'react';
 import type { ZRTimeline, ZRPeriod } from '@natal-chart/core';
 import '../App.css';
 import { SignGlyphIcon } from './GlyphIcon';
+import { compactTableStyle, compactTableHeaderStyle, compactTableCellStyle } from '../utils/table-styles';
 
 // Element colors matching the chart wheel aesthetic
 const ELEMENT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -112,16 +113,16 @@ export const ReleasingTimeline: React.FC<ReleasingTimelineProps> = ({
 
       {/* Expandable table */}
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <table style={compactTableStyle}>
           <thead>
-            <tr style={{ borderBottom: '2px solid #b8860b' }}>
-              <th style={{ textAlign: 'left', padding: '0.5rem', width: '30px' }}></th>
-              <th style={{ textAlign: 'left', padding: '0.5rem' }}>Sign</th>
-              <th style={{ textAlign: 'left', padding: '0.5rem' }}>Ruler</th>
-              <th style={{ textAlign: 'left', padding: '0.5rem' }}>Start</th>
-              <th style={{ textAlign: 'left', padding: '0.5rem' }}>End</th>
-              <th style={{ textAlign: 'left', padding: '0.5rem' }}>Duration</th>
-              <th style={{ textAlign: 'center', padding: '0.5rem' }}>Markers</th>
+            <tr>
+              <th style={{ ...compactTableHeaderStyle, width: '24px' }}></th>
+              <th style={compactTableHeaderStyle}>Sign</th>
+              <th style={compactTableHeaderStyle}>Ruler</th>
+              <th style={compactTableHeaderStyle}>Start</th>
+              <th style={compactTableHeaderStyle}>End</th>
+              <th style={compactTableHeaderStyle}>Duration</th>
+              <th style={{ ...compactTableHeaderStyle, textAlign: 'center' }}>Markers</th>
             </tr>
           </thead>
           <tbody>
@@ -164,25 +165,24 @@ const PeriodRow: React.FC<PeriodRowProps> = ({ period, currentDate, depth }) => 
     <>
       <tr
         style={{
-          borderBottom: '1px solid #e8e0d0',
           backgroundColor: isActive ? '#fdf8e8' : 'transparent',
           cursor: hasSubs ? 'pointer' : 'default',
         }}
         onClick={() => hasSubs && setExpanded(!expanded)}
       >
-        <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+        <td style={{ ...compactTableCellStyle, textAlign: 'center' }}>
           {hasSubs && (
-            <span style={{ fontSize: '0.8rem', color: '#888' }}>
+            <span style={{ fontSize: '0.75rem', color: '#888' }}>
               {expanded ? '▾' : '▸'}
             </span>
           )}
         </td>
-        <td style={{ padding: '0.5rem', paddingLeft: `${0.5 + depth * 1.5}rem` }}>
+        <td style={{ ...compactTableCellStyle, paddingLeft: `${0.6 + depth * 1.2}rem`, whiteSpace: 'nowrap' }}>
           <SignGlyphIcon
             sign={period.sign}
-            size={depth === 0 ? '1.2rem' : '1rem'}
+            size={depth === 0 ? '1.1rem' : '0.95rem'}
             color={colors.text}
-            style={{ marginRight: '0.5rem' }}
+            style={{ marginRight: '0.4rem' }}
           />
           <span style={{
             fontWeight: depth === 0 ? 'bold' : 'normal',
@@ -192,11 +192,11 @@ const PeriodRow: React.FC<PeriodRowProps> = ({ period, currentDate, depth }) => 
           </span>
           {isActive && (
             <span style={{
-              marginLeft: '0.5rem',
-              fontSize: '0.75rem',
+              marginLeft: '0.4rem',
+              fontSize: '0.7rem',
               backgroundColor: '#b8860b',
               color: 'white',
-              padding: '0.1rem 0.4rem',
+              padding: '0.05rem 0.35rem',
               borderRadius: '3px',
               verticalAlign: 'middle',
             }}>
@@ -204,26 +204,26 @@ const PeriodRow: React.FC<PeriodRowProps> = ({ period, currentDate, depth }) => 
             </span>
           )}
         </td>
-        <td style={{ padding: '0.5rem', color: '#666' }}>
+        <td style={{ ...compactTableCellStyle, color: '#666', whiteSpace: 'nowrap' }}>
           {formatSign(period.ruler)}
         </td>
-        <td style={{ padding: '0.5rem', fontSize: '0.9rem' }}>
+        <td style={{ ...compactTableCellStyle, whiteSpace: 'nowrap' }}>
           {formatDate(period.startDate)}
         </td>
-        <td style={{ padding: '0.5rem', fontSize: '0.9rem' }}>
+        <td style={{ ...compactTableCellStyle, whiteSpace: 'nowrap' }}>
           {formatDate(period.endDate)}
         </td>
-        <td style={{ padding: '0.5rem', fontSize: '0.9rem', color: '#666' }}>
+        <td style={{ ...compactTableCellStyle, color: '#666', textAlign: 'center', whiteSpace: 'nowrap' }}>
           {formatDuration(period.durationDays, period.level)}
         </td>
-        <td style={{ padding: '0.5rem', textAlign: 'center' }}>
+        <td style={{ ...compactTableCellStyle, textAlign: 'center' }}>
           {period.isPeak && (
             <span
               title="Peak period (angular to Lot)"
               style={{
                 display: 'inline-block',
                 marginRight: '0.3rem',
-                fontSize: '0.85rem',
+                fontSize: '0.75rem',
                 color: '#b8860b',
                 fontWeight: 'bold',
               }}
@@ -236,7 +236,7 @@ const PeriodRow: React.FC<PeriodRowProps> = ({ period, currentDate, depth }) => 
               title={`Loosing of the Bond to ${formatSign(period.loosingSign || period.sign)} on ${formatDate(period.loosingDate)}`}
               style={{
                 display: 'inline-block',
-                fontSize: '0.85rem',
+                fontSize: '0.75rem',
                 color: '#CC4422',
                 fontWeight: 'bold',
               }}
@@ -250,7 +250,7 @@ const PeriodRow: React.FC<PeriodRowProps> = ({ period, currentDate, depth }) => 
               style={{
                 display: 'inline-block',
                 marginLeft: '0.3rem',
-                fontSize: '0.75rem',
+                fontSize: '0.7rem',
                 color: '#4A6B8A',
               }}
             >
