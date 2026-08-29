@@ -1,6 +1,7 @@
 import React from 'react';
 import type { TransitResult, TransitAspect } from '@natal-chart/core';
 import { getAspectGlyph, getAspectColor, formatPlanetName } from '../utils/chart-helpers';
+import { compactTableHeaderStyle, compactTableCellStyle } from '../utils/table-styles';
 import { PlanetGlyphIcon } from './GlyphIcon';
 
 /**
@@ -20,17 +21,12 @@ interface TransitAspectListProps {
   transitData: TransitResult;
 }
 
-const headerStyle: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '0.4rem 0.6rem',
-  borderBottom: '2px solid #d4c9a8',
-  backgroundColor: '#f5f0e8',
-  fontSize: '0.8rem',
-};
+// Shared with ReleasingTimeline (issue #61) via ../utils/table-styles, plus
+// this list's own nowrap requirement for planet/date cells.
+const headerStyle: React.CSSProperties = compactTableHeaderStyle;
 
 const cellStyle: React.CSSProperties = {
-  padding: '0.35rem 0.6rem',
-  borderBottom: '1px solid #e8e0d0',
+  ...compactTableCellStyle,
   whiteSpace: 'nowrap',
 };
 
